@@ -4,6 +4,7 @@ import 'package:servis_kontrol/core/theme/app_palette.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/auth/domain/user_role.dart';
 import 'package:servis_kontrol/features/dashboard/presentation/dashboard_page.dart';
+import 'package:servis_kontrol/features/revisions/presentation/revision_page.dart';
 import 'package:servis_kontrol/features/tasks/presentation/task_page.dart';
 
 enum AppSection { panel, tasks, revisions, team, performance, reports }
@@ -120,36 +121,6 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
       TeamRow('Merve Aydın', 'Operasyon Yöneticisi', 'Aktif', 6, 84),
       TeamRow('Seda Yılmaz', 'Saha Koordinatörü', 'Aktif', 4, 76),
       TeamRow('Onur Kaya', 'Teknisyen', 'Sahada', 3, 69),
-    ],
-  };
-
-  List<RevisionLine> get _reviewQueueLeft => switch (_role) {
-    UserRole.employee => const [
-      RevisionLine('Panel fotografi guncellemesi', 'Merkez Plaza / Seda'),
-      RevisionLine('Etiket okunurlugu', 'Nova Residence / QA'),
-    ],
-    UserRole.teamLead => const [
-      RevisionLine('Kamera altyapısı', 'Merkez Plaza / Onur'),
-      RevisionLine('UPS kapasite notu', 'Kuzey Atölye / Ece'),
-    ],
-    UserRole.manager => const [
-      RevisionLine('Kamera altyapısı', 'Merkez Plaza / Merve'),
-      RevisionLine('UPS kapasite notu', 'Kuzey Atölye / Seda'),
-    ],
-  };
-
-  List<RevisionLine> get _reviewQueueRight => switch (_role) {
-    UserRole.employee => const [
-      RevisionLine('Kablo rotasi notu', 'Nova Residence / QA'),
-      RevisionLine('Saha raporu ekle', 'Merkez Plaza / Sistem'),
-    ],
-    UserRole.teamLead => const [
-      RevisionLine('Isi pompasi etiketleme', 'Nova Residence / Onur'),
-      RevisionLine('Panel kablo rotasi', 'Merkez Plaza / Burak'),
-    ],
-    UserRole.manager => const [
-      RevisionLine('Isi pompasi etiketleme', 'Nova Residence / Onur'),
-      RevisionLine('Panel kablo rotasi', 'Merkez Plaza / Burak'),
     ],
   };
 
@@ -571,55 +542,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
   }
 
   Widget _revisionsPage(bool wide) {
-    final left = _RevisionBucket(
-      title: 'İnceleme Bekleyen',
-      subtitle: 'Durum: İncelemede',
-      items: _reviewQueueLeft,
-    );
-    final right = _RevisionBucket(
-      title: 'Revizyonda',
-      subtitle: 'Durum: Revizyonda',
-      items: _reviewQueueRight,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _PageHeader(
-          title: 'Revizyonlar',
-          subtitle:
-              'İnceleme bekleyen ve revizyondaki işleri tek ekrandan yönetin.',
-        ),
-        const SizedBox(height: 18),
-        const _Card(
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              _SearchBox(hint: 'Görev / proje ara...'),
-              _FilterPill(label: 'Proje', value: 'Tümü'),
-              _ActionPill(label: 'Filtrele', filled: true),
-              _ActionPill(label: 'Sıfırla'),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (wide)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: left),
-              const SizedBox(width: 16),
-              Expanded(child: right),
-            ],
-          )
-        else ...[
-          left,
-          const SizedBox(height: 16),
-          right,
-        ],
-      ],
-    );
+    return RevisionPage(user: _user);
   }
 
   Widget _teamPage(bool wide) {
@@ -1124,158 +1047,23 @@ class _ActivityCard extends StatelessWidget {
   }
 }
 
-class _RevisionBucket extends StatelessWidget {
-  const _RevisionBucket({
-    required this.title,
-    required this.subtitle,
-    required this.items,
-  });
-  final String title;
-  final String subtitle;
-  final List<RevisionLine> items;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionHeader(
-            title: title,
-            subtitle: subtitle,
-            action: '${items.length}',
-          ),
-          const SizedBox(height: 16),
-          for (final item in items)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppPalette.background,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppPalette.border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: AppPalette.text,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(item.meta),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SearchBox extends StatelessWidget {
-  const _SearchBox({required this.hint});
-  final String hint;
-
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 240, maxWidth: 420),
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: hint,
-          isDense: true,
-          prefixIcon: const Icon(Icons.search_rounded),
-          filled: true,
-          fillColor: AppPalette.background,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: AppPalette.border),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: AppPalette.border),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FilterPill extends StatelessWidget {
-  const _FilterPill({required this.label, required this.value});
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppPalette.background,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppPalette.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '$label  ',
-            style: const TextStyle(
-              color: AppPalette.muted,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              color: AppPalette.text,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
-        ],
-      ),
-    );
-  }
-}
-
 class _ActionPill extends StatelessWidget {
-  const _ActionPill({required this.label, this.filled = false});
+  const _ActionPill({required this.label});
   final String label;
-  final bool filled;
 
   @override
   Widget build(BuildContext context) {
-    return filled
-        ? FilledButton(
-            onPressed: () {},
-            style: FilledButton.styleFrom(
-              backgroundColor: AppPalette.primary,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: Text(label),
-          )
-        : OutlinedButton(
-            onPressed: () {},
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              side: const BorderSide(color: AppPalette.border),
-            ),
-            child: Text(label, style: const TextStyle(color: AppPalette.text)),
-          );
+    return OutlinedButton(
+      onPressed: () {},
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        side: const BorderSide(color: AppPalette.border),
+      ),
+      child: Text(label, style: const TextStyle(color: AppPalette.text)),
+    );
   }
 }
 
@@ -1507,12 +1295,6 @@ class ProjectRow {
   final String name;
   final String type;
   final double progress;
-}
-
-class RevisionLine {
-  const RevisionLine(this.title, this.meta);
-  final String title;
-  final String meta;
 }
 
 class PerformanceRowData {
