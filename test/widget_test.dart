@@ -12,7 +12,7 @@ void main() {
     await tester.pumpWidget(const ServisKontrolApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Giriş Yap'), findsOneWidget);
+    expect(find.text('Workflow Giriş'), findsOneWidget);
 
     await tester.enterText(
       find.byType(TextFormField).at(0),

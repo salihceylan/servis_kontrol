@@ -106,14 +106,21 @@ class _WorkflowHeroBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [AppPalette.sidebar, AppPalette.sidebarSoft],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: const [
+          BoxShadow(
+            color: AppPalette.shadow,
+            blurRadius: 28,
+            offset: Offset(0, 16),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,7 +129,7 @@ class _WorkflowHeroBanner extends StatelessWidget {
             snapshot.heroTitle,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 28,
+              fontSize: 26,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -194,7 +201,7 @@ class _DashboardCard extends StatelessWidget {
         border: Border.all(color: AppPalette.border),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x12051830),
+            color: AppPalette.shadow,
             blurRadius: 24,
             offset: Offset(0, 10),
           ),

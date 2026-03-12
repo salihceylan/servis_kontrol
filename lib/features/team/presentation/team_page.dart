@@ -375,7 +375,7 @@ class _ActionCard extends StatelessWidget {
         ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x12051830),
+            color: AppPalette.shadow,
             blurRadius: 20,
             offset: Offset(0, 10),
           ),
@@ -453,7 +453,7 @@ class _MetricCard extends StatelessWidget {
         border: Border.all(color: AppPalette.border),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x12051830),
+            color: AppPalette.shadow,
             blurRadius: 20,
             offset: Offset(0, 10),
           ),
@@ -1014,7 +1014,7 @@ class _SectionCard extends StatelessWidget {
         border: Border.all(color: AppPalette.border),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x12051830),
+            color: AppPalette.shadow,
             blurRadius: 20,
             offset: Offset(0, 10),
           ),

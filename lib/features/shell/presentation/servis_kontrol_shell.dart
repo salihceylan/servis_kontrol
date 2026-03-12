@@ -197,10 +197,11 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: AppPalette.sidebarSoft,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
             ),
             child: const Row(
               children: [
@@ -221,7 +222,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                         'ServisKontrol Pro',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 15,
+                          fontSize: 14,
                           fontWeight: FontWeight.w800,
                         ),
                         maxLines: 1,
@@ -321,7 +322,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
             ),
             child: Row(
@@ -394,7 +395,12 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
     final primaryAction = _primaryAction;
 
     return Container(
-      color: Colors.white,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: AppPalette.border),
+        ),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
@@ -411,18 +417,8 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
               child: TextField(
                 decoration: InputDecoration(
                   hintText: 'Ara...',
-                  isDense: true,
                   prefixIcon: const Icon(Icons.search_rounded),
-                  filled: true,
-                  fillColor: AppPalette.background,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: AppPalette.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: AppPalette.border),
-                  ),
+                  fillColor: AppPalette.surfaceMuted,
                 ),
               ),
             ),
@@ -464,7 +460,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
               backgroundColor: AppPalette.primary,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(18),
               ),
             ),
             icon: Icon(primaryAction.$2),
@@ -742,7 +738,7 @@ class _Card extends StatelessWidget {
         border: Border.all(color: AppPalette.border),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x12051830),
+            color: AppPalette.shadow,
             blurRadius: 24,
             offset: Offset(0, 10),
           ),

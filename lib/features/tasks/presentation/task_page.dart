@@ -190,7 +190,7 @@ class _TaskMetricCard extends StatelessWidget {
         border: Border.all(color: AppPalette.border),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x12051830),
+            color: AppPalette.shadow,
             blurRadius: 20,
             offset: Offset(0, 10),
           ),
@@ -418,7 +418,7 @@ class _TaskListPanel extends StatelessWidget {
         border: Border.all(color: AppPalette.border),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x12051830),
+            color: AppPalette.shadow,
             blurRadius: 20,
             offset: Offset(0, 10),
           ),
@@ -569,7 +569,7 @@ class _TaskDetailPanel extends StatelessWidget {
         border: Border.all(color: AppPalette.border),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x12051830),
+            color: AppPalette.shadow,
             blurRadius: 20,
             offset: Offset(0, 10),
           ),

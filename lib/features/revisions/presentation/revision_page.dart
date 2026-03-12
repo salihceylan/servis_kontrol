@@ -220,7 +220,7 @@ class _RevisionMetricCard extends StatelessWidget {
         border: Border.all(color: AppPalette.border),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x12051830),
+            color: AppPalette.shadow,
             blurRadius: 20,
             offset: Offset(0, 10),
           ),
@@ -380,7 +380,7 @@ class _QueueCard extends StatelessWidget {
         border: Border.all(color: AppPalette.border),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x12051830),
+            color: AppPalette.shadow,
             blurRadius: 20,
             offset: Offset(0, 10),
           ),
@@ -534,7 +534,7 @@ class _RevisionDetailPanel extends StatelessWidget {
         border: Border.all(color: AppPalette.border),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x12051830),
+            color: AppPalette.shadow,
             blurRadius: 20,
             offset: Offset(0, 10),
           ),

@@ -58,7 +58,34 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Parolamı unuttum'),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      backgroundColor: Colors.white,
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+      contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+      title: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Parolamı unuttum',
+            style: TextStyle(
+              color: AppPalette.text,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(height: 6),
+          Text(
+            'Hesabına bağlı e-posta adresini gir. Sıfırlama bağlantısı için talep oluşturulsun.',
+            style: TextStyle(
+              color: AppPalette.muted,
+              height: 1.5,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
       content: SizedBox(
         width: 420,
         child: Column(
@@ -70,7 +97,12 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
                 labelText: 'E-posta',
-                border: OutlineInputBorder(),
+                hintText: 'yonetici@workflow.local',
+                prefixIcon: Icon(
+                  Icons.alternate_email_rounded,
+                  color: AppPalette.muted,
+                  size: 20,
+                ),
               ),
             ),
             if (_message != null) ...[
@@ -79,10 +111,14 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
                 decoration: BoxDecoration(
                   color: (_isSuccess ? AppPalette.success : AppPalette.danger)
                       .withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: (_isSuccess ? AppPalette.success : AppPalette.danger)
+                        .withValues(alpha: 0.16),
+                  ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   child: Text(
                     _message!,
                     style: TextStyle(

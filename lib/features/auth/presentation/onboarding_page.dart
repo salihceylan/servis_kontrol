@@ -79,17 +79,25 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 1000;
-            return Row(
-              children: [
-                if (wide) _OnboardingRail(step: _step, user: widget.user),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.all(wide ? 28 : 18),
-                    child: Column(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFF7F9FC), Color(0xFFEAF0FA)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final wide = constraints.maxWidth >= 1000;
+              return Row(
+                children: [
+                  if (wide) _OnboardingRail(step: _step, user: widget.user),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.all(wide ? 28 : 18),
+                      child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
@@ -100,6 +108,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                   color: AppPalette.text,
                                   fontWeight: FontWeight.w800,
+                                  fontSize: 28,
                                 ),
                               ),
                             ),
@@ -112,12 +121,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         ),
                         const SizedBox(height: 8),
                         const SizedBox(height: 18),
-                        LinearProgressIndicator(
-                          value: (_step + 1) / 4,
-                          minHeight: 10,
+                        ClipRRect(
                           borderRadius: BorderRadius.circular(999),
-                          backgroundColor: AppPalette.primarySoft,
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppPalette.primary),
+                          child: LinearProgressIndicator(
+                            value: (_step + 1) / 4,
+                            minHeight: 10,
+                            backgroundColor: AppPalette.primarySoft,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              AppPalette.primary,
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 18),
                         Expanded(
@@ -291,11 +304,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         ),
                       ],
                     ),
+                    ),
                   ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -315,7 +329,13 @@ class _OnboardingRail extends StatelessWidget {
     return Container(
       width: 320,
       padding: const EdgeInsets.all(28),
-      color: AppPalette.sidebar,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppPalette.sidebar, AppPalette.sidebarSoft],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -402,11 +422,12 @@ class _OnboardingCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppPalette.border),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x11000000),
-            blurRadius: 18,
-            offset: Offset(0, 12),
+            color: AppPalette.shadow,
+            blurRadius: 24,
+            offset: Offset(0, 14),
           ),
         ],
       ),
