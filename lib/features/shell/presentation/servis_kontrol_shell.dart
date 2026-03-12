@@ -6,6 +6,7 @@ import 'package:servis_kontrol/features/auth/domain/user_role.dart';
 import 'package:servis_kontrol/features/dashboard/presentation/dashboard_page.dart';
 import 'package:servis_kontrol/features/revisions/presentation/revision_page.dart';
 import 'package:servis_kontrol/features/tasks/presentation/task_page.dart';
+import 'package:servis_kontrol/features/team/presentation/team_page.dart';
 
 enum AppSection { panel, tasks, revisions, team, performance, reports }
 
@@ -106,24 +107,6 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
     ],
   };
 
-  List<TeamRow> get _teamRows => switch (_role) {
-    UserRole.employee => [
-      TeamRow(_user.name, _user.jobTitle, 'Sahada', 3, 72),
-      const TeamRow('Seda Yılmaz', 'Ekip Lideri', 'Aktif', 5, 78),
-      const TeamRow('Merve Aydın', 'Operasyon Yöneticisi', 'Aktif', 7, 88),
-    ],
-    UserRole.teamLead => [
-      TeamRow(_user.name, _user.jobTitle, 'Aktif', 6, 81),
-      const TeamRow('Onur Kaya', 'Saha Teknisyeni', 'Sahada', 3, 69),
-      const TeamRow('Burak Demir', 'Teknik Uzman', 'Aktif', 4, 74),
-    ],
-    UserRole.manager => const [
-      TeamRow('Merve Aydın', 'Operasyon Yöneticisi', 'Aktif', 6, 84),
-      TeamRow('Seda Yılmaz', 'Saha Koordinatörü', 'Aktif', 4, 76),
-      TeamRow('Onur Kaya', 'Teknisyen', 'Sahada', 3, 69),
-    ],
-  };
-
   List<PerformanceRowData> get _performanceRows => switch (_role) {
     UserRole.employee => [
       PerformanceRowData(_user.name, _user.jobTitle, '3', '9', '86%', '1', '0.8', '72 / 100 - Gelişiyor', AppPalette.warning),
@@ -163,26 +146,6 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
     ],
   };
 
-  List<StatData> get _teamOverviewStats => switch (_role) {
-    UserRole.employee => const [
-      StatData(Icons.groups_2_rounded, 'Bağlı Ekip', '3', 'Yakından çalıştığın kişiler', AppPalette.primary),
-      StatData(Icons.task_rounded, 'Üzerimde Açık', '3', 'Aktif saha işi', AppPalette.warning),
-      StatData(Icons.pending_actions_rounded, 'Bekleyen Geri Dönüş', '2', 'İnceleme notu', AppPalette.danger),
-      StatData(Icons.analytics_rounded, 'Kişisel Skor', '72', 'Son 30 gün', AppPalette.success),
-    ],
-    UserRole.teamLead => const [
-      StatData(Icons.groups_2_rounded, 'Toplam Çalışan', '8', 'Aktif ekip', AppPalette.primary),
-      StatData(Icons.task_rounded, 'Aktif Görevler', '19', 'Dağıtılmış iş', AppPalette.warning),
-      StatData(Icons.pending_actions_rounded, 'Bekleyen Onaylar', '4', 'Kontrol kuyruğu', AppPalette.danger),
-      StatData(Icons.analytics_rounded, 'Ekip Performansı', '%81', 'Ortalama skor', AppPalette.success),
-    ],
-    UserRole.manager => const [
-      StatData(Icons.groups_2_rounded, 'Toplam Çalışan', '14', 'Aktif personel', AppPalette.primary),
-      StatData(Icons.task_rounded, 'Aktif Görevler', '27', 'Açık görev', AppPalette.warning),
-      StatData(Icons.pending_actions_rounded, 'Bekleyen Onaylar', '5', 'İnceleme kuyruğu', AppPalette.danger),
-      StatData(Icons.analytics_rounded, 'Ekip Performansı', '%78', 'Ortalama skor', AppPalette.success),
-    ],
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -541,127 +504,15 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
     return TaskPage(user: _user);
   }
 
-  Widget _revisionsPage(bool wide) {
+  Widget _revisionsPage(bool _) {
     return RevisionPage(user: _user);
   }
 
-  Widget _teamPage(bool wide) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _PageHeader(
-          title: _role == UserRole.employee
-              ? 'Bagli Oldugun Ekip'
-              : 'Ekibe Genel Bakış',
-          subtitle: _role == UserRole.employee
-              ? 'Liderin, yönetici notları ve ekip görünümü burada.'
-              : 'Ekibinizin performansını ve görevlerini etkili şekilde yönetin.',
-        ),
-        const SizedBox(height: 18),
-        Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          children: [
-            for (final stat in _teamOverviewStats)
-              SizedBox(width: 300, child: _StatCard(data: stat)),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (wide)
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 4, child: _teamTable()),
-              const SizedBox(width: 16),
-              const Expanded(
-                flex: 2,
-                child: _Card(
-                  child: _EmptyNote(
-                    title: 'Bekleyen Düzeltmeler',
-                    subtitle: 'İnceleme / revizyon kuyruğu',
-                    message: 'Bekleyen iş yok.',
-                  ),
-                ),
-              ),
-            ],
-          )
-        else ...[
-          _teamTable(),
-          const SizedBox(height: 16),
-          const _Card(
-            child: _EmptyNote(
-              title: 'Bekleyen Düzeltmeler',
-              subtitle: 'İnceleme / revizyon kuyruğu',
-              message: 'Bekleyen iş yok.',
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _teamTable() {
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _SectionHeader(
-            title: 'Çalışan Performansı',
-            subtitle: 'Kişi bazlı özet',
-            action: 'Tümünü Gör',
-          ),
-          const SizedBox(height: 16),
-          _TableCard(
-            headers: const [
-              'Çalışan',
-              'Durum',
-              'Aktif Görevler',
-              'Performans',
-              'İşlemler',
-            ],
-            rows: [
-              for (final row in _teamRows)
-                [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: AppPalette.primarySoft,
-                        child: Text(
-                          row.name[0],
-                          style: const TextStyle(
-                            color: AppPalette.primary,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            row.name,
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(row.role),
-                        ],
-                      ),
-                    ],
-                  ),
-                  _Badge(
-                    label: row.status,
-                    color: row.status == 'Aktif'
-                        ? AppPalette.success
-                        : AppPalette.warning,
-                  ),
-                  Text('${row.activeTasks} Görev'),
-                  _ScoreBar(score: row.score),
-                  const Icon(Icons.visibility_outlined, size: 18),
-                ],
-            ],
-          ),
-        ],
-      ),
+  Widget _teamPage(bool _) {
+    return TeamPage(
+      user: _user,
+      onOpenTasks: () => setState(() => _selected = AppSection.tasks),
+      onOpenRevisions: () => setState(() => _selected = AppSection.revisions),
     );
   }
 
@@ -1132,46 +983,6 @@ class _Badge extends StatelessWidget {
   }
 }
 
-class _ScoreBar extends StatelessWidget {
-  const _ScoreBar({required this.score});
-  final int score;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = score >= 80
-        ? AppPalette.success
-        : score >= 70
-        ? AppPalette.warning
-        : AppPalette.danger;
-    return SizedBox(
-      width: 150,
-      child: Row(
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                value: score / 100,
-                minHeight: 8,
-                backgroundColor: AppPalette.primarySoft,
-                valueColor: AlwaysStoppedAnimation<Color>(color),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            '$score',
-            style: const TextStyle(
-              fontWeight: FontWeight.w700,
-              color: AppPalette.text,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SidebarMeta extends StatelessWidget {
   const _SidebarMeta({required this.icon, required this.label});
   final IconData icon;
@@ -1236,29 +1047,6 @@ class _RoundAction extends StatelessWidget {
   }
 }
 
-class _EmptyNote extends StatelessWidget {
-  const _EmptyNote({
-    required this.title,
-    required this.subtitle,
-    required this.message,
-  });
-  final String title;
-  final String subtitle;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeader(title: title, subtitle: subtitle),
-        const SizedBox(height: 16),
-        Text(message, style: const TextStyle(color: AppPalette.muted)),
-      ],
-    );
-  }
-}
-
 class StatData {
   const StatData(this.icon, this.title, this.value, this.caption, this.color);
   final IconData icon;
@@ -1273,21 +1061,6 @@ class ActivityRow {
   final String title;
   final String subtitle;
   final Color color;
-}
-
-class TeamRow {
-  const TeamRow(
-    this.name,
-    this.role,
-    this.status,
-    this.activeTasks,
-    this.score,
-  );
-  final String name;
-  final String role;
-  final String status;
-  final int activeTasks;
-  final int score;
 }
 
 class ProjectRow {
