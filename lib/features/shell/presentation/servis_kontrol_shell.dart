@@ -4,6 +4,7 @@ import 'package:servis_kontrol/core/theme/app_palette.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/auth/domain/user_role.dart';
 import 'package:servis_kontrol/features/dashboard/presentation/dashboard_page.dart';
+import 'package:servis_kontrol/features/tasks/presentation/task_page.dart';
 
 enum AppSection { panel, tasks, revisions, team, performance, reports }
 
@@ -84,48 +85,6 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
       AppSection.revisions,
     ),
     UserRole.manager => ('Görev Ata', Icons.add_rounded, AppSection.team),
-  };
-
-  List<TaskRow> get _tasks => switch (_role) {
-    UserRole.employee => [
-      TaskRow(
-        'Asansor test formu',
-        'Kuzey Atölye',
-        _user.firstName,
-        'Devam Ediyor',
-        'Orta',
-        '2026-03-13',
-        '2026-03-12 09:20',
-      ),
-      TaskRow(
-        'Yangın pompa kontrolü',
-        'Merkez Plaza',
-        _user.firstName,
-        'Beklemede',
-        'Yüksek',
-        '2026-03-12',
-        '2026-03-12 08:10',
-      ),
-      TaskRow(
-        'Klima saha fotoğrafı',
-        'Nova Residence',
-        _user.firstName,
-        'Revizyonda',
-        'Düşük',
-        '2026-03-14',
-        '2026-03-11 17:45',
-      ),
-    ],
-    UserRole.teamLead => const [
-      TaskRow('Jeneratör periyodik kontrol', 'Merkez Plaza', 'Onur', 'Devam Ediyor', 'Yüksek', '2026-03-11', '2026-03-10 09:14'),
-      TaskRow('Yangın paneli raporu', 'Nova Residence', 'Burak', 'Beklemede', 'Orta', '2026-03-12', '2026-03-10 08:05'),
-      TaskRow('Asansör test formu', 'Kuzey Atölye', 'Ece', 'İncelemede', 'Düşük', '2026-03-13', '2026-03-09 18:40'),
-    ],
-    UserRole.manager => const [
-      TaskRow('Jeneratör periyodik kontrol', 'Merkez Plaza', 'Merve', 'Devam Ediyor', 'Yüksek', '2026-03-11', '2026-03-10 09:14'),
-      TaskRow('Yangın paneli raporu', 'Nova Residence', 'Seda', 'Beklemede', 'Orta', '2026-03-12', '2026-03-10 08:05'),
-      TaskRow('Asansör test formu', 'Kuzey Atölye', 'Onur', 'Devam Ediyor', 'Düşük', '2026-03-13', '2026-03-09 18:40'),
-    ],
   };
 
   List<ActivityRow> get _activities => switch (_role) {
@@ -608,76 +567,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
   }
 
   Widget _tasksPage() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _PageHeader(
-          title: 'Görevler',
-          subtitle: 'Arama, filtreleme ve görev detayına hızlı erişim.',
-        ),
-        const SizedBox(height: 18),
-        _Card(
-          child: Column(
-            children: [
-              const Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  _SearchBox(hint: 'Görev / proje ara...'),
-                  _FilterPill(label: 'Durum', value: 'Tümü'),
-                  _FilterPill(label: 'Öncelik', value: 'Tümü'),
-                  _FilterPill(label: 'Proje', value: 'Tümü'),
-                  _ActionPill(label: 'Filtrele', filled: true),
-                  _ActionPill(label: 'Sıfırla'),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _TableCard(
-                headers: const [
-                  'Görev',
-                  'Proje',
-                  'Atanan',
-                  'Durum',
-                  'Öncelik',
-                  'Son Teslim',
-                  'Güncelleme',
-                ],
-                rows: [
-                  for (final task in _tasks)
-                    [
-                      Text(
-                        task.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: AppPalette.primary,
-                        ),
-                      ),
-                      Text(task.project),
-                      Text(task.assignee),
-                      _Badge(
-                        label: task.status,
-                        color: task.status == 'Beklemede'
-                            ? AppPalette.warning
-                            : AppPalette.primary,
-                      ),
-                      _Badge(
-                        label: task.priority,
-                        color: task.priority == 'Yüksek'
-                            ? AppPalette.danger
-                            : task.priority == 'Orta'
-                            ? AppPalette.warning
-                            : AppPalette.success,
-                      ),
-                      Text(task.dueDate),
-                      Text(task.updatedAt),
-                    ],
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
+    return TaskPage(user: _user);
   }
 
   Widget _revisionsPage(bool wide) {
@@ -1588,25 +1478,6 @@ class StatData {
   final String value;
   final String caption;
   final Color color;
-}
-
-class TaskRow {
-  const TaskRow(
-    this.title,
-    this.project,
-    this.assignee,
-    this.status,
-    this.priority,
-    this.dueDate,
-    this.updatedAt,
-  );
-  final String title;
-  final String project;
-  final String assignee;
-  final String status;
-  final String priority;
-  final String dueDate;
-  final String updatedAt;
 }
 
 class ActivityRow {
