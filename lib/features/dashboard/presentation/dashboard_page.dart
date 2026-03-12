@@ -332,8 +332,8 @@ class _KpiPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _SectionHeader(
-            title: 'KPI Widgetlari',
-            subtitle: 'Performans puani, sure ve kalite ozetleri',
+            title: 'KPI Widgetları',
+            subtitle: 'Performans puanı, süre ve kalite özetleri',
           ),
           const SizedBox(height: 18),
           for (final metric in metrics)
@@ -403,7 +403,7 @@ class _NotificationPanel extends StatelessWidget {
         children: [
           const _SectionHeader(
             title: 'Bildirim Merkezi',
-            subtitle: 'Okunmamis ozetler ve kritik uyarilar',
+            subtitle: 'Okunmamış özetler ve kritik uyarılar',
           ),
           const SizedBox(height: 18),
           for (final notification in notifications)
@@ -471,7 +471,7 @@ class _FocusPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _SectionHeader(
-            title: 'Bugun Ne Yapilmali?',
+            title: 'Bugün Ne Yapılmalı?',
             subtitle: 'Panelin karar ve aksiyon listesi',
           ),
           const SizedBox(height: 18),
@@ -553,7 +553,7 @@ class _ProjectPanel extends StatelessWidget {
         children: [
           const _SectionHeader(
             title: 'Aktif Projeler',
-            subtitle: 'Panel ana sayfasinda izlenen proje akisi',
+            subtitle: 'Panel ana sayfasında izlenen proje akışı',
           ),
           const SizedBox(height: 18),
           for (final project in projects) ...[

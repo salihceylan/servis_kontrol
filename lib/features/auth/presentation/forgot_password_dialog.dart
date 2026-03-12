@@ -58,7 +58,7 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Parolami unuttum'),
+      title: const Text('Parolamı unuttum'),
       content: SizedBox(
         width: 420,
         child: Column(
@@ -103,7 +103,7 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
         ),
         FilledButton(
           onPressed: _submitting ? null : _submit,
-          child: Text(_submitting ? 'Gonderiliyor...' : 'Baglanti Gonder'),
+          child: Text(_submitting ? 'Gönderiliyor...' : 'Bağlantı Gönder'),
         ),
       ],
     );

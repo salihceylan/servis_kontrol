@@ -27,7 +27,7 @@ class AuthController extends ChangeNotifier {
     final difference = _lockedUntil!.difference(DateTime.now());
     final minutes = difference.inMinutes.clamp(0, 59);
     final seconds = difference.inSeconds.remainder(60).clamp(0, 59);
-    return '5 hatali deneme nedeniyle giris gecici olarak kilitlendi. '
+    return '5 hatalı deneme nedeniyle giriş geçici olarak kilitlendi. '
         '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')} sonra tekrar deneyin.';
   }
 
@@ -49,7 +49,7 @@ class AuthController extends ChangeNotifier {
       }
       notifyListeners();
       return AuthResult.failure(
-        'Kullanici bilgileri hatali. '
+        'Kullanıcı bilgileri hatalı. '
         'Kalan deneme: ${5 - _failedAttempts}',
       );
     }
@@ -61,25 +61,25 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
 
     return AuthResult.success(
-      'Giris basarili.',
+      'Giriş başarılı.',
     );
   }
 
   Future<AuthResult> requestPasswordReset(String email) async {
     final normalized = email.trim().toLowerCase();
     if (normalized.isEmpty || !normalized.contains('@')) {
-      return AuthResult.failure('Gecerli bir e-posta adresi girin.');
+      return AuthResult.failure('Geçerli bir e-posta adresi girin.');
     }
 
     final exists = await _repository.requestPasswordReset(normalized);
     if (exists) {
       return AuthResult.success(
-        'Sifre sifirlama baglantisi $normalized adresine gonderildi.',
+        'Şifre sıfırlama bağlantısı $normalized adresine gönderildi.',
       );
     }
 
     return AuthResult.success(
-      'Bu adres sistemde kayitliysa sifirlama baglantisi gonderilecektir.',
+      'Bu adres sistemde kayıtlıysa sıfırlama bağlantısı gönderilecektir.',
     );
   }
 

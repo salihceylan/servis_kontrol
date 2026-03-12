@@ -30,20 +30,20 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
   List<(AppSection, String, IconData, String?)> get _sidebarItems => switch (_role) {
     UserRole.employee => [
       (AppSection.panel, 'Panel', Icons.grid_view_rounded, null),
-      (AppSection.tasks, 'Gorevler', Icons.task_alt_rounded, '3'),
+      (AppSection.tasks, 'Görevler', Icons.task_alt_rounded, '3'),
       (AppSection.revisions, 'Revizyonlar', Icons.autorenew_rounded, '1'),
       (AppSection.performance, 'Performans', Icons.insights_rounded, null),
     ],
     UserRole.teamLead => [
       (AppSection.panel, 'Panel', Icons.grid_view_rounded, null),
-      (AppSection.tasks, 'Gorevler', Icons.task_alt_rounded, '6'),
+      (AppSection.tasks, 'Görevler', Icons.task_alt_rounded, '6'),
       (AppSection.revisions, 'Revizyonlar', Icons.autorenew_rounded, '4'),
       (AppSection.team, 'Ekip', Icons.groups_2_outlined, null),
       (AppSection.performance, 'Performans', Icons.insights_rounded, null),
     ],
     UserRole.manager => [
       (AppSection.panel, 'Panel', Icons.grid_view_rounded, null),
-      (AppSection.tasks, 'Gorevler', Icons.task_alt_rounded, '9'),
+      (AppSection.tasks, 'Görevler', Icons.task_alt_rounded, '9'),
       (AppSection.revisions, 'Revizyonlar', Icons.autorenew_rounded, '5'),
       (AppSection.team, 'Ekip', Icons.groups_2_outlined, null),
       (AppSection.performance, 'Performans', Icons.insights_rounded, null),
@@ -54,43 +54,43 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
   List<(AppSection, String)> get _topNavItems => switch (_role) {
     UserRole.employee => [
       (AppSection.panel, 'Panel'),
-      (AppSection.tasks, 'Gorevler'),
+      (AppSection.tasks, 'Görevler'),
       (AppSection.revisions, 'Revizyonlar'),
       (AppSection.performance, 'Performans'),
     ],
     UserRole.teamLead => [
       (AppSection.panel, 'Panel'),
       (AppSection.team, 'Ekip'),
-      (AppSection.tasks, 'Gorevler'),
+      (AppSection.tasks, 'Görevler'),
       (AppSection.revisions, 'Revizyonlar'),
     ],
     UserRole.manager => [
       (AppSection.panel, 'Panel'),
-      (AppSection.team, 'Calisanlar'),
-      (AppSection.tasks, 'Gorevler'),
+      (AppSection.team, 'Çalışanlar'),
+      (AppSection.tasks, 'Görevler'),
       (AppSection.reports, 'Raporlar'),
     ],
   };
 
   (String, IconData, AppSection) get _primaryAction => switch (_role) {
     UserRole.employee => (
-      'Teslim Guncelle',
+      'Teslim Güncelle',
       Icons.playlist_add_check_circle_rounded,
       AppSection.tasks,
     ),
     UserRole.teamLead => (
-      'Revizyonlari Incele',
+      'Revizyonları İncele',
       Icons.rate_review_rounded,
       AppSection.revisions,
     ),
-    UserRole.manager => ('Gorev Ata', Icons.add_rounded, AppSection.team),
+    UserRole.manager => ('Görev Ata', Icons.add_rounded, AppSection.team),
   };
 
   List<TaskRow> get _tasks => switch (_role) {
     UserRole.employee => [
       TaskRow(
         'Asansor test formu',
-        'Kuzey Atolye',
+        'Kuzey Atölye',
         _user.firstName,
         'Devam Ediyor',
         'Orta',
@@ -98,59 +98,59 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
         '2026-03-12 09:20',
       ),
       TaskRow(
-        'Yangin pompa kontrolu',
+        'Yangın pompa kontrolü',
         'Merkez Plaza',
         _user.firstName,
         'Beklemede',
-        'Yuksek',
+        'Yüksek',
         '2026-03-12',
         '2026-03-12 08:10',
       ),
       TaskRow(
-        'Klima saha fotografi',
+        'Klima saha fotoğrafı',
         'Nova Residence',
         _user.firstName,
         'Revizyonda',
-        'Dusuk',
+        'Düşük',
         '2026-03-14',
         '2026-03-11 17:45',
       ),
     ],
     UserRole.teamLead => const [
-      TaskRow('Jenerator periyodik kontrol', 'Merkez Plaza', 'Onur', 'Devam Ediyor', 'Yuksek', '2026-03-11', '2026-03-10 09:14'),
-      TaskRow('Yangin paneli raporu', 'Nova Residence', 'Burak', 'Beklemede', 'Orta', '2026-03-12', '2026-03-10 08:05'),
-      TaskRow('Asansor test formu', 'Kuzey Atolye', 'Ece', 'Incelemede', 'Dusuk', '2026-03-13', '2026-03-09 18:40'),
+      TaskRow('Jeneratör periyodik kontrol', 'Merkez Plaza', 'Onur', 'Devam Ediyor', 'Yüksek', '2026-03-11', '2026-03-10 09:14'),
+      TaskRow('Yangın paneli raporu', 'Nova Residence', 'Burak', 'Beklemede', 'Orta', '2026-03-12', '2026-03-10 08:05'),
+      TaskRow('Asansör test formu', 'Kuzey Atölye', 'Ece', 'İncelemede', 'Düşük', '2026-03-13', '2026-03-09 18:40'),
     ],
     UserRole.manager => const [
-      TaskRow('Jenerator periyodik kontrol', 'Merkez Plaza', 'Merve', 'Devam Ediyor', 'Yuksek', '2026-03-11', '2026-03-10 09:14'),
-      TaskRow('Yangin paneli raporu', 'Nova Residence', 'Seda', 'Beklemede', 'Orta', '2026-03-12', '2026-03-10 08:05'),
-      TaskRow('Asansor test formu', 'Kuzey Atolye', 'Onur', 'Devam Ediyor', 'Dusuk', '2026-03-13', '2026-03-09 18:40'),
+      TaskRow('Jeneratör periyodik kontrol', 'Merkez Plaza', 'Merve', 'Devam Ediyor', 'Yüksek', '2026-03-11', '2026-03-10 09:14'),
+      TaskRow('Yangın paneli raporu', 'Nova Residence', 'Seda', 'Beklemede', 'Orta', '2026-03-12', '2026-03-10 08:05'),
+      TaskRow('Asansör test formu', 'Kuzey Atölye', 'Onur', 'Devam Ediyor', 'Düşük', '2026-03-13', '2026-03-09 18:40'),
     ],
   };
 
   List<ActivityRow> get _activities => switch (_role) {
     UserRole.employee => const [
-      ActivityRow('Yeni saha gorevi atandi', 'Merkez Plaza - 8 dk once', AppPalette.success),
-      ActivityRow('Revizyon notu dustu', 'Panel etiketi - 23 dk once', AppPalette.warning),
-      ActivityRow('Bugun teslim hatirlatmasi', '1 saat once', AppPalette.primary),
+      ActivityRow('Yeni saha görevi atandı', 'Merkez Plaza - 8 dk önce', AppPalette.success),
+      ActivityRow('Revizyon notu düştü', 'Panel etiketi - 23 dk önce', AppPalette.warning),
+      ActivityRow('Bugün teslim hatırlatması', '1 saat önce', AppPalette.primary),
     ],
     UserRole.teamLead => const [
-      ActivityRow('Revizyon talebi acildi', 'Teknik servis / klima - 12 dk once', AppPalette.warning),
-      ActivityRow('Yeni gorev dagitildi', 'Bakim planlama - 20 dk once', AppPalette.success),
-      ActivityRow('Ekip notu guncellendi', 'Saha ekibi - 1 saat once', AppPalette.primary),
+      ActivityRow('Revizyon talebi açıldı', 'Teknik servis / klima - 12 dk önce', AppPalette.warning),
+      ActivityRow('Yeni görev dağıtıldı', 'Bakım planlama - 20 dk önce', AppPalette.success),
+      ActivityRow('Ekip notu güncellendi', 'Saha ekibi - 1 saat önce', AppPalette.primary),
     ],
     UserRole.manager => const [
-      ActivityRow('Yeni gorev atandi', 'Bakim planlama - 12 dk once', AppPalette.success),
-      ActivityRow('Revizyon talebi acildi', 'Teknik servis / klima - 37 dk once', AppPalette.warning),
-      ActivityRow('Calisan vardiya degisikligi', 'Saha ekibi - 1 saat once', AppPalette.primary),
+      ActivityRow('Yeni görev atandı', 'Bakım planlama - 12 dk önce', AppPalette.success),
+      ActivityRow('Revizyon talebi açıldı', 'Teknik servis / klima - 37 dk önce', AppPalette.warning),
+      ActivityRow('Çalışan vardiya değişikliği', 'Saha ekibi - 1 saat önce', AppPalette.primary),
     ],
   };
 
   List<TeamRow> get _teamRows => switch (_role) {
     UserRole.employee => [
       TeamRow(_user.name, _user.jobTitle, 'Sahada', 3, 72),
-      const TeamRow('Seda Yilmaz', 'Ekip Lideri', 'Aktif', 5, 78),
-      const TeamRow('Merve Aydin', 'Operasyon Yoneticisi', 'Aktif', 7, 88),
+      const TeamRow('Seda Yılmaz', 'Ekip Lideri', 'Aktif', 5, 78),
+      const TeamRow('Merve Aydın', 'Operasyon Yöneticisi', 'Aktif', 7, 88),
     ],
     UserRole.teamLead => [
       TeamRow(_user.name, _user.jobTitle, 'Aktif', 6, 81),
@@ -158,8 +158,8 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
       const TeamRow('Burak Demir', 'Teknik Uzman', 'Aktif', 4, 74),
     ],
     UserRole.manager => const [
-      TeamRow('Merve Aydin', 'Operasyon Yoneticisi', 'Aktif', 6, 84),
-      TeamRow('Seda Yilmaz', 'Saha Koordinatoru', 'Aktif', 4, 76),
+      TeamRow('Merve Aydın', 'Operasyon Yöneticisi', 'Aktif', 6, 84),
+      TeamRow('Seda Yılmaz', 'Saha Koordinatörü', 'Aktif', 4, 76),
       TeamRow('Onur Kaya', 'Teknisyen', 'Sahada', 3, 69),
     ],
   };
@@ -170,12 +170,12 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
       RevisionLine('Etiket okunurlugu', 'Nova Residence / QA'),
     ],
     UserRole.teamLead => const [
-      RevisionLine('Kamera altyapisi', 'Merkez Plaza / Onur'),
-      RevisionLine('UPS kapasite notu', 'Kuzey Atolye / Ece'),
+      RevisionLine('Kamera altyapısı', 'Merkez Plaza / Onur'),
+      RevisionLine('UPS kapasite notu', 'Kuzey Atölye / Ece'),
     ],
     UserRole.manager => const [
-      RevisionLine('Kamera altyapisi', 'Merkez Plaza / Merve'),
-      RevisionLine('UPS kapasite notu', 'Kuzey Atolye / Seda'),
+      RevisionLine('Kamera altyapısı', 'Merkez Plaza / Merve'),
+      RevisionLine('UPS kapasite notu', 'Kuzey Atölye / Seda'),
     ],
   };
 
@@ -196,61 +196,61 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
 
   List<PerformanceRowData> get _performanceRows => switch (_role) {
     UserRole.employee => [
-      PerformanceRowData(_user.name, _user.jobTitle, '3', '9', '86%', '1', '0.8', '72 / 100 - Gelisiyor', AppPalette.warning),
-      const PerformanceRowData('Seda Yilmaz', 'Ekip Lideri', '5', '14', '89%', '1', '0.6', '78 / 100 - Guvenli', AppPalette.success),
-      const PerformanceRowData('Merve Aydin', 'Yonetici', '7', '19', '93%', '0', '0.3', '88 / 100 - Guclu', AppPalette.success),
+      PerformanceRowData(_user.name, _user.jobTitle, '3', '9', '86%', '1', '0.8', '72 / 100 - Gelişiyor', AppPalette.warning),
+      const PerformanceRowData('Seda Yılmaz', 'Ekip Lideri', '5', '14', '89%', '1', '0.6', '78 / 100 - Güvenli', AppPalette.success),
+      const PerformanceRowData('Merve Aydın', 'Yönetici', '7', '19', '93%', '0', '0.3', '88 / 100 - Güçlü', AppPalette.success),
     ],
     UserRole.teamLead => [
-      PerformanceRowData(_user.name, _user.jobTitle, '6', '13', '87%', '1', '0.5', '81 / 100 - Guvenli', AppPalette.success),
-      const PerformanceRowData('Onur Kaya', 'Teknisyen', '3', '9', '74%', '3', '1.3', '69 / 100 - Izle', AppPalette.danger),
+      PerformanceRowData(_user.name, _user.jobTitle, '6', '13', '87%', '1', '0.5', '81 / 100 - Güvenli', AppPalette.success),
+      const PerformanceRowData('Onur Kaya', 'Teknisyen', '3', '9', '74%', '3', '1.3', '69 / 100 - İzle', AppPalette.danger),
       const PerformanceRowData('Burak Demir', 'Teknik Uzman', '4', '10', '79%', '2', '0.9', '74 / 100 - Dikkat', AppPalette.warning),
     ],
     UserRole.manager => const [
-      PerformanceRowData('Merve Aydin', 'Operasyon', '6', '14', '91%', '1', '0.4', '84 / 100 - Guvenli', AppPalette.success),
-      PerformanceRowData('Seda Yilmaz', 'Koordinator', '4', '11', '82%', '2', '0.9', '76 / 100 - Dikkat', AppPalette.warning),
-      PerformanceRowData('Onur Kaya', 'Teknisyen', '3', '9', '74%', '3', '1.3', '69 / 100 - Izle', AppPalette.danger),
+      PerformanceRowData('Merve Aydın', 'Operasyon', '6', '14', '91%', '1', '0.4', '84 / 100 - Güvenli', AppPalette.success),
+      PerformanceRowData('Seda Yılmaz', 'Koordinatör', '4', '11', '82%', '2', '0.9', '76 / 100 - Dikkat', AppPalette.warning),
+      PerformanceRowData('Onur Kaya', 'Teknisyen', '3', '9', '74%', '3', '1.3', '69 / 100 - İzle', AppPalette.danger),
     ],
   };
 
   List<StatData> get _reportStats => switch (_role) {
     UserRole.employee => const [
-      StatData(Icons.schedule_rounded, 'Bugun Teslim', '1', 'Uzerimde acik is', AppPalette.primary),
-      StatData(Icons.report_gmailerrorred_rounded, 'Bekleyen Not', '1', 'Revizyon mesaji', AppPalette.warning),
-      StatData(Icons.rate_review_rounded, 'Kontrol Bekleyen', '2', 'Ekip geri donusu', Color(0xFF7A7AE6)),
+      StatData(Icons.schedule_rounded, 'Bugün Teslim', '1', 'Üzerimde açık iş', AppPalette.primary),
+      StatData(Icons.report_gmailerrorred_rounded, 'Bekleyen Not', '1', 'Revizyon mesajı', AppPalette.warning),
+      StatData(Icons.rate_review_rounded, 'Kontrol Bekleyen', '2', 'Ekip geri dönüşü', Color(0xFF7A7AE6)),
       StatData(Icons.done_all_rounded, 'Tamamlanan', '9', 'Bu ay', AppPalette.success),
     ],
     UserRole.teamLead => const [
-      StatData(Icons.schedule_rounded, 'Bugun Teslim', '3', 'Kritik ekip isi', AppPalette.primary),
+      StatData(Icons.schedule_rounded, 'Bugün Teslim', '3', 'Kritik ekip işi', AppPalette.primary),
       StatData(Icons.report_gmailerrorred_rounded, 'Geciken', '2', 'Takip gerekli', AppPalette.warning),
-      StatData(Icons.rate_review_rounded, 'Inceleme / Revizyon', '4', 'Kuyruk', Color(0xFF7A7AE6)),
-      StatData(Icons.done_all_rounded, 'Tamamlanan', '16', 'Son 30 gun', AppPalette.success),
+      StatData(Icons.rate_review_rounded, 'İnceleme / Revizyon', '4', 'Kuyruk', Color(0xFF7A7AE6)),
+      StatData(Icons.done_all_rounded, 'Tamamlanan', '16', 'Son 30 gün', AppPalette.success),
     ],
     UserRole.manager => const [
-      StatData(Icons.schedule_rounded, 'Bugun Teslim', '4', 'Acil gorev', AppPalette.primary),
-      StatData(Icons.report_gmailerrorred_rounded, 'Geciken', '2', 'Son teslim gecti', AppPalette.warning),
-      StatData(Icons.rate_review_rounded, 'Inceleme / Revizyon', '5', 'Kuyruk', Color(0xFF7A7AE6)),
-      StatData(Icons.done_all_rounded, 'Tamamlanan', '18', 'Son 30 gun', AppPalette.success),
+      StatData(Icons.schedule_rounded, 'Bugün Teslim', '4', 'Acil görev', AppPalette.primary),
+      StatData(Icons.report_gmailerrorred_rounded, 'Geciken', '2', 'Son teslim geçti', AppPalette.warning),
+      StatData(Icons.rate_review_rounded, 'İnceleme / Revizyon', '5', 'Kuyruk', Color(0xFF7A7AE6)),
+      StatData(Icons.done_all_rounded, 'Tamamlanan', '18', 'Son 30 gün', AppPalette.success),
     ],
   };
 
   List<StatData> get _teamOverviewStats => switch (_role) {
     UserRole.employee => const [
-      StatData(Icons.groups_2_rounded, 'Bagli Ekip', '3', 'Yakindan calistigin kisiler', AppPalette.primary),
-      StatData(Icons.task_rounded, 'Uzerimde Acik', '3', 'Aktif saha isi', AppPalette.warning),
-      StatData(Icons.pending_actions_rounded, 'Bekleyen Geri Donus', '2', 'Inceleme notu', AppPalette.danger),
-      StatData(Icons.analytics_rounded, 'Kisisel Skor', '72', 'Son 30 gun', AppPalette.success),
+      StatData(Icons.groups_2_rounded, 'Bağlı Ekip', '3', 'Yakından çalıştığın kişiler', AppPalette.primary),
+      StatData(Icons.task_rounded, 'Üzerimde Açık', '3', 'Aktif saha işi', AppPalette.warning),
+      StatData(Icons.pending_actions_rounded, 'Bekleyen Geri Dönüş', '2', 'İnceleme notu', AppPalette.danger),
+      StatData(Icons.analytics_rounded, 'Kişisel Skor', '72', 'Son 30 gün', AppPalette.success),
     ],
     UserRole.teamLead => const [
-      StatData(Icons.groups_2_rounded, 'Toplam Calisan', '8', 'Aktif ekip', AppPalette.primary),
-      StatData(Icons.task_rounded, 'Aktif Gorevler', '19', 'Dagitilmis is', AppPalette.warning),
-      StatData(Icons.pending_actions_rounded, 'Bekleyen Onaylar', '4', 'Kontrol kuyrugu', AppPalette.danger),
-      StatData(Icons.analytics_rounded, 'Ekip Performansi', '%81', 'Ortalama skor', AppPalette.success),
+      StatData(Icons.groups_2_rounded, 'Toplam Çalışan', '8', 'Aktif ekip', AppPalette.primary),
+      StatData(Icons.task_rounded, 'Aktif Görevler', '19', 'Dağıtılmış iş', AppPalette.warning),
+      StatData(Icons.pending_actions_rounded, 'Bekleyen Onaylar', '4', 'Kontrol kuyruğu', AppPalette.danger),
+      StatData(Icons.analytics_rounded, 'Ekip Performansı', '%81', 'Ortalama skor', AppPalette.success),
     ],
     UserRole.manager => const [
-      StatData(Icons.groups_2_rounded, 'Toplam Calisan', '14', 'Aktif personel', AppPalette.primary),
-      StatData(Icons.task_rounded, 'Aktif Gorevler', '27', 'Acik gorev', AppPalette.warning),
-      StatData(Icons.pending_actions_rounded, 'Bekleyen Onaylar', '5', 'Inceleme kuyrugu', AppPalette.danger),
-      StatData(Icons.analytics_rounded, 'Ekip Performansi', '%78', 'Ortalama skor', AppPalette.success),
+      StatData(Icons.groups_2_rounded, 'Toplam Çalışan', '14', 'Aktif personel', AppPalette.primary),
+      StatData(Icons.task_rounded, 'Aktif Görevler', '27', 'Açık görev', AppPalette.warning),
+      StatData(Icons.pending_actions_rounded, 'Bekleyen Onaylar', '5', 'İnceleme kuyruğu', AppPalette.danger),
+      StatData(Icons.analytics_rounded, 'Ekip Performansı', '%78', 'Ortalama skor', AppPalette.success),
     ],
   };
 
@@ -269,7 +269,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
           body: SafeArea(
             child: Row(
               children: [
-                if (wide) SizedBox(width: 188, child: _sidebar()),
+                if (wide) SizedBox(width: 244, child: _sidebar()),
                 Expanded(
                   child: Column(
                     children: [
@@ -301,7 +301,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
 
     return Container(
       color: AppPalette.sidebar,
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
       child: Column(
         children: [
           Container(
@@ -329,15 +329,18 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                         'ServisKontrol Pro',
                         style: TextStyle(
                           color: Colors.white,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'Operational Suite',
+                        'Operasyon Platformu',
                         style: TextStyle(
                           color: Color(0x99FFFFFF),
-                          fontSize: 11,
+                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -355,6 +358,12 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                     padding: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
                       onTap: () => setState(() => _selected = item.$1),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 2,
+                      ),
+                      horizontalTitleGap: 10,
+                      minLeadingWidth: 18,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -364,9 +373,12 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                       leading: Icon(item.$3, color: Colors.white, size: 19),
                       title: Text(
                         item.$2,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
+                          fontSize: 14,
                         ),
                       ),
                       trailing: item.$4 == null
@@ -393,7 +405,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                   child: Padding(
                     padding: EdgeInsets.only(left: 8, bottom: 8),
                     child: Text(
-                      'AYARLAR',
+                      'Ayarlar',
                       style: TextStyle(
                         color: Color(0x88FFFFFF),
                         fontSize: 11,
@@ -408,7 +420,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                 ),
                 const _SidebarMeta(
                   icon: Icons.help_outline_rounded,
-                  label: 'Yardim Merkezi',
+                  label: 'Yardım Merkezi',
                 ),
               ],
             ),
@@ -439,6 +451,8 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                     children: [
                       Text(
                         _user.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
@@ -447,6 +461,8 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                       const SizedBox(height: 2),
                       Text(
                         _user.role.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0xCCFFFFFF),
                           fontSize: 11,
@@ -455,6 +471,8 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                       ),
                       Text(
                         _user.email,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0x99FFFFFF),
                           fontSize: 11,
@@ -594,8 +612,8 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _PageHeader(
-          title: 'Gorevler',
-          subtitle: 'Arama, filtreleme ve gorev detayina hizli erisim.',
+          title: 'Görevler',
+          subtitle: 'Arama, filtreleme ve görev detayına hızlı erişim.',
         ),
         const SizedBox(height: 18),
         _Card(
@@ -605,24 +623,24 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                 spacing: 12,
                 runSpacing: 12,
                 children: [
-                  _SearchBox(hint: 'Gorev / proje ara...'),
-                  _FilterPill(label: 'Durum', value: 'Tumu'),
-                  _FilterPill(label: 'Oncelik', value: 'Tumu'),
-                  _FilterPill(label: 'Proje', value: 'Tumu'),
+                  _SearchBox(hint: 'Görev / proje ara...'),
+                  _FilterPill(label: 'Durum', value: 'Tümü'),
+                  _FilterPill(label: 'Öncelik', value: 'Tümü'),
+                  _FilterPill(label: 'Proje', value: 'Tümü'),
                   _ActionPill(label: 'Filtrele', filled: true),
-                  _ActionPill(label: 'Sifirla'),
+                  _ActionPill(label: 'Sıfırla'),
                 ],
               ),
               const SizedBox(height: 16),
               _TableCard(
                 headers: const [
-                  'Gorev',
+                  'Görev',
                   'Proje',
                   'Atanan',
                   'Durum',
-                  'Oncelik',
+                  'Öncelik',
                   'Son Teslim',
-                  'Guncelleme',
+                  'Güncelleme',
                 ],
                 rows: [
                   for (final task in _tasks)
@@ -644,7 +662,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                       ),
                       _Badge(
                         label: task.priority,
-                        color: task.priority == 'Yuksek'
+                        color: task.priority == 'Yüksek'
                             ? AppPalette.danger
                             : task.priority == 'Orta'
                             ? AppPalette.warning
@@ -664,8 +682,8 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
 
   Widget _revisionsPage(bool wide) {
     final left = _RevisionBucket(
-      title: 'Inceleme Bekleyen',
-      subtitle: 'Durum: Incelemede',
+      title: 'İnceleme Bekleyen',
+      subtitle: 'Durum: İncelemede',
       items: _reviewQueueLeft,
     );
     final right = _RevisionBucket(
@@ -680,7 +698,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
         const _PageHeader(
           title: 'Revizyonlar',
           subtitle:
-              'Inceleme bekleyen ve revizyondaki isleri tek ekrandan yonetin.',
+              'İnceleme bekleyen ve revizyondaki işleri tek ekrandan yönetin.',
         ),
         const SizedBox(height: 18),
         const _Card(
@@ -688,10 +706,10 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
             spacing: 12,
             runSpacing: 12,
             children: [
-              _SearchBox(hint: 'Gorev / proje ara...'),
-              _FilterPill(label: 'Proje', value: 'Tumu'),
+              _SearchBox(hint: 'Görev / proje ara...'),
+              _FilterPill(label: 'Proje', value: 'Tümü'),
               _ActionPill(label: 'Filtrele', filled: true),
-              _ActionPill(label: 'Sifirla'),
+              _ActionPill(label: 'Sıfırla'),
             ],
           ),
         ),
@@ -721,10 +739,10 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
         _PageHeader(
           title: _role == UserRole.employee
               ? 'Bagli Oldugun Ekip'
-              : 'Ekibe Genel Bakis',
+              : 'Ekibe Genel Bakış',
           subtitle: _role == UserRole.employee
-              ? 'Liderin, yonetici notlari ve ekip gorunumu burada.'
-              : 'Ekibinizin performansini ve gorevlerini etkili sekilde yonetin.',
+              ? 'Liderin, yönetici notları ve ekip görünümü burada.'
+              : 'Ekibinizin performansını ve görevlerini etkili şekilde yönetin.',
         ),
         const SizedBox(height: 18),
         Wrap(
@@ -746,9 +764,9 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                 flex: 2,
                 child: _Card(
                   child: _EmptyNote(
-                    title: 'Bekleyen Duzeltmeler',
-                    subtitle: 'Inceleme / revizyon kuyrugu',
-                    message: 'Bekleyen is yok.',
+                    title: 'Bekleyen Düzeltmeler',
+                    subtitle: 'İnceleme / revizyon kuyruğu',
+                    message: 'Bekleyen iş yok.',
                   ),
                 ),
               ),
@@ -759,9 +777,9 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
           const SizedBox(height: 16),
           const _Card(
             child: _EmptyNote(
-              title: 'Bekleyen Duzeltmeler',
-              subtitle: 'Inceleme / revizyon kuyrugu',
-              message: 'Bekleyen is yok.',
+              title: 'Bekleyen Düzeltmeler',
+              subtitle: 'İnceleme / revizyon kuyruğu',
+              message: 'Bekleyen iş yok.',
             ),
           ),
         ],
@@ -775,18 +793,18 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const _SectionHeader(
-            title: 'Calisan Performansi',
-            subtitle: 'Kisi bazli ozet',
-            action: 'Tumunu Gor',
+            title: 'Çalışan Performansı',
+            subtitle: 'Kişi bazlı özet',
+            action: 'Tümünü Gör',
           ),
           const SizedBox(height: 16),
           _TableCard(
             headers: const [
-              'Calisan',
+              'Çalışan',
               'Durum',
-              'Aktif Gorevler',
+              'Aktif Görevler',
               'Performans',
-              'Islemler',
+              'İşlemler',
             ],
             rows: [
               for (final row in _teamRows)
@@ -823,7 +841,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                         ? AppPalette.success
                         : AppPalette.warning,
                   ),
-                  Text('${row.activeTasks} Gorev'),
+                  Text('${row.activeTasks} Görev'),
                   _ScoreBar(score: row.score),
                   const Icon(Icons.visibility_outlined, size: 18),
                 ],
@@ -840,23 +858,23 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
       children: [
         const _PageHeader(
           title: 'Performans',
-          subtitle: 'Calisan bazli temel metrikler ve skor.',
+          subtitle: 'Çalışan bazlı temel metrikler ve skor.',
         ),
         const SizedBox(height: 18),
         _Card(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _ActionPill(label: 'CSV Indir'),
+              const _ActionPill(label: 'CSV İndir'),
               const SizedBox(height: 16),
               _TableCard(
                 headers: const [
-                  'Calisan',
+                  'Çalışan',
                   'Rol',
-                  'Acik',
+                  'Açık',
                   'Tamamlanan',
-                  'Zamaninda',
-                  'Gec',
+                  'Zamanında',
+                  'Geç',
                   'Ort. Revizyon',
                   'Skor',
                 ],
@@ -890,7 +908,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
       children: [
         const _PageHeader(
           title: 'Raporlar',
-          subtitle: 'Durum dagilimi, kritik gostergeler ve son aktiviteler.',
+          subtitle: 'Durum dağılımı, kritik göstergeler ve son aktiviteler.',
         ),
         const SizedBox(height: 18),
         Wrap(
@@ -916,9 +934,9 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       _SectionHeader(
-                        title: 'Durum Dagilimi',
-                        subtitle: 'Toplam gorev sayilari',
-                        action: 'CSV Indir',
+                        title: 'Durum Dağılımı',
+                        subtitle: 'Toplam görev sayıları',
+                        action: 'CSV İndir',
                       ),
                       SizedBox(height: 16),
                       _TableCard(
@@ -926,10 +944,10 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                         rows: [
                           [Text('Beklemede'), Text('3')],
                           [Text('Devam Ediyor'), Text('12')],
-                          [Text('Incelemede'), Text('2')],
+                          [Text('İncelemede'), Text('2')],
                           [Text('Revizyonda'), Text('3')],
-                          [Text('Tamamlandi'), Text('18')],
-                          [Text('Iptal'), Text('1')],
+                          [Text('Tamamlandı'), Text('18')],
+                          [Text('İptal'), Text('1')],
                         ],
                       ),
                     ],
@@ -953,9 +971,9 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _SectionHeader(
-                  title: 'Durum Dagilimi',
-                  subtitle: 'Toplam gorev sayilari',
-                  action: 'CSV Indir',
+                  title: 'Durum Dağılımı',
+                  subtitle: 'Toplam görev sayıları',
+                  action: 'CSV İndir',
                 ),
                 SizedBox(height: 16),
                 _TableCard(
@@ -963,10 +981,10 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                   rows: [
                     [Text('Beklemede'), Text('3')],
                     [Text('Devam Ediyor'), Text('12')],
-                    [Text('Incelemede'), Text('2')],
+                    [Text('İncelemede'), Text('2')],
                     [Text('Revizyonda'), Text('3')],
-                    [Text('Tamamlandi'), Text('18')],
-                    [Text('Iptal'), Text('1')],
+                    [Text('Tamamlandı'), Text('18')],
+                    [Text('İptal'), Text('1')],
                   ],
                 ),
               ],
@@ -1166,7 +1184,7 @@ class _ActivityCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionHeader(title: title, subtitle: subtitle, action: 'Tumu'),
+          _SectionHeader(title: title, subtitle: subtitle, action: 'Tümü'),
           const SizedBox(height: 16),
           for (final activity in activities)
             Padding(

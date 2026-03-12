@@ -8,7 +8,7 @@ class DashboardSnapshotFactory {
   const DashboardSnapshotFactory();
 
   DashboardSnapshot create(AppUser user) {
-    final title = 'Hos geldiniz, ${user.firstName}';
+    final title = 'Hoş geldiniz, ${user.firstName}';
 
     return switch (user.role) {
       UserRole.employee => _employee(title),
@@ -32,30 +32,30 @@ class DashboardSnapshotFactory {
     ).copyWithManual(
       title: title,
       subtitle:
-          'Bugun uzerinde calistigin gorevler, bildirimler ve teslim riskleri burada.',
-      heroTitle: 'Workflow Is Takip Platformu',
+          'Bugün üzerinde çalıştığın görevler, bildirimler ve teslim riskleri burada.',
+      heroTitle: 'Workflow İş Takip Platformu',
       heroMessage:
-          'Panel ana sayfasinda once kendi gorev akisini, sonra bagli oldugun ekibin geri donuslerini gorursun.',
-      heroHighlight: 'Bugun odak: 1 kritik teslim, 1 revizyon notu',
+          'Panel ana sayfasında önce kendi görev akışını, sonra bağlı olduğun ekibin geri dönüşlerini görürsün.',
+      heroHighlight: 'Bugün odak: 1 kritik teslim, 1 revizyon notu',
       summaryCards: const [
         DashboardMetric(
-          label: 'Uzerimde Acik',
+          label: 'Üzerimde Açık',
           value: '3',
-          caption: 'Aktif saha gorevi',
+          caption: 'Aktif saha görevi',
           color: AppPalette.primary,
           icon: Icons.play_circle_fill_rounded,
         ),
         DashboardMetric(
-          label: 'Bugun Teslim',
+          label: 'Bugün Teslim',
           value: '1',
-          caption: 'Saat 17:30 oncesi',
+          caption: 'Saat 17:30 öncesi',
           color: AppPalette.warning,
           icon: Icons.schedule_rounded,
         ),
         DashboardMetric(
           label: 'Revizyon',
           value: '1',
-          caption: 'Lider geri donusu',
+          caption: 'Lider geri dönüşü',
           color: Color(0xFF7A7AE6),
           icon: Icons.rate_review_rounded,
         ),
@@ -69,16 +69,16 @@ class DashboardSnapshotFactory {
       ],
       kpiCards: const [
         DashboardMetric(
-          label: 'Zamaninda',
+          label: 'Zamanında',
           value: '%86',
-          caption: 'Teslim orani',
+          caption: 'Teslim oranı',
           color: AppPalette.success,
           icon: Icons.verified_rounded,
         ),
         DashboardMetric(
           label: 'Ort. Revizyon',
           value: '0.8',
-          caption: 'Gorev basi',
+          caption: 'Görev başı',
           color: AppPalette.warning,
           icon: Icons.sync_alt_rounded,
         ),
@@ -92,42 +92,42 @@ class DashboardSnapshotFactory {
       ],
       notifications: const [
         DashboardNotification(
-          title: 'Merkez Plaza teslim saati yaklasti',
-          subtitle: '17:30 once fotograf ve servis notu girilmeli',
+          title: 'Merkez Plaza teslim saati yaklaştı',
+          subtitle: '17:30 önce fotoğraf ve servis notu girilmeli',
           color: AppPalette.warning,
         ),
         DashboardNotification(
-          title: 'Panel etiketi icin revizyon notu geldi',
-          subtitle: 'Yeni saha fotografi isteniyor',
+          title: 'Panel etiketi için revizyon notu geldi',
+          subtitle: 'Yeni saha fotoğrafı isteniyor',
           color: Color(0xFF7A7AE6),
         ),
         DashboardNotification(
-          title: 'Seda Yilmaz gorev durumunu guncelledi',
-          subtitle: 'Yangin pompa kontrolu onceliklendirildi',
+          title: 'Seda Yılmaz görev durumunu güncelledi',
+          subtitle: 'Yangın pompa kontrolü önceliklendirildi',
           color: AppPalette.primary,
         ),
       ],
       focusItems: const [
         DashboardFocusItem(
           title: '1 teslimi kapat',
-          subtitle: 'Asansor test formu ve fotograf seti eksik',
+          subtitle: 'Asansör test formu ve fotoğraf seti eksik',
           badge: 'Kritik',
         ),
         DashboardFocusItem(
           title: 'Revizyon notunu cevapla',
-          subtitle: 'Panel etiketi okunurlugu tekrar cekilecek',
+          subtitle: 'Panel etiketi okunurluğu tekrar çekilecek',
           badge: 'Bekliyor',
         ),
         DashboardFocusItem(
-          title: 'Gunun raporunu tamamla',
-          subtitle: 'Saha cikislarinin notu merkez ekibe dussun',
-          badge: 'Bugun',
+          title: 'Günün raporunu tamamla',
+          subtitle: 'Saha çıkışlarının notu merkez ekibe düşsün',
+          badge: 'Bugün',
         ),
       ],
       projects: const [
         DashboardProject(
           name: 'Merkez Plaza',
-          type: 'Saha Bakim',
+          type: 'Saha Bakım',
           progress: 0.64,
         ),
         DashboardProject(
@@ -136,7 +136,7 @@ class DashboardSnapshotFactory {
           progress: 0.46,
         ),
         DashboardProject(
-          name: 'Kuzey Atolye',
+          name: 'Kuzey Atölye',
           type: 'Teslim',
           progress: 0.85,
         ),
@@ -159,37 +159,37 @@ class DashboardSnapshotFactory {
     ).copyWithManual(
       title: title,
       subtitle:
-          'Ekibin gorev dagilimi, revizyon kuyrugu ve bugun yonetmen gereken operasyon burada.',
-      heroTitle: 'Workflow Is Takip Platformu',
+          'Ekibin görev dağılımı, revizyon kuyruğu ve bugün yönetmen gereken operasyon burada.',
+      heroTitle: 'Workflow İş Takip Platformu',
       heroMessage:
-          'Panel, ekip lideri icin once revizyon ve dagitim dengesini gosteren komuta ekranidir.',
-      heroHighlight: 'Bugun odak: 4 inceleme, 3 kritik teslim',
+          'Panel, ekip lideri için önce revizyon ve dağıtım dengesini gösteren komuta ekranıdır.',
+      heroHighlight: 'Bugün odak: 4 inceleme, 3 kritik teslim',
       summaryCards: const [
         DashboardMetric(
-          label: 'Ekipte Acik',
+          label: 'Ekipte Açık',
           value: '8',
-          caption: 'Dagitilmis gorev',
+          caption: 'Dağıtılmış görev',
           color: AppPalette.primary,
           icon: Icons.play_circle_fill_rounded,
         ),
         DashboardMetric(
-          label: 'Bugun Teslim',
+          label: 'Bugün Teslim',
           value: '3',
           caption: 'Takip gerektiriyor',
           color: AppPalette.warning,
           icon: Icons.schedule_rounded,
         ),
         DashboardMetric(
-          label: 'Incelemede',
+          label: 'İncelemede',
           value: '4',
-          caption: 'Kontrol kuyrugu',
+          caption: 'Kontrol kuyruğu',
           color: Color(0xFF7A7AE6),
           icon: Icons.rate_review_rounded,
         ),
         DashboardMetric(
           label: 'Tamamlanan',
           value: '16',
-          caption: 'Son 30 gun',
+          caption: 'Son 30 gün',
           color: AppPalette.success,
           icon: Icons.done_all_rounded,
         ),
@@ -203,58 +203,58 @@ class DashboardSnapshotFactory {
           icon: Icons.insights_rounded,
         ),
         DashboardMetric(
-          label: 'Revizyon Orani',
+          label: 'Revizyon Oranı',
           value: '%18',
           caption: 'Bu hafta',
           color: AppPalette.warning,
           icon: Icons.compare_arrows_rounded,
         ),
         DashboardMetric(
-          label: 'On-time',
+          label: 'Zamanında',
           value: '%87',
-          caption: 'Teslim performansi',
+          caption: 'Teslim performansı',
           color: AppPalette.primary,
           icon: Icons.av_timer_rounded,
         ),
       ],
       notifications: const [
         DashboardNotification(
-          title: '4 is inceleme bekliyor',
+          title: '4 iş inceleme bekliyor',
           subtitle: 'Panel, UPS ve etiket kontrolleri kuyrukta',
           color: Color(0xFF7A7AE6),
         ),
         DashboardNotification(
-          title: 'Burak Demir teslim riski tasiyor',
-          subtitle: 'Nova Residence gorevi gec kalabilir',
+          title: 'Burak Demir teslim riski taşıyor',
+          subtitle: 'Nova Residence görevi geç kalabilir',
           color: AppPalette.warning,
         ),
         DashboardNotification(
-          title: 'Yeni gorev atama talebi geldi',
-          subtitle: 'Merkez ekipten ilave saha kaynagi istendi',
+          title: 'Yeni görev atama talebi geldi',
+          subtitle: 'Merkez ekipten ilave saha kaynağı istendi',
           color: AppPalette.primary,
         ),
       ],
       focusItems: const [
         DashboardFocusItem(
-          title: 'Revizyon kuyrugunu erit',
+          title: 'Revizyon kuyruğunu erit',
           subtitle: '4 inceleme kalemi panel bekliyor',
-          badge: 'Oncelik',
+          badge: 'Öncelik',
         ),
         DashboardFocusItem(
           title: 'Teslim riskini kapat',
-          subtitle: 'Nova Residence icin yedek teknisyen planla',
+          subtitle: 'Nova Residence için yedek teknisyen planla',
           badge: 'Risk',
         ),
         DashboardFocusItem(
-          title: 'Ekip notu guncelle',
-          subtitle: 'Bugunku saha dagilimini merkez ekiple paylas',
-          badge: 'Bugun',
+          title: 'Ekip notunu güncelle',
+          subtitle: 'Bugünkü saha dağılımını merkez ekiple paylaş',
+          badge: 'Bugün',
         ),
       ],
       projects: const [
-        DashboardProject(name: 'Merkez Plaza', type: 'Bakim', progress: 0.72),
+        DashboardProject(name: 'Merkez Plaza', type: 'Bakım', progress: 0.72),
         DashboardProject(
-          name: 'Kuzey Atolye',
+          name: 'Kuzey Atölye',
           type: 'Kontrol',
           progress: 0.48,
         ),
@@ -282,21 +282,21 @@ class DashboardSnapshotFactory {
     ).copyWithManual(
       title: title,
       subtitle:
-          'Operasyon ozetleri, KPI kartlari, bildirim merkezi ve yonetsel karar akisi burada.',
-      heroTitle: 'Workflow Is Takip Platformu',
+          'Operasyon özetleri, KPI kartları, bildirim merkezi ve yönetsel karar akışı burada.',
+      heroTitle: 'Workflow İş Takip Platformu',
       heroMessage:
-          'Panel, yonetici icin ekip kartlari, performans widgetlari ve erken uyari noktalarini bir araya getirir.',
-      heroHighlight: 'Bugun odak: 5 revizyon, 2 gecikme, 14 aktif personel',
+          'Panel, yönetici için ekip kartları, performans widgetları ve erken uyarı noktalarını bir araya getirir.',
+      heroHighlight: 'Bugün odak: 5 revizyon, 2 gecikme, 14 aktif personel',
       summaryCards: const [
         DashboardMetric(
           label: 'Devam Eden',
           value: '12',
-          caption: 'Aktif gorevler',
+          caption: 'Aktif görevler',
           color: AppPalette.primary,
           icon: Icons.play_circle_fill_rounded,
         ),
         DashboardMetric(
-          label: 'Bugun Teslim',
+          label: 'Bugün Teslim',
           value: '4',
           caption: 'Kritik takvim',
           color: AppPalette.warning,
@@ -305,14 +305,14 @@ class DashboardSnapshotFactory {
         DashboardMetric(
           label: 'Revizyon Bekleyen',
           value: '7',
-          caption: 'Inceleme kuyrugu',
+          caption: 'İnceleme kuyruğu',
           color: Color(0xFF7A7AE6),
           icon: Icons.rate_review_rounded,
         ),
         DashboardMetric(
           label: 'Tamamlanan',
           value: '18',
-          caption: 'Son 30 gun',
+          caption: 'Son 30 gün',
           color: AppPalette.success,
           icon: Icons.done_all_rounded,
         ),
@@ -326,58 +326,58 @@ class DashboardSnapshotFactory {
           icon: Icons.query_stats_rounded,
         ),
         DashboardMetric(
-          label: 'Ort. Sure',
+          label: 'Ort. Süre',
           value: '2.4g',
-          caption: 'Gorev cevrimi',
+          caption: 'Görev çevrimi',
           color: AppPalette.warning,
           icon: Icons.timelapse_rounded,
         ),
         DashboardMetric(
           label: 'Memnuniyet',
           value: '4.8',
-          caption: 'Musteri puani',
+          caption: 'Müşteri puanı',
           color: AppPalette.primary,
           icon: Icons.sentiment_satisfied_alt_rounded,
         ),
       ],
       notifications: const [
         DashboardNotification(
-          title: '2 gorev teslim tarihini asti',
-          subtitle: 'Nova Residence ve Kuzey Atolye yakindan izlenmeli',
+          title: '2 görev teslim tarihini aştı',
+          subtitle: 'Nova Residence ve Kuzey Atölye yakından izlenmeli',
           color: AppPalette.warning,
         ),
         DashboardNotification(
-          title: '5 revizyon yonetici onayi bekliyor',
+          title: '5 revizyon yönetici onayı bekliyor',
           subtitle: 'Panel ve UPS kalemleri kuyrukta',
           color: Color(0xFF7A7AE6),
         ),
         DashboardNotification(
-          title: 'Ekip liderleri bugun 3 yeni atama istedi',
-          subtitle: 'Yuk dagilimi dengesizlesiyor',
+          title: 'Ekip liderleri bugün 3 yeni atama istedi',
+          subtitle: 'Yük dağılımı dengesizleşiyor',
           color: AppPalette.primary,
         ),
       ],
       focusItems: const [
         DashboardFocusItem(
-          title: 'Geciken gorevleri filtrele',
-          subtitle: '2 is teslim tarihini asti, alarm takibi ac',
+          title: 'Geciken görevleri filtrele',
+          subtitle: '2 iş teslim tarihini aştı, alarm takibi aç',
           badge: 'Alarm',
         ),
         DashboardFocusItem(
-          title: 'Revizyon onaylarini ilerlet',
-          subtitle: 'Bekleyen 5 is karar bekliyor',
+          title: 'Revizyon onaylarını ilerlet',
+          subtitle: 'Bekleyen 5 iş karar bekliyor',
           badge: 'Onay',
         ),
         DashboardFocusItem(
-          title: 'Ekip kaynak dagilimini duzenle',
+          title: 'Ekip kaynak dağılımını düzenle',
           subtitle: 'Merkez ve saha kapasitelerini dengele',
-          badge: 'Yonetsel',
+          badge: 'Yönetsel',
         ),
       ],
       projects: const [
-        DashboardProject(name: 'Merkez Plaza', type: 'Bakim', progress: 0.72),
+        DashboardProject(name: 'Merkez Plaza', type: 'Bakım', progress: 0.72),
         DashboardProject(
-          name: 'Kuzey Atolye',
+          name: 'Kuzey Atölye',
           type: 'Kontrol',
           progress: 0.48,
         ),

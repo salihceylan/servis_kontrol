@@ -162,7 +162,7 @@ class _LoginCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Giris Yap',
+              'Giriş Yap',
               style: TextStyle(
                 color: AppPalette.text,
                 fontSize: 30,
@@ -195,7 +195,7 @@ class _LoginCard extends StatelessWidget {
                   return 'E-posta gerekli.';
                 }
                 if (!value.contains('@')) {
-                  return 'Gecerli bir e-posta girin.';
+                  return 'Geçerli bir e-posta girin.';
                 }
                 return null;
               },
@@ -229,7 +229,7 @@ class _LoginCard extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: onForgotPassword,
-                child: const Text('Parolami unuttum'),
+                child: const Text('Parolamı unuttum'),
               ),
             ),
             const SizedBox(height: 6),
@@ -241,7 +241,7 @@ class _LoginCard extends StatelessWidget {
                   backgroundColor: AppPalette.primary,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                 ),
-                child: Text(submitting ? 'Oturum aciliyor...' : 'Oturum Ac'),
+                child: Text(submitting ? 'Oturum açılıyor...' : 'Oturum Aç'),
               ),
             ),
           ],

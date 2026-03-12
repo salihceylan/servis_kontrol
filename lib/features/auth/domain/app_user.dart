@@ -4,7 +4,7 @@ enum NotificationChannel { system, email, slack }
 
 extension NotificationChannelX on NotificationChannel {
   String get label => switch (this) {
-    NotificationChannel.system => 'Uygulama ici',
+    NotificationChannel.system => 'Uygulama içi',
     NotificationChannel.email => 'E-posta',
     NotificationChannel.slack => 'Slack',
   };

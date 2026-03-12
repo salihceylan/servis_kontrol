@@ -21,13 +21,13 @@ class MockAuthRepository {
         'yonetici@workflow.local': DemoAccount(
           email: 'yonetici@workflow.local',
           password: 'Workflow2026!',
-          description: 'Yonetici paneline dogrudan giris yapar.',
+          description: 'Yönetici paneline doğrudan giriş yapar.',
           user: const AppUser(
-            name: 'Merve Aydin',
+            name: 'Merve Aydın',
             email: 'yonetici@workflow.local',
             role: UserRole.manager,
             department: 'Operasyon',
-            jobTitle: 'Operasyon Yoneticisi',
+            jobTitle: 'Operasyon Yöneticisi',
             workPreference: 'Karma operasyon',
             notificationChannels: {
               NotificationChannel.system,
@@ -40,9 +40,9 @@ class MockAuthRepository {
         'lider@workflow.local': DemoAccount(
           email: 'lider@workflow.local',
           password: 'Workflow2026!',
-          description: 'Ilk giriste onboarding ve revizyon yonetimi gorunur.',
+          description: 'İlk girişte onboarding ve revizyon yönetimi görünür.',
           user: const AppUser(
-            name: 'Seda Yilmaz',
+            name: 'Seda Yılmaz',
             email: 'lider@workflow.local',
             role: UserRole.teamLead,
             department: 'Saha Operasyon',
@@ -61,14 +61,14 @@ class MockAuthRepository {
           email: 'teknisyen@workflow.local',
           password: 'Workflow2026!',
           description:
-              'Calisan akisinda ilk giris profil tamamlama ile acilir.',
+              'Çalışan akışında ilk giriş profil tamamlama ile açılır.',
           user: const AppUser(
             name: 'Onur Kaya',
             email: 'teknisyen@workflow.local',
             role: UserRole.employee,
             department: 'Teknik Servis',
             jobTitle: 'Saha Teknisyeni',
-            workPreference: 'Saha odakli',
+            workPreference: 'Saha odaklı',
             notificationChannels: {NotificationChannel.system},
             isFirstLogin: true,
             wantsQuickTour: true,
@@ -98,7 +98,7 @@ class MockAuthRepository {
     final normalizedEmail = email.trim().toLowerCase();
     final existing = _accounts[normalizedEmail];
     if (existing == null) {
-      throw StateError('Kullanici bulunamadi: $email');
+      throw StateError('Kullanıcı bulunamadı: $email');
     }
 
     final updatedUser = existing.user.copyWith(

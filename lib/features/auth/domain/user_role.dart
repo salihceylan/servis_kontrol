@@ -2,23 +2,23 @@ enum UserRole { employee, teamLead, manager }
 
 extension UserRoleX on UserRole {
   String get label => switch (this) {
-    UserRole.employee => 'Calisan',
+    UserRole.employee => 'Çalışan',
     UserRole.teamLead => 'Ekip Lideri',
-    UserRole.manager => 'Yonetici',
+    UserRole.manager => 'Yönetici',
   };
 
   String get dashboardSubtitle => switch (this) {
     UserRole.employee =>
-      'Bugun uzerinde calistigin gorevler, revizyonlar ve bireysel metrikler burada.',
+      'Bugün üzerinde çalıştığın görevler, revizyonlar ve bireysel metrikler burada.',
     UserRole.teamLead =>
-      'Ekibinin gorev akisi, revizyon kuyrugu ve operasyon oncelikleri burada.',
+      'Ekibinin görev akışı, revizyon kuyruğu ve operasyon öncelikleri burada.',
     UserRole.manager =>
-      'Operasyon, ekip kartlari, KPI ve erken uyari ozetleri burada.',
+      'Operasyon, ekip kartları, KPI ve erken uyarı özetleri burada.',
   };
 
   String get primaryActionLabel => switch (this) {
-    UserRole.employee => 'Teslim Guncelle',
-    UserRole.teamLead => 'Revizyonlari Incele',
-    UserRole.manager => 'Gorev Ata',
+    UserRole.employee => 'Teslim Güncelle',
+    UserRole.teamLead => 'Revizyonları İncele',
+    UserRole.manager => 'Görev Ata',
   };
 }

@@ -96,7 +96,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           children: [
                             Expanded(
                               child: Text(
-                                'Ilk giris kurulumu',
+                                'İlk giriş kurulumu',
                                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                   color: AppPalette.text,
                                   fontWeight: FontWeight.w800,
@@ -106,7 +106,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             TextButton.icon(
                               onPressed: widget.onLogout,
                               icon: const Icon(Icons.logout_rounded),
-                              label: const Text('Cikis Yap'),
+                              label: const Text('Çıkış Yap'),
                             ),
                           ],
                         ),
@@ -127,7 +127,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             children: [
                               _OnboardingCard(
                                 title: '1. Profil tamamlama',
-                                subtitle: 'Ad, departman ve unvan bilgilerini duzenle.',
+                                subtitle: 'Ad, departman ve unvan bilgilerini düzenle.',
                                 child: Column(
                                   children: [
                                     TextField(
@@ -157,15 +157,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                 ),
                               ),
                               _OnboardingCard(
-                                title: '2. Calisma tercihi',
+                                title: '2. Çalışma tercihi',
                                 subtitle:
-                                    'Dokumanlarda istenen pozisyon ve calisma sekli secimini yap.',
+                                    'Dokümanlarda istenen pozisyon ve çalışma şekli seçimini yap.',
                                 child: Wrap(
                                   spacing: 10,
                                   runSpacing: 10,
                                   children: [
                                     for (final option in const [
-                                      'Saha odakli',
+                                      'Saha odaklı',
                                       'Saha + ofis hibrit',
                                       'Merkez ofis',
                                       'Karma operasyon',
@@ -181,9 +181,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                 ),
                               ),
                               _OnboardingCard(
-                                title: '3. Bildirim kanallari',
+                                title: '3. Bildirim kanalları',
                                 subtitle:
-                                    'Uygulama ici, e-posta ve Slack secimleri burada.',
+                                    'Uygulama içi, e-posta ve Slack seçimleri burada.',
                                 child: Wrap(
                                   spacing: 10,
                                   runSpacing: 10,
@@ -208,7 +208,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               _OnboardingCard(
                                 title: '4. Onboarding rehberi',
                                 subtitle:
-                                    'Ilk giris rehberini gormek isteyip istemedigini sec.',
+                                    'İlk giriş rehberini görmek isteyip istemediğini seç.',
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -216,9 +216,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                       value: _wantsQuickTour,
                                       onChanged: (value) =>
                                           setState(() => _wantsQuickTour = value),
-                                      title: const Text('Hizli urun turunu goster'),
+                                      title: const Text('Hızlı ürün turunu göster'),
                                       subtitle: const Text(
-                                        'Panel, gorevler, revizyon ve performans bloklari icin kisa tanitim.',
+                                        'Panel, görevler, revizyon ve performans blokları için kısa tanıtım.',
                                       ),
                                       contentPadding: EdgeInsets.zero,
                                     ),
@@ -234,7 +234,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           _SummaryRow(
-                                            label: 'Kullanici',
+                                            label: 'Kullanıcı',
                                             value: _fullNameController.text.trim().isEmpty
                                                 ? widget.user.name
                                                 : _fullNameController.text.trim(),
@@ -248,7 +248,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                             value: _jobTitleController.text.trim(),
                                           ),
                                           _SummaryRow(
-                                            label: 'Calisma modeli',
+                                            label: 'Çalışma modeli',
                                             value: _workPreference,
                                           ),
                                           _SummaryRow(
@@ -284,7 +284,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                     : Icons.arrow_forward_rounded,
                               ),
                               label: Text(
-                                _step == 3 ? 'Dashboarda Gec' : 'Devam Et',
+                                _step == 3 ? 'Panele Geç' : 'Devam Et',
                               ),
                             ),
                           ],
