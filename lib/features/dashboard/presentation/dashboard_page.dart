@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:servis_kontrol/core/theme/app_palette.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/dashboard/application/dashboard_snapshot_factory.dart';
@@ -121,7 +120,7 @@ class _WorkflowHeroBanner extends StatelessWidget {
         children: [
           Text(
             snapshot.heroTitle,
-            style: GoogleFonts.dmSans(
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 28,
               fontWeight: FontWeight.w900,
@@ -166,7 +165,7 @@ class _PageHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: GoogleFonts.dmSans(
+          style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
             color: AppPalette.text,

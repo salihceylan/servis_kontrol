@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:servis_kontrol/core/theme/app_palette.dart';
 
 class AppTheme {
   static ThemeData light() {
     final base = ThemeData(useMaterial3: true);
-    final textTheme = GoogleFonts.dmSansTextTheme(base.textTheme);
+    final textTheme = base.textTheme.apply(
+      bodyColor: AppPalette.text,
+      displayColor: AppPalette.text,
+    );
 
     return ThemeData(
       useMaterial3: true,
