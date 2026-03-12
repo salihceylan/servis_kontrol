@@ -1,0 +1,471 @@
+import 'package:flutter/material.dart';
+import 'package:servis_kontrol/core/theme/app_palette.dart';
+import 'package:servis_kontrol/features/auth/domain/app_user.dart';
+import 'package:servis_kontrol/features/auth/domain/user_role.dart';
+
+class OnboardingPage extends StatefulWidget {
+  const OnboardingPage({
+    super.key,
+    required this.user,
+    required this.onComplete,
+    required this.onLogout,
+  });
+
+  final AppUser user;
+  final ValueChanged<OnboardingProfile> onComplete;
+  final VoidCallback onLogout;
+
+  @override
+  State<OnboardingPage> createState() => _OnboardingPageState();
+}
+
+class _OnboardingPageState extends State<OnboardingPage> {
+  final _pageController = PageController();
+  late final TextEditingController _fullNameController;
+  late final TextEditingController _departmentController;
+  late final TextEditingController _jobTitleController;
+  late String _workPreference;
+  late Set<NotificationChannel> _channels;
+  late bool _wantsQuickTour;
+  int _step = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final profile = OnboardingProfile.fromUser(widget.user);
+    _fullNameController = TextEditingController(text: profile.fullName);
+    _departmentController = TextEditingController(text: profile.department);
+    _jobTitleController = TextEditingController(text: profile.jobTitle);
+    _workPreference = profile.workPreference;
+    _channels = {...profile.notificationChannels};
+    _wantsQuickTour = profile.wantsQuickTour;
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _fullNameController.dispose();
+    _departmentController.dispose();
+    _jobTitleController.dispose();
+    super.dispose();
+  }
+
+  void _goToStep(int value) {
+    setState(() => _step = value);
+    _pageController.animateToPage(
+      value,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+    );
+  }
+
+  void _nextStep() {
+    if (_step == 3) {
+      widget.onComplete(
+        OnboardingProfile(
+          fullName: _fullNameController.text.trim(),
+          department: _departmentController.text.trim(),
+          jobTitle: _jobTitleController.text.trim(),
+          workPreference: _workPreference,
+          notificationChannels: _channels,
+          wantsQuickTour: _wantsQuickTour,
+        ),
+      );
+      return;
+    }
+    _goToStep(_step + 1);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth >= 1000;
+            return Row(
+              children: [
+                if (wide) _OnboardingRail(step: _step, user: widget.user),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.all(wide ? 28 : 18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Ilk giris kurulumu',
+                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                  color: AppPalette.text,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: widget.onLogout,
+                              icon: const Icon(Icons.logout_rounded),
+                              label: const Text('Cikis Yap'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const SizedBox(height: 18),
+                        LinearProgressIndicator(
+                          value: (_step + 1) / 4,
+                          minHeight: 10,
+                          borderRadius: BorderRadius.circular(999),
+                          backgroundColor: AppPalette.primarySoft,
+                          valueColor: const AlwaysStoppedAnimation<Color>(AppPalette.primary),
+                        ),
+                        const SizedBox(height: 18),
+                        Expanded(
+                          child: PageView(
+                            controller: _pageController,
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: [
+                              _OnboardingCard(
+                                title: '1. Profil tamamlama',
+                                subtitle: 'Ad, departman ve unvan bilgilerini duzenle.',
+                                child: Column(
+                                  children: [
+                                    TextField(
+                                      controller: _fullNameController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Ad Soyad',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    TextField(
+                                      controller: _departmentController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Departman',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    TextField(
+                                      controller: _jobTitleController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Pozisyon',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              _OnboardingCard(
+                                title: '2. Calisma tercihi',
+                                subtitle:
+                                    'Dokumanlarda istenen pozisyon ve calisma sekli secimini yap.',
+                                child: Wrap(
+                                  spacing: 10,
+                                  runSpacing: 10,
+                                  children: [
+                                    for (final option in const [
+                                      'Saha odakli',
+                                      'Saha + ofis hibrit',
+                                      'Merkez ofis',
+                                      'Karma operasyon',
+                                    ])
+                                      ChoiceChip(
+                                        label: Text(option),
+                                        selected: _workPreference == option,
+                                        onSelected: (_) => setState(
+                                          () => _workPreference = option,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              _OnboardingCard(
+                                title: '3. Bildirim kanallari',
+                                subtitle:
+                                    'Uygulama ici, e-posta ve Slack secimleri burada.',
+                                child: Wrap(
+                                  spacing: 10,
+                                  runSpacing: 10,
+                                  children: [
+                                    for (final channel in NotificationChannel.values)
+                                      FilterChip(
+                                        label: Text(channel.label),
+                                        selected: _channels.contains(channel),
+                                        onSelected: (selected) {
+                                          setState(() {
+                                            if (selected) {
+                                              _channels.add(channel);
+                                            } else {
+                                              _channels.remove(channel);
+                                            }
+                                          });
+                                        },
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              _OnboardingCard(
+                                title: '4. Onboarding rehberi',
+                                subtitle:
+                                    'Ilk giris rehberini gormek isteyip istemedigini sec.',
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SwitchListTile(
+                                      value: _wantsQuickTour,
+                                      onChanged: (value) =>
+                                          setState(() => _wantsQuickTour = value),
+                                      title: const Text('Hizli urun turunu goster'),
+                                      subtitle: const Text(
+                                        'Panel, gorevler, revizyon ve performans bloklari icin kisa tanitim.',
+                                      ),
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: AppPalette.background,
+                                        borderRadius: BorderRadius.circular(18),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          _SummaryRow(
+                                            label: 'Kullanici',
+                                            value: _fullNameController.text.trim().isEmpty
+                                                ? widget.user.name
+                                                : _fullNameController.text.trim(),
+                                          ),
+                                          _SummaryRow(
+                                            label: 'Departman',
+                                            value: _departmentController.text.trim(),
+                                          ),
+                                          _SummaryRow(
+                                            label: 'Pozisyon',
+                                            value: _jobTitleController.text.trim(),
+                                          ),
+                                          _SummaryRow(
+                                            label: 'Calisma modeli',
+                                            value: _workPreference,
+                                          ),
+                                          _SummaryRow(
+                                            label: 'Bildirim',
+                                            value: _channels
+                                                .map((item) => item.label)
+                                                .join(', '),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Row(
+                          children: [
+                            OutlinedButton(
+                              onPressed: _step == 0
+                                  ? null
+                                  : () => _goToStep(_step - 1),
+                              child: const Text('Geri'),
+                            ),
+                            const Spacer(),
+                            FilledButton.icon(
+                              onPressed: _nextStep,
+                              icon: Icon(
+                                _step == 3
+                                    ? Icons.check_rounded
+                                    : Icons.arrow_forward_rounded,
+                              ),
+                              label: Text(
+                                _step == 3 ? 'Dashboarda Gec' : 'Devam Et',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _OnboardingRail extends StatelessWidget {
+  const _OnboardingRail({required this.step, required this.user});
+
+  final int step;
+  final AppUser user;
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = ['Profil', 'Tercihler', 'Bildirim', 'Rehber'];
+
+    return Container(
+      width: 320,
+      padding: const EdgeInsets.all(28),
+      color: AppPalette.sidebar,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 28,
+            backgroundColor: AppPalette.primarySoft,
+            child: Text(
+              user.initials,
+              style: const TextStyle(
+                color: AppPalette.primary,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            user.name,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${user.role.label} - ${user.email}',
+            style: const TextStyle(color: Color(0xB7FFFFFF)),
+          ),
+          const SizedBox(height: 24),
+          for (var index = 0; index < labels.length; index++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: index <= step
+                        ? AppPalette.primary
+                        : Colors.white12,
+                    child: Text(
+                      '${index + 1}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    labels[index],
+                    style: TextStyle(
+                      color: index == step
+                          ? Colors.white
+                          : const Color(0xB7FFFFFF),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OnboardingCard extends StatelessWidget {
+  const _OnboardingCard({
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
+
+  final String title;
+  final String subtitle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x11000000),
+            blurRadius: 18,
+            offset: Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: AppPalette.text,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: const TextStyle(color: AppPalette.muted, height: 1.5),
+          ),
+          const SizedBox(height: 24),
+          Expanded(child: SingleChildScrollView(child: child)),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: AppPalette.muted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value.isEmpty ? '-' : value,
+              style: const TextStyle(
+                color: AppPalette.text,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
