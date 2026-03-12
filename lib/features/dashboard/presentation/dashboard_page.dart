@@ -1,98 +1,145 @@
 import 'package:flutter/material.dart';
+import 'package:servis_kontrol/core/network/api_client.dart';
+import 'package:servis_kontrol/core/presentation/state_panel.dart';
 import 'package:servis_kontrol/core/theme/app_palette.dart';
-import 'package:servis_kontrol/features/auth/domain/app_user.dart';
-import 'package:servis_kontrol/features/dashboard/application/dashboard_snapshot_factory.dart';
+import 'package:servis_kontrol/features/dashboard/application/dashboard_controller.dart';
 import 'package:servis_kontrol/features/dashboard/domain/dashboard_snapshot.dart';
 
-class DashboardPage extends StatelessWidget {
-  const DashboardPage({super.key, required this.user});
+class DashboardPage extends StatefulWidget {
+  const DashboardPage({
+    super.key,
+    required this.apiClient,
+  });
 
-  final AppUser user;
+  final ApiClient apiClient;
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  late final DashboardController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = DashboardController(apiClient: widget.apiClient);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final snapshot = const DashboardSnapshotFactory().create(user);
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        if (_controller.isLoading) {
+          return const StatePanel.loading(
+            title: 'Panel yükleniyor',
+            message: 'Operasyon özeti ve KPI kartları sunucudan alınıyor.',
+          );
+        }
+        if (_controller.errorMessage != null) {
+          return StatePanel.error(
+            message: _controller.errorMessage!,
+            onRetry: _controller.load,
+          );
+        }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _WorkflowHeroBanner(snapshot: snapshot),
-        const SizedBox(height: 18),
-        _PageHeader(title: snapshot.title, subtitle: snapshot.subtitle),
-        const SizedBox(height: 18),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 1100;
-            return Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                for (final metric in snapshot.summaryCards)
-                  SizedBox(
-                    width: wide ? 252 : double.infinity,
-                    child: _MetricCard(metric: metric),
-                  ),
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 18),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 1100;
-            if (wide) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 3, child: _KpiPanel(metrics: snapshot.kpiCards)),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    flex: 2,
-                    child: _NotificationPanel(
-                      notifications: snapshot.notifications,
-                    ),
-                  ),
-                ],
-              );
-            }
+        final snapshot = _controller.snapshot;
+        if (snapshot == null) {
+          return const StatePanel.empty(
+            title: 'Panel verisi bulunamadı',
+            message: 'Bu kullanıcı için dashboard snapshot kaydı yok.',
+          );
+        }
 
-            return Column(
-              children: [
-                _KpiPanel(metrics: snapshot.kpiCards),
-                const SizedBox(height: 16),
-                _NotificationPanel(notifications: snapshot.notifications),
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: 18),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 1100;
-            if (wide) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 2, child: _FocusPanel(items: snapshot.focusItems)),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    flex: 3,
-                    child: _ProjectPanel(projects: snapshot.projects),
-                  ),
-                ],
-              );
-            }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _WorkflowHeroBanner(snapshot: snapshot),
+            const SizedBox(height: 18),
+            _PageHeader(title: snapshot.title, subtitle: snapshot.subtitle),
+            const SizedBox(height: 18),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 1100;
+                return Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    for (final metric in snapshot.summaryCards)
+                      SizedBox(
+                        width: wide ? 252 : double.infinity,
+                        child: _MetricCard(metric: metric),
+                      ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 18),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 1100;
+                if (wide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 3, child: _KpiPanel(metrics: snapshot.kpiCards)),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 2,
+                        child: _NotificationPanel(
+                          notifications: snapshot.notifications,
+                        ),
+                      ),
+                    ],
+                  );
+                }
 
-            return Column(
-              children: [
-                _FocusPanel(items: snapshot.focusItems),
-                const SizedBox(height: 16),
-                _ProjectPanel(projects: snapshot.projects),
-              ],
-            );
-          },
-        ),
-      ],
+                return Column(
+                  children: [
+                    _KpiPanel(metrics: snapshot.kpiCards),
+                    const SizedBox(height: 16),
+                    _NotificationPanel(notifications: snapshot.notifications),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 18),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 1100;
+                if (wide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 2, child: _FocusPanel(items: snapshot.focusItems)),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 3,
+                        child: _ProjectPanel(projects: snapshot.projects),
+                      ),
+                    ],
+                  );
+                }
+
+                return Column(
+                  children: [
+                    _FocusPanel(items: snapshot.focusItems),
+                    const SizedBox(height: 16),
+                    _ProjectPanel(projects: snapshot.projects),
+                  ],
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -223,25 +270,19 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: AppPalette.text,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(subtitle, style: const TextStyle(color: AppPalette.muted)),
-            ],
+        Text(
+          title,
+          style: const TextStyle(
+            color: AppPalette.text,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
           ),
         ),
+        const SizedBox(height: 6),
+        Text(subtitle, style: const TextStyle(color: AppPalette.muted)),
       ],
     );
   }
@@ -568,7 +609,7 @@ class _ProjectPanel extends StatelessWidget {
                 CircleAvatar(
                   backgroundColor: AppPalette.primarySoft,
                   child: Text(
-                    project.name[0],
+                    project.name.isEmpty ? '?' : project.name[0],
                     style: const TextStyle(
                       color: AppPalette.primary,
                       fontWeight: FontWeight.w800,

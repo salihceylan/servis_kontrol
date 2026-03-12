@@ -112,16 +112,11 @@ class _LoginPageState extends State<LoginPage> {
                     },
                     onForgotPassword: _openForgotPassword,
                     onSubmit: _submit,
-                    lockMessage: widget.controller.isLocked
-                        ? widget.controller.lockMessage
-                        : null,
                   );
 
                   return Center(
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: wide ? 1160 : 520,
-                      ),
+                      constraints: BoxConstraints(maxWidth: wide ? 1160 : 520),
                       child: Padding(
                         padding: const EdgeInsets.all(24),
                         child: SingleChildScrollView(
@@ -229,15 +224,12 @@ class _BrandPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: const Text(
-              'Saha ekipleri, revizyon döngüleri, yönetici görünümü ve performans akışları aynı panelde yönetilsin.',
-              style: TextStyle(
-                color: Color(0xCCFFFFFF),
-                fontSize: 15,
-                height: 1.6,
-              ),
+          const Text(
+            'Saha ekipleri, revizyon döngüleri, yönetici görünümü ve performans akışları aynı panelde yönetilsin.',
+            style: TextStyle(
+              color: Color(0xCCFFFFFF),
+              fontSize: 15,
+              height: 1.6,
             ),
           ),
           const SizedBox(height: 28),
@@ -309,10 +301,10 @@ class _CompactBrandHeader extends StatelessWidget {
           ),
           SizedBox(height: 12),
           Text(
-            'Görev, revizyon ve ekip yönetimi tek akışta ilerlesin.',
+            'Gerçek görev, revizyon ve ekip kayıtlarıyla çalış.',
             style: TextStyle(
-            color: AppPalette.muted,
-            height: 1.5,
+              color: AppPalette.muted,
+              height: 1.5,
             ),
           ),
         ],
@@ -384,7 +376,6 @@ class _LoginCard extends StatelessWidget {
     required this.onToggleObscure,
     required this.onForgotPassword,
     required this.onSubmit,
-    required this.lockMessage,
   });
 
   final GlobalKey<FormState> formKey;
@@ -397,7 +388,6 @@ class _LoginCard extends StatelessWidget {
   final VoidCallback onToggleObscure;
   final VoidCallback onForgotPassword;
   final VoidCallback onSubmit;
-  final String? lockMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -428,10 +418,6 @@ class _LoginCard extends StatelessWidget {
               children: [
                 const _CardHeader(),
                 const SizedBox(height: 24),
-                if (lockMessage != null) ...[
-                  _MessageBanner(message: lockMessage!, color: AppPalette.danger),
-                  const SizedBox(height: 14),
-                ],
                 if (message != null) ...[
                   _MessageBanner(
                     message: message!,
@@ -444,7 +430,7 @@ class _LoginCard extends StatelessWidget {
                   keyboardType: TextInputType.emailAddress,
                   decoration: _fieldDecoration(
                     label: 'E-posta',
-                    hint: 'yonetici@workflow.local',
+                    hint: 'ornek@workflow.com',
                     icon: Icons.alternate_email_rounded,
                   ),
                   validator: (value) {
@@ -463,7 +449,7 @@ class _LoginCard extends StatelessWidget {
                   obscureText: obscureText,
                   decoration: _fieldDecoration(
                     label: 'Parola',
-                    hint: 'Workflow2026!',
+                    hint: 'Parolanız',
                     icon: Icons.lock_outline_rounded,
                     suffix: IconButton(
                       onPressed: onToggleObscure,
@@ -494,9 +480,9 @@ class _LoginCard extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: submitting || lockMessage != null ? null : onSubmit,
+                    onPressed: submitting ? null : onSubmit,
                     child: Text(
-                      submitting ? 'Oturum açılıyor...' : 'Oturum Aç',
+                      submitting ? 'Oturum açılıyor...' : 'Workflow Giriş',
                     ),
                   ),
                 ),

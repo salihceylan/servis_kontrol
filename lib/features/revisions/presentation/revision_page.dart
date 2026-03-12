@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:servis_kontrol/core/network/api_client.dart';
+import 'package:servis_kontrol/core/presentation/state_panel.dart';
 import 'package:servis_kontrol/core/theme/app_palette.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/auth/domain/user_role.dart';
@@ -6,9 +8,14 @@ import 'package:servis_kontrol/features/revisions/application/revision_controlle
 import 'package:servis_kontrol/features/revisions/domain/revision_item.dart';
 
 class RevisionPage extends StatefulWidget {
-  const RevisionPage({super.key, required this.user});
+  const RevisionPage({
+    super.key,
+    required this.user,
+    required this.apiClient,
+  });
 
   final AppUser user;
+  final ApiClient apiClient;
 
   @override
   State<RevisionPage> createState() => _RevisionPageState();
@@ -22,7 +29,10 @@ class _RevisionPageState extends State<RevisionPage> {
   @override
   void initState() {
     super.initState();
-    _controller = RevisionController(user: widget.user);
+    _controller = RevisionController(
+      user: widget.user,
+      apiClient: widget.apiClient,
+    );
     _searchController.addListener(() {
       _controller.updateQuery(_searchController.text);
     });
@@ -41,79 +51,86 @@ class _RevisionPageState extends State<RevisionPage> {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
+        if (_controller.isLoading) {
+          return const StatePanel.loading(
+            title: 'Revizyon akışı yükleniyor',
+            message: 'Onay ve geri bildirim kayıtları sunucudan alınıyor.',
+          );
+        }
+        if (_controller.errorMessage != null && !_controller.hasData) {
+          return StatePanel.error(
+            message: _controller.errorMessage!,
+            onRetry: _controller.load,
+          );
+        }
+        if (!_controller.hasData) {
+          return StatePanel.empty(
+            title: 'Revizyon kaydı bulunamadı',
+            message:
+                'Bu kullanıcı veya şirket için aktif revizyon kaydı görünmüyor.',
+            onRetry: _controller.load,
+          );
+        }
+
         final selected = _controller.selectedItem;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _RevisionHeader(),
+            const _Header(
+              title: 'Revizyonlar',
+              subtitle:
+                  'Gerçek onay kayıtlarını izle, revizyon iste ve çalışan güncellemesini tekrar incelemeye al.',
+            ),
             const SizedBox(height: 18),
             Wrap(
               spacing: 16,
               runSpacing: 16,
               children: [
                 for (final metric in _controller.metrics)
-                  SizedBox(
-                    width: 250,
-                    child: _RevisionMetricCard(metric: metric),
-                  ),
+                  SizedBox(width: 250, child: _MetricCard(metric: metric)),
               ],
             ),
             const SizedBox(height: 18),
-            _RevisionSearch(searchController: _searchController),
+            TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                hintText: 'Görev, proje veya kişi ara...',
+                prefixIcon: Icon(Icons.search_rounded),
+              ),
+            ),
             const SizedBox(height: 18),
             LayoutBuilder(
               builder: (context, constraints) {
                 final wide = constraints.maxWidth >= 1140;
-                final queues = _RevisionQueues(
-                  pendingItems: _controller.pendingItems,
-                  revisionItems: _controller.revisionItems,
-                  completedItems: _controller.completedItems,
+                final queuePanel = _QueuePanel(
+                  controller: _controller,
                   selectedId: selected?.id,
-                  onSelect: _controller.selectItem,
                 );
-                final detail = _RevisionDetailPanel(
+                final detailPanel = _DetailPanel(
+                  controller: _controller,
                   userRole: widget.user.role,
                   item: selected,
                   employeeUpdateController: _employeeUpdateController,
-                  onApprove: () {
-                    _controller.approveSelected();
-                    _showFeedback('Revizyon onaylandı.');
-                  },
-                  onRequestRevision: () async {
-                    final reason = await _askRevisionReason(context);
-                    if (reason != null && reason.trim().isNotEmpty) {
-                      _controller.requestRevision(reason);
-                      _showFeedback('Revizyon talebi gönderildi.');
-                    }
-                  },
-                  onEmployeeUpdate: () {
-                    final note = _employeeUpdateController.text.trim();
-                    if (note.isEmpty) {
-                      return;
-                    }
-                    _controller.markEmployeeUpdated(note);
-                    _employeeUpdateController.clear();
-                    _showFeedback('Güncelleme incelemeye gönderildi.');
-                  },
+                  onApprove: _approve,
+                  onRequestRevision: _requestRevision,
+                  onEmployeeUpdate: _sendEmployeeUpdate,
                 );
-
-                if (wide) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                if (!wide) {
+                  return Column(
                     children: [
-                      Expanded(flex: 5, child: queues),
-                      const SizedBox(width: 16),
-                      Expanded(flex: 4, child: detail),
+                      queuePanel,
+                      const SizedBox(height: 16),
+                      detailPanel,
                     ],
                   );
                 }
-
-                return Column(
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    queues,
-                    const SizedBox(height: 16),
-                    detail,
+                    Expanded(flex: 5, child: queuePanel),
+                    const SizedBox(width: 16),
+                    Expanded(flex: 4, child: detailPanel),
                   ],
                 );
               },
@@ -124,7 +141,45 @@ class _RevisionPageState extends State<RevisionPage> {
     );
   }
 
-  Future<String?> _askRevisionReason(BuildContext context) async {
+  Future<void> _approve() async {
+    final success = await _controller.approveSelected();
+    _showFeedback(
+      success
+          ? 'Revizyon onaylandı.'
+          : (_controller.errorMessage ?? 'Revizyon onaylanamadı.'),
+    );
+  }
+
+  Future<void> _requestRevision() async {
+    final reason = await _askReason(context);
+    if (reason == null || reason.trim().isEmpty) {
+      return;
+    }
+    final success = await _controller.requestRevision(reason);
+    _showFeedback(
+      success
+          ? 'Revizyon talebi gönderildi.'
+          : (_controller.errorMessage ?? 'Revizyon talebi gönderilemedi.'),
+    );
+  }
+
+  Future<void> _sendEmployeeUpdate() async {
+    final note = _employeeUpdateController.text.trim();
+    if (note.isEmpty) {
+      return;
+    }
+    final success = await _controller.markEmployeeUpdated(note);
+    if (success) {
+      _employeeUpdateController.clear();
+    }
+    _showFeedback(
+      success
+          ? 'Güncelleme incelemeye gönderildi.'
+          : (_controller.errorMessage ?? 'Güncelleme kaydedilemedi.'),
+    );
+  }
+
+  Future<String?> _askReason(BuildContext context) async {
     final controller = TextEditingController();
     try {
       return await showDialog<String>(
@@ -132,16 +187,12 @@ class _RevisionPageState extends State<RevisionPage> {
         builder: (context) {
           return AlertDialog(
             title: const Text('Revizyon Talep Et'),
-            content: SizedBox(
-              width: 420,
-              child: TextField(
-                controller: controller,
-                maxLines: 5,
-                decoration: const InputDecoration(
-                  labelText: 'Sebep / açıklama',
-                  hintText: 'Revizyon nedeni zorunludur.',
-                  border: OutlineInputBorder(),
-                ),
+            content: TextField(
+              controller: controller,
+              maxLines: 5,
+              decoration: const InputDecoration(
+                labelText: 'Sebep',
+                hintText: 'Geri gönderme nedenini yaz.',
               ),
             ),
             actions: [
@@ -150,14 +201,8 @@ class _RevisionPageState extends State<RevisionPage> {
                 child: const Text('Vazgeç'),
               ),
               FilledButton(
-                onPressed: () {
-                  final reason = controller.text.trim();
-                  if (reason.isEmpty) {
-                    return;
-                  }
-                  Navigator.of(context).pop(reason);
-                },
-                child: const Text('Revizyon İste'),
+                onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+                child: const Text('Gönder'),
               ),
             ],
           );
@@ -172,15 +217,17 @@ class _RevisionPageState extends State<RevisionPage> {
     if (!mounted) {
       return;
     }
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
   }
 }
 
-class _RevisionHeader extends StatelessWidget {
-  const _RevisionHeader();
+class _Header extends StatelessWidget {
+  const _Header({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -188,7 +235,7 @@ class _RevisionHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Revizyonlar',
+          title,
           style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
@@ -196,17 +243,17 @@ class _RevisionHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'İnceleme bekleyen işleri onayla veya açıklama zorunlu revizyon iste. Revizyon sayısı eşik aşarsa erken uyarı tetiklensin.',
-          style: TextStyle(color: AppPalette.muted, height: 1.5),
+        Text(
+          subtitle,
+          style: const TextStyle(color: AppPalette.muted, height: 1.5),
         ),
       ],
     );
   }
 }
 
-class _RevisionMetricCard extends StatelessWidget {
-  const _RevisionMetricCard({required this.metric});
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({required this.metric});
 
   final RevisionMetric metric;
 
@@ -218,13 +265,6 @@ class _RevisionMetricCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: AppPalette.border),
-        boxShadow: const [
-          BoxShadow(
-            color: AppPalette.shadow,
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,118 +296,275 @@ class _RevisionMetricCard extends StatelessWidget {
   }
 }
 
-class _RevisionSearch extends StatelessWidget {
-  const _RevisionSearch({required this.searchController});
+class _QueuePanel extends StatelessWidget {
+  const _QueuePanel({
+    required this.controller,
+    required this.selectedId,
+  });
 
-  final TextEditingController searchController;
+  final RevisionController controller;
+  final String? selectedId;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppPalette.border),
-      ),
-      child: SizedBox(
-        width: 320,
-        child: TextField(
-          controller: searchController,
-          decoration: InputDecoration(
-            hintText: 'Görev / proje / kişi ara...',
-            isDense: true,
-            prefixIcon: const Icon(Icons.search_rounded),
-            filled: true,
-            fillColor: AppPalette.background,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppPalette.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppPalette.border),
-            ),
-          ),
-        ),
+    return _SectionCard(
+      title: 'Revizyon Kuyruğu',
+      subtitle: 'Bekleyen, revizyonda ve tamamlanan kayıtlar',
+      child: Column(
+        children: [
+          for (final group in [
+            ('İnceleme Bekleyen', controller.pendingItems),
+            ('Revizyonda', controller.revisionItems),
+            ('Tamamlanan', controller.completedItems),
+          ]) ...[
+            _SubsectionTitle(title: group.$1),
+            const SizedBox(height: 10),
+            if (group.$2.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'Bu kuyruğa düşen kayıt yok.',
+                  style: TextStyle(color: AppPalette.muted),
+                ),
+              )
+            else
+              for (final item in group.$2)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Material(
+                    color: item.id == selectedId
+                        ? AppPalette.primarySoft
+                        : AppPalette.background,
+                    borderRadius: BorderRadius.circular(18),
+                    child: InkWell(
+                      onTap: () => controller.selectItem(item.id),
+                      borderRadius: BorderRadius.circular(18),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.title,
+                              style: const TextStyle(
+                                color: AppPalette.text,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${item.project} • ${item.owner}',
+                              style: const TextStyle(color: AppPalette.muted),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                _BadgeChip(label: item.stage.label, color: _stageColor(item.stage)),
+                                _BadgeChip(
+                                  label: '${item.revisionCount} revizyon',
+                                  color: item.earlyWarning
+                                      ? AppPalette.danger
+                                      : AppPalette.warning,
+                                ),
+                                _BadgeChip(label: item.category, color: const Color(0xFF7A7AE6)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            const SizedBox(height: 4),
+          ],
+        ],
       ),
     );
   }
 }
 
-class _RevisionQueues extends StatelessWidget {
-  const _RevisionQueues({
-    required this.pendingItems,
-    required this.revisionItems,
-    required this.completedItems,
-    required this.selectedId,
-    required this.onSelect,
+class _DetailPanel extends StatelessWidget {
+  const _DetailPanel({
+    required this.controller,
+    required this.userRole,
+    required this.item,
+    required this.employeeUpdateController,
+    required this.onApprove,
+    required this.onRequestRevision,
+    required this.onEmployeeUpdate,
   });
 
-  final List<RevisionItem> pendingItems;
-  final List<RevisionItem> revisionItems;
-  final List<RevisionItem> completedItems;
-  final String? selectedId;
-  final ValueChanged<String> onSelect;
+  final RevisionController controller;
+  final UserRole userRole;
+  final RevisionItem? item;
+  final TextEditingController employeeUpdateController;
+  final Future<void> Function() onApprove;
+  final Future<void> Function() onRequestRevision;
+  final Future<void> Function() onEmployeeUpdate;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _QueueCard(
-                title: 'İnceleme Bekleyen',
-                subtitle: 'Onay veya revizyon kararı bekleyenler',
-                items: pendingItems,
-                selectedId: selectedId,
-                onSelect: onSelect,
+    if (item == null) {
+      return const StatePanel.empty(
+        title: 'Revizyon detayı yok',
+        message: 'Listeden bir kayıt seçildiğinde detay burada açılır.',
+      );
+    }
+
+    return _SectionCard(
+      title: 'Revizyon Detayı',
+      subtitle: 'Onay, geri gönderme ve çalışan yanıtı akışı',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            item!.title,
+            style: const TextStyle(
+              color: AppPalette.text,
+              fontWeight: FontWeight.w900,
+              fontSize: 20,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _BadgeChip(label: item!.stage.label, color: _stageColor(item!.stage)),
+              _BadgeChip(
+                label: '${item!.revisionCount} revizyon',
+                color: item!.earlyWarning ? AppPalette.danger : AppPalette.warning,
+              ),
+              _BadgeChip(label: item!.category, color: const Color(0xFF7A7AE6)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            item!.summary,
+            style: const TextStyle(color: AppPalette.muted, height: 1.5),
+          ),
+          if (item!.revisionReason != null) ...[
+            const SizedBox(height: 16),
+            Text(
+              'Son revizyon nedeni',
+              style: const TextStyle(
+                color: AppPalette.text,
+                fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _QueueCard(
-                title: 'Revizyonda',
-                subtitle: 'Çalışana açıklama ile geri dönenler',
-                items: revisionItems,
-                selectedId: selectedId,
-                onSelect: onSelect,
+            const SizedBox(height: 6),
+            Text(
+              item!.revisionReason!,
+              style: const TextStyle(color: AppPalette.muted, height: 1.5),
+            ),
+          ],
+          const SizedBox(height: 18),
+          if (userRole == UserRole.employee)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: employeeUpdateController,
+                  minLines: 3,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    labelText: 'Yapılan güncelleme',
+                    hintText: 'Düzeltmeyi ve açıklamayı yaz.',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: controller.isSaving ? null : onEmployeeUpdate,
+                  icon: const Icon(Icons.send_rounded),
+                  label: const Text('Güncellemeyi Gönder'),
+                ),
+              ],
+            )
+          else
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                FilledButton.icon(
+                  onPressed: controller.isSaving ? null : onApprove,
+                  icon: const Icon(Icons.check_circle_outline_rounded),
+                  label: const Text('Onayla'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: controller.isSaving ? null : onRequestRevision,
+                  icon: const Icon(Icons.reply_rounded),
+                  label: const Text('Revizyon İste'),
+                ),
+              ],
+            ),
+          if (controller.errorMessage != null) ...[
+            const SizedBox(height: 14),
+            Text(
+              controller.errorMessage!,
+              style: const TextStyle(
+                color: AppPalette.danger,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 16),
-        _QueueCard(
-          title: 'Tamamlanan',
-          subtitle: 'Performans verisi üretilen onaylı kayıtlar',
-          items: completedItems,
-          selectedId: selectedId,
-          onSelect: onSelect,
-          compact: true,
-        ),
-      ],
+          const SizedBox(height: 18),
+          const _SubsectionTitle(title: 'Revizyon Geçmişi'),
+          const SizedBox(height: 10),
+          for (final history in item!.histories)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppPalette.background,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      history.title,
+                      style: const TextStyle(
+                        color: AppPalette.text,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      history.detail,
+                      style: const TextStyle(color: AppPalette.muted, height: 1.5),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${history.actor} • ${_formatDateTime(history.timestamp)}',
+                      style: const TextStyle(
+                        color: AppPalette.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
 
-class _QueueCard extends StatelessWidget {
-  const _QueueCard({
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
     required this.title,
     required this.subtitle,
-    required this.items,
-    required this.selectedId,
-    required this.onSelect,
-    this.compact = false,
+    required this.child,
   });
 
   final String title;
   final String subtitle;
-  final List<RevisionItem> items;
-  final String? selectedId;
-  final ValueChanged<String> onSelect;
-  final bool compact;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
@@ -403,424 +600,25 @@ class _QueueCard extends StatelessWidget {
             style: const TextStyle(color: AppPalette.muted, height: 1.5),
           ),
           const SizedBox(height: 16),
-          if (items.isEmpty)
-            const _EmptyState(
-              title: 'Kayıt yok',
-              message: 'Bu kuyruğa düşen revizyon kaydı bulunmuyor.',
-            )
-          else
-            for (final item in items)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _RevisionTile(
-                  item: item,
-                  selected: item.id == selectedId,
-                  compact: compact,
-                  onTap: () => onSelect(item.id),
-                ),
-              ),
+          child,
         ],
       ),
     );
   }
 }
 
-class _RevisionTile extends StatelessWidget {
-  const _RevisionTile({
-    required this.item,
-    required this.selected,
-    required this.onTap,
-    required this.compact,
-  });
-
-  final RevisionItem item;
-  final bool selected;
-  final VoidCallback onTap;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? AppPalette.primarySoft : AppPalette.background,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      item.title,
-                      style: const TextStyle(
-                        color: AppPalette.text,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  if (item.earlyWarning)
-                    const Icon(
-                      Icons.warning_amber_rounded,
-                      color: AppPalette.danger,
-                      size: 18,
-                    ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '${item.project} • ${item.owner}',
-                style: const TextStyle(color: AppPalette.muted),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _BadgeChip(
-                    label: item.stage.label,
-                    color: _stageColor(item.stage),
-                  ),
-                  _BadgeChip(
-                    label: '${item.revisionCount} revizyon',
-                    color: item.earlyWarning
-                        ? AppPalette.danger
-                        : AppPalette.warning,
-                  ),
-                  if (!compact)
-                    _BadgeChip(
-                      label: item.category,
-                      color: const Color(0xFF7A7AE6),
-                    ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RevisionDetailPanel extends StatelessWidget {
-  const _RevisionDetailPanel({
-    required this.userRole,
-    required this.item,
-    required this.employeeUpdateController,
-    required this.onApprove,
-    required this.onRequestRevision,
-    required this.onEmployeeUpdate,
-  });
-
-  final UserRole userRole;
-  final RevisionItem? item;
-  final TextEditingController employeeUpdateController;
-  final VoidCallback onApprove;
-  final VoidCallback onRequestRevision;
-  final VoidCallback onEmployeeUpdate;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppPalette.border),
-        boxShadow: const [
-          BoxShadow(
-            color: AppPalette.shadow,
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: item == null
-          ? const _EmptyState(
-              title: 'Revizyon Detayı',
-              message: 'Detay görmek için soldaki listeden bir kayıt seç.',
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _SectionHeader(
-                  title: 'Revizyon Detayı',
-                  subtitle:
-                      'Onayla, revizyon iste veya çalışan güncellemesini tekrar incelemeye gönder',
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  item!.title,
-                  style: const TextStyle(
-                    color: AppPalette.text,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 20,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _BadgeChip(
-                      label: item!.stage.label,
-                      color: _stageColor(item!.stage),
-                    ),
-                    _BadgeChip(
-                      label: '${item!.revisionCount} revizyon',
-                      color: item!.earlyWarning
-                          ? AppPalette.danger
-                          : AppPalette.warning,
-                    ),
-                    _BadgeChip(
-                      label: item!.category,
-                      color: const Color(0xFF7A7AE6),
-                    ),
-                    if (item!.performanceReady)
-                      const _BadgeChip(
-                        label: 'Performans Verisi Üretildi',
-                        color: AppPalette.success,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                _InfoRow(label: 'Proje', value: item!.project),
-                _InfoRow(label: 'Sorumlu', value: item!.owner),
-                _InfoRow(
-                  label: 'Güncelleme',
-                  value: _formatDateTime(item!.updatedAt),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  item!.summary,
-                  style: const TextStyle(color: AppPalette.muted, height: 1.6),
-                ),
-                if (item!.revisionReason != null) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppPalette.background,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: item!.earlyWarning
-                            ? AppPalette.danger.withValues(alpha: 0.18)
-                            : AppPalette.border,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Text(
-                              'Revizyon Sebebi',
-                              style: TextStyle(
-                                color: AppPalette.text,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            if (item!.earlyWarning) ...[
-                              const SizedBox(width: 8),
-                              const Icon(
-                                Icons.warning_amber_rounded,
-                                color: AppPalette.danger,
-                                size: 18,
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          item!.revisionReason!,
-                          style: const TextStyle(
-                            color: AppPalette.muted,
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 18),
-                if (userRole == UserRole.employee)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextField(
-                        controller: employeeUpdateController,
-                        minLines: 3,
-                        maxLines: 5,
-                        decoration: InputDecoration(
-                          labelText: 'Yapılan güncelleme',
-                          hintText:
-                              'Sebep + açıklama ile çalışanın yaptığı güncelleme notunu gir.',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton.icon(
-                        onPressed: onEmployeeUpdate,
-                        icon: const Icon(Icons.send_rounded),
-                        label: const Text('Güncellemeyi Gönder'),
-                      ),
-                    ],
-                  )
-                else
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      FilledButton.icon(
-                        onPressed: onApprove,
-                        icon: const Icon(Icons.check_circle_outline_rounded),
-                        label: const Text('Onayla'),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: onRequestRevision,
-                        icon: const Icon(Icons.reply_rounded),
-                        label: const Text('Revizyon İste'),
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 18),
-                const _SectionHeader(
-                  title: 'Revizyon Geçmişi',
-                  subtitle:
-                      'Onay, revizyon isteme, çalışan bildirimi ve erken uyarı kayıtları',
-                ),
-                const SizedBox(height: 14),
-                for (final history in item!.histories)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppPalette.background,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  history.title,
-                                  style: const TextStyle(
-                                    color: AppPalette.text,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                _formatDateTime(history.timestamp),
-                                style: const TextStyle(
-                                  color: AppPalette.muted,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            history.detail,
-                            style: const TextStyle(
-                              color: AppPalette.muted,
-                              height: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            history.actor,
-                            style: const TextStyle(
-                              color: AppPalette.primary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.title,
-    required this.subtitle,
-  });
+class _SubsectionTitle extends StatelessWidget {
+  const _SubsectionTitle({required this.title});
 
   final String title;
-  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: AppPalette.text,
-            fontWeight: FontWeight.w800,
-            fontSize: 18,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          subtitle,
-          style: const TextStyle(color: AppPalette.muted, height: 1.5),
-        ),
-      ],
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 110,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: AppPalette.muted,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                color: AppPalette.text,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
+    return Text(
+      title,
+      style: const TextStyle(
+        color: AppPalette.text,
+        fontWeight: FontWeight.w800,
       ),
     );
   }
@@ -846,39 +644,6 @@ class _BadgeChip extends StatelessWidget {
           color: color,
           fontWeight: FontWeight.w700,
         ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.title, required this.message});
-
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: AppPalette.background,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppPalette.text,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(message, style: const TextStyle(color: AppPalette.muted)),
-        ],
       ),
     );
   }

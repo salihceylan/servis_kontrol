@@ -6,7 +6,19 @@ extension MemberRiskLevelX on MemberRiskLevel {
     MemberRiskLevel.medium => 'İzle',
     MemberRiskLevel.high => 'Kritik',
   };
+
+  String get apiValue => switch (this) {
+    MemberRiskLevel.low => 'low',
+    MemberRiskLevel.medium => 'medium',
+    MemberRiskLevel.high => 'high',
+  };
 }
+
+MemberRiskLevel memberRiskLevelFromApi(String? value) => switch (value) {
+  'high' => MemberRiskLevel.high,
+  'medium' => MemberRiskLevel.medium,
+  _ => MemberRiskLevel.low,
+};
 
 class TeamMember {
   const TeamMember({
@@ -32,6 +44,21 @@ class TeamMember {
   final String focusNote;
   final MemberRiskLevel riskLevel;
   final String? lastManagerNote;
+
+  factory TeamMember.fromJson(Map<String, dynamic> json) {
+    return TeamMember(
+      id: json['id']?.toString() ?? '',
+      name: json['name'] as String? ?? '',
+      role: json['role'] as String? ?? '',
+      status: json['status'] as String? ?? '',
+      activeTasks: json['active_tasks'] as int? ?? 0,
+      completedTasks: json['completed_tasks'] as int? ?? 0,
+      performanceScore: json['performance_score'] as int? ?? 0,
+      focusNote: json['focus_note'] as String? ?? '',
+      riskLevel: memberRiskLevelFromApi(json['risk_level'] as String?),
+      lastManagerNote: json['last_manager_note'] as String?,
+    );
+  }
 
   TeamMember copyWith({
     String? id,
@@ -77,6 +104,16 @@ class TeamCorrection {
   final String owner;
   final String summary;
   final String ageLabel;
+
+  factory TeamCorrection.fromJson(Map<String, dynamic> json) {
+    return TeamCorrection(
+      id: json['id']?.toString() ?? '',
+      title: json['title'] as String? ?? '',
+      owner: json['owner'] as String? ?? '',
+      summary: json['summary'] as String? ?? '',
+      ageLabel: json['age_label'] as String? ?? '',
+    );
+  }
 }
 
 class TeamAlert {
@@ -93,4 +130,14 @@ class TeamAlert {
   final String detail;
   final String project;
   final MemberRiskLevel riskLevel;
+
+  factory TeamAlert.fromJson(Map<String, dynamic> json) {
+    return TeamAlert(
+      id: json['id']?.toString() ?? '',
+      title: json['title'] as String? ?? '',
+      detail: json['detail'] as String? ?? '',
+      project: json['project'] as String? ?? '',
+      riskLevel: memberRiskLevelFromApi(json['risk_level'] as String?),
+    );
+  }
 }

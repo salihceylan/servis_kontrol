@@ -2,12 +2,12 @@
 
 Bu belge iki şeyi netleştirir:
 
-1. Şu anda backend tarafında gerçekten oluşmuş tablolar
-2. Arayüzde gördüğümüz tüm modüllerin canlı ve dinamik çalışması için açılması gereken asıl tablolar
+1. Şu an backend tarafında gerçekten oluşmuş tablolar
+2. Flutter arayüzünde gördüğümüz tüm modüllerin dinamik çalışması için açılması gereken gerçek tablolar
 
-## Şu anda oluşmuş tablolar
+## Şu an gerçekten oluşmuş tablolar
 
-Laravel iskeleti kurulduğunda aşağıdaki çekirdek tablolar oluştu:
+Laravel iskeleti kurulduğunda yalnızca çerçeve tabloları oluştu:
 
 - `users`
 - `cache`
@@ -17,31 +17,32 @@ Laravel iskeleti kurulduğunda aşağıdaki çekirdek tablolar oluştu:
 - `failed_jobs`
 - `personal_access_tokens`
 
-Bu tablolar sadece framework ayağa kalksın diye var. Mevcut arayüzdeki görev, revizyon, ekip, performans, rapor, ayarlar ve yetki akışlarını karşılamaz.
+Bu tablo seti yalnızca framework ayağa kalksın diye yeterlidir. Görevler, revizyonlar, ekip, performans, raporlar, ayarlar ve yardım merkezi için ek tablo gerekir.
 
-## ID yaklaşımı
+## Kimlik tasarımı
 
-İşletme tarafında gösterilecek kimliklerle sistem içi primary key aynı olmamalı.
+Sistem içi `id` ile kullanıcıya gösterilen iş kodları farklı olmalı.
 
-- Her tabloda iç kullanım için `id` tutulmalı
+- Her ana tabloda sistem içi `id`
   - öneri: `uuid` veya `bigint`
-- Şirket için ayrıca:
+- Şirket için dış kimlik:
   - `company_code CHAR(6) UNIQUE`
-  - sadece rakam, rastgele üretilmiş dış kimlik
-- Kullanıcı için ayrıca:
+  - yalnızca rakam
+  - rastgele üretilmiş
+- Kullanıcı için dış kimlik:
   - `user_code CHAR(11) UNIQUE`
-  - sadece rakam, benzersiz dış kimlik
+  - yalnızca rakam
+  - benzersiz
 
-Öneri:
+Özet:
 
-- `id` = sistem içi ilişki anahtarı
-- `company_code` ve `user_code` = ekranda gösterilen iş kodu
+- `id` = ilişki anahtarı
+- `company_code` = şirket dış kodu
+- `user_code` = kullanıcı dış kodu
 
-Bu yaklaşım, ileride veri taşıma, merge, entegrasyon ve güvenlik açısından daha doğru olur.
+## Zorunlu ana tablo grupları
 
-## Zorunlu ana tablolar
-
-### Şirket / tenant yapısı
+### 1. Şirket ve tenant yapısı
 
 - `companies`
   - `id`
@@ -52,6 +53,7 @@ Bu yaklaşım, ileride veri taşıma, merge, entegrasyon ve güvenlik açısınd
   - `timezone`
   - `locale`
   - `created_at`
+  - `updated_at`
 
 - `company_settings`
   - `id`
@@ -67,7 +69,7 @@ Bu yaklaşım, ileride veri taşıma, merge, entegrasyon ve güvenlik açısınd
   - `created_at`
   - `updated_at`
 
-### Kullanıcı, pozisyon, rol, hak, yetki
+### 2. Kullanıcı, rol, yetki, pozisyon
 
 - `users`
   - `id`
@@ -147,7 +149,7 @@ Bu yaklaşım, ileride veri taşıma, merge, entegrasyon ve güvenlik açısınd
   - `report_ready_enabled`
   - `revision_alert_enabled`
 
-### Ekip yapısı
+### 3. Ekip yapısı
 
 - `teams`
   - `id`
@@ -163,7 +165,7 @@ Bu yaklaşım, ileride veri taşıma, merge, entegrasyon ve güvenlik açısınd
   - `joined_at`
   - `is_lead`
 
-### Proje ve iş takibi
+### 4. Proje ve görev akışı
 
 - `projects`
   - `id`
@@ -177,6 +179,8 @@ Bu yaklaşım, ileride veri taşıma, merge, entegrasyon ve güvenlik açısınd
   - `due_date`
   - `priority`
   - `created_by`
+  - `created_at`
+  - `updated_at`
 
 - `project_members`
   - `id`
@@ -280,7 +284,7 @@ Bu yaklaşım, ileride veri taşıma, merge, entegrasyon ve güvenlik açısınd
   - `duration_minutes`
   - `source`
 
-### Revizyon / onay akışı
+### 5. Revizyon ve onay akışı
 
 - `revisions`
   - `id`
@@ -311,7 +315,7 @@ Bu yaklaşım, ileride veri taşıma, merge, entegrasyon ve güvenlik açısınd
   - `decision_note`
   - `decided_at`
 
-### Dashboard, performans ve raporlama
+### 6. Dashboard, performans ve raporlama
 
 - `performance_snapshots`
   - `id`
@@ -360,7 +364,7 @@ Bu yaklaşım, ileride veri taşıma, merge, entegrasyon ve güvenlik açısınd
   - `created_at`
   - `completed_at`
 
-### Bildirim, alarm ve ayarlar menüsü
+### 7. Bildirim, yardım merkezi, sistem ayarları
 
 - `notifications`
   - `id`
@@ -400,7 +404,7 @@ Bu yaklaşım, ileride veri taşıma, merge, entegrasyon ve güvenlik açısınd
   - `setting_key`
   - `setting_value`
 
-### Güvenlik ve denetim
+### 8. Güvenlik ve denetim
 
 - `audit_logs`
   - `id`
@@ -422,14 +426,14 @@ Bu yaklaşım, ileride veri taşıma, merge, entegrasyon ve güvenlik açısınd
   - `attempted_at`
 
 - `password_reset_tokens`
-  - Laravel standard tablo
+  - Laravel standart tablo
 
 - `sessions`
-  - veritabanı tabanlı oturum tutulacaksa gerekli
+  - veritabanı tabanlı oturum kullanılacaksa gerekli
 
-## Minimum canlı sürüm için ilk açılması gereken tablo seti
+## İlk canlı sürüm için minimum tablo seti
 
-Eğer ilk hedef ekrandaki her şeyi dinamik yapmaksa önce şu set açılmalı:
+Arayüzde görülen her şeyi gerçek veriye bağlamak için ilk migration paketinde en az şu tablolar açılmalı:
 
 - `companies`
 - `company_settings`
@@ -458,12 +462,14 @@ Eğer ilk hedef ekrandaki her şeyi dinamik yapmaksa önce şu set açılmalı:
 - `alerts`
 - `performance_snapshots`
 - `report_runs`
+- `help_articles`
 - `audit_logs`
 
-## Settings menüsü için doğrudan gereken veri
+## Ayarlar menüsü için doğrudan gerekli tablo seti
 
-Şu an arayüzde görünen `Genel Ayarlar` ve `Yardım Merkezi` için en az:
+`Genel Ayarlar` ve `Yardım Merkezi` ekranlarının gerçek veriyle çalışması için en az:
 
+- `companies`
 - `company_settings`
 - `user_settings`
 - `notification_preferences`
@@ -472,11 +478,12 @@ Eğer ilk hedef ekrandaki her şeyi dinamik yapmaksa önce şu set açılmalı:
 
 ## Sonuç
 
-Mevcut backend tablo seti sadece iskelet seviyesinde.
+Şu an canlı backend yalnızca framework iskelet seviyesinde.
 
-Arayüzde şu an gördüğümüz her şeyin gerçek veriyle çalışması için:
+Flutter tarafında görünen modüllerin tamamının dinamik çalışması için:
 
-1. Yukarıdaki iş tabloları açılmalı
-2. Mock Flutter repository’ler gerçek API repository’lerine çevrilmeli
-3. Şirket, kullanıcı, görev, revizyon, performans ve rapor endpoint’leri hazırlanmalı
-4. Ayarlar ve yetki sistemi backend tarafında netleşmeli
+1. Yukarıdaki tablolar açılmalı
+2. API endpoint'leri hazırlanmalı
+3. Şirket kodu ve kullanıcı kodu üretimi backend tarafında garanti edilmeli
+4. Rol ve izin matrisi sunucuda zorlanmalı
+5. Ayarlar ve yardım merkezi içerikleri panelden yönetilebilir hale getirilmeli

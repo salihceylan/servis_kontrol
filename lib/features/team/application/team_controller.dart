@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
+import 'package:servis_kontrol/core/network/api_client.dart';
+import 'package:servis_kontrol/core/network/api_exception.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/auth/domain/user_role.dart';
-import 'package:servis_kontrol/features/team/application/mock_team_repository.dart';
+import 'package:servis_kontrol/features/team/data/api_team_repository.dart';
+import 'package:servis_kontrol/features/team/data/team_repository.dart';
 import 'package:servis_kontrol/features/team/domain/team_member.dart';
 
 class TeamMetric {
@@ -19,34 +22,36 @@ class TeamMetric {
 class TeamController extends ChangeNotifier {
   TeamController({
     required AppUser user,
-    MockTeamRepository? repository,
+    required ApiClient apiClient,
+    TeamRepository? repository,
   })  : _user = user,
-        _repository = repository ?? const MockTeamRepository() {
-    final snapshot = _repository.loadFor(user);
-    _members = snapshot.members;
-    _corrections = snapshot.corrections;
-    _alerts = snapshot.alerts;
-    _managerMode = user.role == UserRole.manager;
-    if (_members.isNotEmpty) {
-      _selectedMemberId = _members.first.id;
-    }
+        _repository = repository ?? ApiTeamRepository(apiClient),
+        _managerMode = user.role == UserRole.manager {
+    load();
   }
 
   final AppUser _user;
-  final MockTeamRepository _repository;
+  final TeamRepository _repository;
 
-  late List<TeamMember> _members;
-  late List<TeamCorrection> _corrections;
-  late List<TeamAlert> _alerts;
-  bool _managerMode = false;
+  List<TeamMember> _members = const [];
+  List<TeamCorrection> _corrections = const [];
+  List<TeamAlert> _alerts = const [];
+  bool _managerMode;
   String _query = '';
   bool _flaggedOnly = false;
   String? _selectedMemberId;
+  bool _isLoading = true;
+  bool _isSaving = false;
+  String? _errorMessage;
 
   bool get managerMode => _managerMode;
   bool get canToggleManagerMode => _user.role == UserRole.manager;
   bool get flaggedOnly => _flaggedOnly;
   String get query => _query;
+  bool get isLoading => _isLoading;
+  bool get isSaving => _isSaving;
+  String? get errorMessage => _errorMessage;
+  bool get hasData => _members.isNotEmpty;
 
   List<TeamMember> get members {
     final normalized = _query.trim().toLowerCase();
@@ -124,6 +129,37 @@ class TeamController extends ChangeNotifier {
     ];
   }
 
+  Future<void> load() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final snapshot = await _repository.load(
+        query: _query,
+        flaggedOnly: _flaggedOnly,
+      );
+      _members = snapshot.members;
+      _corrections = snapshot.corrections;
+      _alerts = snapshot.alerts;
+      _ensureSelection();
+    } on ApiException catch (error) {
+      _members = const [];
+      _corrections = const [];
+      _alerts = const [];
+      _selectedMemberId = null;
+      _errorMessage = error.message;
+    } catch (_) {
+      _members = const [];
+      _corrections = const [];
+      _alerts = const [];
+      _selectedMemberId = null;
+      _errorMessage = 'Ekip verileri alınamadı.';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   void toggleManagerMode(bool value) {
     if (!canToggleManagerMode) {
       return;
@@ -149,21 +185,36 @@ class TeamController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addManagerNote(String note) {
+  Future<bool> addManagerNote(String note) async {
     final member = selectedMember;
     final normalized = note.trim();
     if (member == null || normalized.isEmpty) {
-      return;
+      return false;
     }
 
-    _members = [
-      for (final current in _members)
-        if (current.id == member.id)
-          current.copyWith(lastManagerNote: normalized)
-        else
-          current,
-    ];
+    _isSaving = true;
+    _errorMessage = null;
     notifyListeners();
+    try {
+      await _repository.addManagerNote(memberId: member.id, note: normalized);
+      _members = [
+        for (final current in _members)
+          if (current.id == member.id)
+            current.copyWith(lastManagerNote: normalized)
+          else
+            current,
+      ];
+      return true;
+    } on ApiException catch (error) {
+      _errorMessage = error.message;
+      return false;
+    } catch (_) {
+      _errorMessage = 'Yönetici notu kaydedilemedi.';
+      return false;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
   }
 
   void _ensureSelection() {

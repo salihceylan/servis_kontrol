@@ -6,7 +6,19 @@ extension RevisionStageX on RevisionStage {
     RevisionStage.inRevision => 'Revizyonda',
     RevisionStage.completed => 'Tamamlandı',
   };
+
+  String get apiValue => switch (this) {
+    RevisionStage.pendingReview => 'pending_review',
+    RevisionStage.inRevision => 'in_revision',
+    RevisionStage.completed => 'completed',
+  };
 }
+
+RevisionStage revisionStageFromApi(String? value) => switch (value) {
+  'in_revision' => RevisionStage.inRevision,
+  'completed' => RevisionStage.completed,
+  _ => RevisionStage.pendingReview,
+};
 
 class RevisionHistoryEntry {
   const RevisionHistoryEntry({
@@ -20,6 +32,16 @@ class RevisionHistoryEntry {
   final String detail;
   final String actor;
   final DateTime timestamp;
+
+  factory RevisionHistoryEntry.fromJson(Map<String, dynamic> json) {
+    return RevisionHistoryEntry(
+      title: json['title'] as String? ?? '',
+      detail: json['detail'] as String? ?? '',
+      actor: json['actor'] as String? ?? '',
+      timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+          DateTime.now(),
+    );
+  }
 }
 
 class RevisionItem {
@@ -52,6 +74,31 @@ class RevisionItem {
   final bool earlyWarning;
   final bool performanceReady;
   final List<RevisionHistoryEntry> histories;
+
+  factory RevisionItem.fromJson(Map<String, dynamic> json) {
+    final histories = (json['histories'] as List<dynamic>? ?? const [])
+        .map(
+          (item) => RevisionHistoryEntry.fromJson(item as Map<String, dynamic>),
+        )
+        .toList(growable: false);
+
+    return RevisionItem(
+      id: json['id']?.toString() ?? '',
+      title: json['title'] as String? ?? '',
+      project: json['project'] as String? ?? '',
+      owner: json['owner'] as String? ?? '',
+      stage: revisionStageFromApi(json['stage'] as String?),
+      revisionCount: json['revision_count'] as int? ?? 0,
+      updatedAt:
+          DateTime.tryParse(json['updated_at'] as String? ?? '') ?? DateTime.now(),
+      category: json['category'] as String? ?? '',
+      summary: json['summary'] as String? ?? '',
+      revisionReason: json['revision_reason'] as String?,
+      earlyWarning: json['early_warning'] as bool? ?? false,
+      performanceReady: json['performance_ready'] as bool? ?? false,
+      histories: histories,
+    );
+  }
 
   RevisionItem copyWith({
     String? id,

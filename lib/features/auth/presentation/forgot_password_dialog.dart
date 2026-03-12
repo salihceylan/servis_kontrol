@@ -97,7 +97,7 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
                 labelText: 'E-posta',
-                hintText: 'yonetici@workflow.local',
+                hintText: 'ornek@workflow.com',
                 prefixIcon: Icon(
                   Icons.alternate_email_rounded,
                   color: AppPalette.muted,

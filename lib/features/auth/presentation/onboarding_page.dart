@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:servis_kontrol/core/theme/app_palette.dart';
+import 'package:servis_kontrol/features/auth/application/auth_controller.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/auth/domain/user_role.dart';
 
@@ -7,13 +8,13 @@ class OnboardingPage extends StatefulWidget {
   const OnboardingPage({
     super.key,
     required this.user,
-    required this.onComplete,
+    required this.controller,
     required this.onLogout,
   });
 
   final AppUser user;
-  final ValueChanged<OnboardingProfile> onComplete;
-  final VoidCallback onLogout;
+  final AuthController controller;
+  final Future<void> Function() onLogout;
 
   @override
   State<OnboardingPage> createState() => _OnboardingPageState();
@@ -28,6 +29,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   late Set<NotificationChannel> _channels;
   late bool _wantsQuickTour;
   int _step = 0;
+  String? _message;
 
   @override
   void initState() {
@@ -59,21 +61,30 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
-  void _nextStep() {
-    if (_step == 3) {
-      widget.onComplete(
-        OnboardingProfile(
-          fullName: _fullNameController.text.trim(),
-          department: _departmentController.text.trim(),
-          jobTitle: _jobTitleController.text.trim(),
-          workPreference: _workPreference,
-          notificationChannels: _channels,
-          wantsQuickTour: _wantsQuickTour,
-        ),
-      );
+  Future<void> _nextStep() async {
+    if (_step < 3) {
+      _goToStep(_step + 1);
       return;
     }
-    _goToStep(_step + 1);
+
+    final result = await widget.controller.completeOnboarding(
+      OnboardingProfile(
+        fullName: _fullNameController.text.trim(),
+        department: _departmentController.text.trim(),
+        jobTitle: _jobTitleController.text.trim(),
+        workPreference: _workPreference,
+        notificationChannels: _channels,
+        wantsQuickTour: _wantsQuickTour,
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (!result.isSuccess) {
+      setState(() => _message = result.message);
+    }
   }
 
   @override
@@ -98,212 +109,187 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     child: Padding(
                       padding: EdgeInsets.all(wide ? 28 : 18),
                       child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'İlk giriş kurulumu',
-                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                  color: AppPalette.text,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 28,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'İlk giriş kurulumu',
+                                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                    color: AppPalette.text,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 28,
+                                  ),
                                 ),
                               ),
-                            ),
-                            TextButton.icon(
-                              onPressed: widget.onLogout,
-                              icon: const Icon(Icons.logout_rounded),
-                              label: const Text('Çıkış Yap'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        const SizedBox(height: 18),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: LinearProgressIndicator(
-                            value: (_step + 1) / 4,
-                            minHeight: 10,
-                            backgroundColor: AppPalette.primarySoft,
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              AppPalette.primary,
+                              TextButton.icon(
+                                onPressed: widget.onLogout,
+                                icon: const Icon(Icons.logout_rounded),
+                                label: const Text('Çıkış Yap'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: LinearProgressIndicator(
+                              value: (_step + 1) / 4,
+                              minHeight: 10,
+                              backgroundColor: AppPalette.primarySoft,
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                AppPalette.primary,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 18),
-                        Expanded(
-                          child: PageView(
-                            controller: _pageController,
-                            physics: const NeverScrollableScrollPhysics(),
-                            children: [
-                              _OnboardingCard(
-                                title: '1. Profil tamamlama',
-                                subtitle: 'Ad, departman ve unvan bilgilerini düzenle.',
-                                child: Column(
-                                  children: [
-                                    TextField(
-                                      controller: _fullNameController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Ad Soyad',
-                                        border: OutlineInputBorder(),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 14),
-                                    TextField(
-                                      controller: _departmentController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Departman',
-                                        border: OutlineInputBorder(),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 14),
-                                    TextField(
-                                      controller: _jobTitleController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Pozisyon',
-                                        border: OutlineInputBorder(),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                          if (_message != null) ...[
+                            const SizedBox(height: 18),
+                            Text(
+                              _message!,
+                              style: const TextStyle(
+                                color: AppPalette.danger,
+                                fontWeight: FontWeight.w700,
                               ),
-                              _OnboardingCard(
-                                title: '2. Çalışma tercihi',
-                                subtitle:
-                                    'Dokümanlarda istenen pozisyon ve çalışma şekli seçimini yap.',
-                                child: Wrap(
-                                  spacing: 10,
-                                  runSpacing: 10,
-                                  children: [
-                                    for (final option in const [
-                                      'Saha odaklı',
-                                      'Saha + ofis hibrit',
-                                      'Merkez ofis',
-                                      'Karma operasyon',
-                                    ])
-                                      ChoiceChip(
-                                        label: Text(option),
-                                        selected: _workPreference == option,
-                                        onSelected: (_) => setState(
-                                          () => _workPreference = option,
+                            ),
+                          ],
+                          const SizedBox(height: 18),
+                          Expanded(
+                            child: PageView(
+                              controller: _pageController,
+                              physics: const NeverScrollableScrollPhysics(),
+                              children: [
+                                _OnboardingCard(
+                                  title: '1. Profil tamamlama',
+                                  subtitle: 'Ad, departman ve unvan bilgilerini güncelle.',
+                                  child: Column(
+                                    children: [
+                                      TextField(
+                                        controller: _fullNameController,
+                                        decoration: const InputDecoration(labelText: 'Ad Soyad'),
+                                      ),
+                                      const SizedBox(height: 14),
+                                      TextField(
+                                        controller: _departmentController,
+                                        decoration: const InputDecoration(labelText: 'Departman'),
+                                      ),
+                                      const SizedBox(height: 14),
+                                      TextField(
+                                        controller: _jobTitleController,
+                                        decoration: const InputDecoration(labelText: 'Pozisyon'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                _OnboardingCard(
+                                  title: '2. Çalışma tercihi',
+                                  subtitle: 'Rolüne uygun çalışma modelini seç.',
+                                  child: Wrap(
+                                    spacing: 10,
+                                    runSpacing: 10,
+                                    children: [
+                                      for (final option in const [
+                                        'Saha odaklı',
+                                        'Saha + ofis hibrit',
+                                        'Merkez ofis',
+                                        'Karma operasyon',
+                                      ])
+                                        ChoiceChip(
+                                          label: Text(option),
+                                          selected: _workPreference == option,
+                                          onSelected: (_) => setState(
+                                            () => _workPreference = option,
+                                          ),
                                         ),
-                                      ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              _OnboardingCard(
-                                title: '3. Bildirim kanalları',
-                                subtitle:
-                                    'Uygulama içi, e-posta ve Slack seçimleri burada.',
-                                child: Wrap(
-                                  spacing: 10,
-                                  runSpacing: 10,
-                                  children: [
-                                    for (final channel in NotificationChannel.values)
-                                      FilterChip(
-                                        label: Text(channel.label),
-                                        selected: _channels.contains(channel),
-                                        onSelected: (selected) {
-                                          setState(() {
-                                            if (selected) {
-                                              _channels.add(channel);
-                                            } else {
-                                              _channels.remove(channel);
-                                            }
-                                          });
-                                        },
-                                      ),
-                                  ],
+                                _OnboardingCard(
+                                  title: '3. Bildirim kanalları',
+                                  subtitle: 'Yeni kullanıcı tercihini kaydet.',
+                                  child: Wrap(
+                                    spacing: 10,
+                                    runSpacing: 10,
+                                    children: [
+                                      for (final channel in NotificationChannel.values)
+                                        FilterChip(
+                                          label: Text(channel.label),
+                                          selected: _channels.contains(channel),
+                                          onSelected: (selected) {
+                                            setState(() {
+                                              if (selected) {
+                                                _channels.add(channel);
+                                              } else {
+                                                _channels.remove(channel);
+                                              }
+                                            });
+                                          },
+                                        ),
+                                    ],
+                                  ),
                                 ),
+                                _OnboardingCard(
+                                  title: '4. Son kontrol',
+                                  subtitle: 'Kurulumu tamamlamadan önce özeti kontrol et.',
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SwitchListTile(
+                                        value: _wantsQuickTour,
+                                        onChanged: (value) =>
+                                            setState(() => _wantsQuickTour = value),
+                                        title: const Text('Hızlı ürün turunu göster'),
+                                        contentPadding: EdgeInsets.zero,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      _SummaryRow(
+                                        label: 'Kullanıcı',
+                                        value: _fullNameController.text.trim(),
+                                      ),
+                                      _SummaryRow(
+                                        label: 'Departman',
+                                        value: _departmentController.text.trim(),
+                                      ),
+                                      _SummaryRow(
+                                        label: 'Pozisyon',
+                                        value: _jobTitleController.text.trim(),
+                                      ),
+                                      _SummaryRow(
+                                        label: 'Çalışma modeli',
+                                        value: _workPreference,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              OutlinedButton(
+                                onPressed: _step == 0
+                                    ? null
+                                    : () => _goToStep(_step - 1),
+                                child: const Text('Geri'),
                               ),
-                              _OnboardingCard(
-                                title: '4. Onboarding rehberi',
-                                subtitle:
-                                    'İlk giriş rehberini görmek isteyip istemediğini seç.',
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SwitchListTile(
-                                      value: _wantsQuickTour,
-                                      onChanged: (value) =>
-                                          setState(() => _wantsQuickTour = value),
-                                      title: const Text('Hızlı ürün turunu göster'),
-                                      subtitle: const Text(
-                                        'Panel, görevler, revizyon ve performans blokları için kısa tanıtım.',
-                                      ),
-                                      contentPadding: EdgeInsets.zero,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: AppPalette.background,
-                                        borderRadius: BorderRadius.circular(18),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          _SummaryRow(
-                                            label: 'Kullanıcı',
-                                            value: _fullNameController.text.trim().isEmpty
-                                                ? widget.user.name
-                                                : _fullNameController.text.trim(),
-                                          ),
-                                          _SummaryRow(
-                                            label: 'Departman',
-                                            value: _departmentController.text.trim(),
-                                          ),
-                                          _SummaryRow(
-                                            label: 'Pozisyon',
-                                            value: _jobTitleController.text.trim(),
-                                          ),
-                                          _SummaryRow(
-                                            label: 'Çalışma modeli',
-                                            value: _workPreference,
-                                          ),
-                                          _SummaryRow(
-                                            label: 'Bildirim',
-                                            value: _channels
-                                                .map((item) => item.label)
-                                                .join(', '),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                              const Spacer(),
+                              FilledButton.icon(
+                                onPressed: widget.controller.busy ? null : _nextStep,
+                                icon: Icon(
+                                  _step == 3
+                                      ? Icons.check_rounded
+                                      : Icons.arrow_forward_rounded,
+                                ),
+                                label: Text(
+                                  widget.controller.busy
+                                      ? 'Kaydediliyor...'
+                                      : (_step == 3 ? 'Panele Geç' : 'Devam Et'),
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 18),
-                        Row(
-                          children: [
-                            OutlinedButton(
-                              onPressed: _step == 0
-                                  ? null
-                                  : () => _goToStep(_step - 1),
-                              child: const Text('Geri'),
-                            ),
-                            const Spacer(),
-                            FilledButton.icon(
-                              onPressed: _nextStep,
-                              icon: Icon(
-                                _step == 3
-                                    ? Icons.check_rounded
-                                    : Icons.arrow_forward_rounded,
-                              ),
-                              label: Text(
-                                _step == 3 ? 'Panele Geç' : 'Devam Et',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -324,7 +310,7 @@ class _OnboardingRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const labels = ['Profil', 'Tercihler', 'Bildirim', 'Rehber'];
+    const labels = ['Profil', 'Tercihler', 'Bildirim', 'Onay'];
 
     return Container(
       width: 320,
@@ -362,7 +348,7 @@ class _OnboardingRail extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${user.role.label} - ${user.email}',
+            '${user.role.label} • ${user.email}',
             style: const TextStyle(color: Color(0xB7FFFFFF)),
           ),
           const SizedBox(height: 24),

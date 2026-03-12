@@ -1,68 +1,51 @@
 import 'package:flutter/foundation.dart';
-import 'package:servis_kontrol/features/auth/data/mock_auth_repository.dart';
+import 'package:servis_kontrol/core/network/api_client.dart';
+import 'package:servis_kontrol/core/network/api_exception.dart';
+import 'package:servis_kontrol/features/auth/data/api_auth_repository.dart';
+import 'package:servis_kontrol/features/auth/data/auth_repository.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/auth/domain/auth_result.dart';
 
 class AuthController extends ChangeNotifier {
-  AuthController({MockAuthRepository? repository})
-    : _repository = repository ?? MockAuthRepository();
+  AuthController({
+    required ApiClient apiClient,
+    AuthRepository? repository,
+  })  : _apiClient = apiClient,
+        _repository = repository ?? ApiAuthRepository(apiClient);
 
-  final MockAuthRepository _repository;
-  int _failedAttempts = 0;
-  DateTime? _lockedUntil;
+  final ApiClient _apiClient;
+  final AuthRepository _repository;
   AppUser? _currentUser;
   AuthStage _stage = AuthStage.login;
+  bool _busy = false;
 
-  List<DemoAccount> get demoAccounts => _repository.demoAccounts;
+  ApiClient get apiClient => _apiClient;
   AppUser? get currentUser => _currentUser;
   AuthStage get stage => _stage;
-
-  bool get isLocked =>
-      _lockedUntil != null && DateTime.now().isBefore(_lockedUntil!);
-
-  String get lockMessage {
-    if (!isLocked || _lockedUntil == null) {
-      return '';
-    }
-    final difference = _lockedUntil!.difference(DateTime.now());
-    final minutes = difference.inMinutes.clamp(0, 59);
-    final seconds = difference.inSeconds.remainder(60).clamp(0, 59);
-    return '5 hatalı deneme nedeniyle giriş geçici olarak kilitlendi. '
-        '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')} sonra tekrar deneyin.';
-  }
+  bool get busy => _busy;
 
   Future<AuthResult> signIn({
     required String email,
     required String password,
   }) async {
-    if (isLocked) {
-      return AuthResult.failure(lockMessage);
-    }
-
-    final user = await _repository.authenticate(email, password);
-    if (user == null) {
-      _failedAttempts += 1;
-      if (_failedAttempts >= 5) {
-        _lockedUntil = DateTime.now().add(const Duration(minutes: 15));
-        notifyListeners();
-        return AuthResult.failure(lockMessage);
-      }
-      notifyListeners();
-      return AuthResult.failure(
-        'Kullanıcı bilgileri hatalı. '
-        'Kalan deneme: ${5 - _failedAttempts}',
-      );
-    }
-
-    _failedAttempts = 0;
-    _lockedUntil = null;
-    _currentUser = user;
-    _stage = user.isFirstLogin ? AuthStage.onboarding : AuthStage.authenticated;
+    _busy = true;
     notifyListeners();
-
-    return AuthResult.success(
-      'Giriş başarılı.',
-    );
+    try {
+      final session = await _repository.signIn(email: email, password: password);
+      _apiClient.updateAccessToken(session.token);
+      _currentUser = session.user;
+      _stage = session.user.isFirstLogin
+          ? AuthStage.onboarding
+          : AuthStage.authenticated;
+      return AuthResult.success('Oturum açıldı.');
+    } on ApiException catch (error) {
+      return AuthResult.failure(error.message);
+    } catch (_) {
+      return AuthResult.failure('Oturum açılamadı. Sunucu cevabı geçersiz.');
+    } finally {
+      _busy = false;
+      notifyListeners();
+    }
   }
 
   Future<AuthResult> requestPasswordReset(String email) async {
@@ -71,32 +54,54 @@ class AuthController extends ChangeNotifier {
       return AuthResult.failure('Geçerli bir e-posta adresi girin.');
     }
 
-    final exists = await _repository.requestPasswordReset(normalized);
-    if (exists) {
-      return AuthResult.success(
-        'Şifre sıfırlama bağlantısı $normalized adresine gönderildi.',
-      );
-    }
-
-    return AuthResult.success(
-      'Bu adres sistemde kayıtlıysa sıfırlama bağlantısı gönderilecektir.',
-    );
-  }
-
-  void completeOnboarding(OnboardingProfile profile) {
-    final user = _currentUser;
-    if (user == null) {
-      return;
-    }
-
-    _currentUser = _repository.saveOnboarding(user.email, profile);
-    _stage = AuthStage.authenticated;
+    _busy = true;
     notifyListeners();
+    try {
+      await _repository.requestPasswordReset(normalized);
+      return AuthResult.success(
+        'Parola sıfırlama bağlantısı gönderildi. Gelen kutunuzu kontrol edin.',
+      );
+    } on ApiException catch (error) {
+      return AuthResult.failure(error.message);
+    } catch (_) {
+      return AuthResult.failure('Parola sıfırlama isteği gönderilemedi.');
+    } finally {
+      _busy = false;
+      notifyListeners();
+    }
   }
 
-  void logout() {
+  Future<AuthResult> completeOnboarding(OnboardingProfile profile) async {
+    if (_currentUser == null) {
+      return AuthResult.failure('Aktif kullanıcı bulunamadı.');
+    }
+
+    _busy = true;
+    notifyListeners();
+    try {
+      _currentUser = await _repository.completeOnboarding(profile);
+      _stage = AuthStage.authenticated;
+      return AuthResult.success('İlk giriş kurulumu tamamlandı.');
+    } on ApiException catch (error) {
+      return AuthResult.failure(error.message);
+    } catch (_) {
+      return AuthResult.failure('Kurulum kaydedilemedi.');
+    } finally {
+      _busy = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      await _repository.logout();
+    } catch (_) {
+      // Oturum sunucuda kapanmasa bile istemci tarafını temizle.
+    }
+    _apiClient.clearAccessToken();
     _currentUser = null;
     _stage = AuthStage.login;
+    _busy = false;
     notifyListeners();
   }
 }

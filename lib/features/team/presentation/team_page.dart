@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:servis_kontrol/core/network/api_client.dart';
+import 'package:servis_kontrol/core/presentation/state_panel.dart';
 import 'package:servis_kontrol/core/theme/app_palette.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/auth/domain/user_role.dart';
@@ -9,11 +11,13 @@ class TeamPage extends StatefulWidget {
   const TeamPage({
     super.key,
     required this.user,
+    required this.apiClient,
     required this.onOpenTasks,
     required this.onOpenRevisions,
   });
 
   final AppUser user;
+  final ApiClient apiClient;
   final VoidCallback onOpenTasks;
   final VoidCallback onOpenRevisions;
 
@@ -29,7 +33,7 @@ class _TeamPageState extends State<TeamPage> {
   @override
   void initState() {
     super.initState();
-    _controller = TeamController(user: widget.user);
+    _controller = TeamController(user: widget.user, apiClient: widget.apiClient);
     _searchController.addListener(() {
       _controller.updateQuery(_searchController.text);
     });
@@ -48,32 +52,34 @@ class _TeamPageState extends State<TeamPage> {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
+        if (_controller.isLoading) {
+          return const StatePanel.loading(
+            title: 'Ekip verileri yükleniyor',
+            message: 'Çalışan kartları, risk sinyalleri ve düzeltme kuyrukları alınıyor.',
+          );
+        }
+        if (_controller.errorMessage != null && !_controller.hasData) {
+          return StatePanel.error(
+            message: _controller.errorMessage!,
+            onRetry: _controller.load,
+          );
+        }
+        if (!_controller.hasData) {
+          return StatePanel.empty(
+            title: 'Ekip kaydı bulunamadı',
+            message: 'Bu şirket için ekip verisi henüz oluşmamış.',
+            onRetry: _controller.load,
+          );
+        }
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _TeamHeader(
+            _Header(
               role: widget.user.role,
               canToggleManagerMode: _controller.canToggleManagerMode,
               managerMode: _controller.managerMode,
               onManagerModeChanged: _controller.toggleManagerMode,
-            ),
-            const SizedBox(height: 18),
-            _QuickActions(
-              role: widget.user.role,
-              correctionsCount: _controller.corrections.length,
-              alertsCount: _controller.alerts.length,
-              flaggedOnly: _controller.flaggedOnly,
-              onOpenTasks: widget.onOpenTasks,
-              onOpenRevisions: widget.onOpenRevisions,
-              onToggleRiskMode: () {
-                final nextValue = !_controller.flaggedOnly;
-                _controller.toggleFlaggedOnly(nextValue);
-                _showFeedback(
-                  nextValue
-                      ? 'Alarm takibi açıldı. Kritik kişiler filtrelendi.'
-                      : 'Alarm filtresi kapatıldı.',
-                );
-              },
             ),
             const SizedBox(height: 18),
             Wrap(
@@ -86,71 +92,53 @@ class _TeamPageState extends State<TeamPage> {
             ),
             const SizedBox(height: 18),
             _FilterBar(
+              controller: _controller,
               searchController: _searchController,
-              flaggedOnly: _controller.flaggedOnly,
-              onFlaggedOnlyChanged: _controller.toggleFlaggedOnly,
-              onReset: () {
-                _searchController.clear();
-                _controller.toggleFlaggedOnly(false);
-              },
             ),
             const SizedBox(height: 18),
             LayoutBuilder(
               builder: (context, constraints) {
                 final wide = constraints.maxWidth >= 1140;
-                final membersPanel = _MembersPanel(
-                  members: _controller.members,
-                  selectedMemberId: _controller.selectedMember?.id,
-                  onSelect: _controller.selectMember,
+                final members = _MembersPanel(
+                  controller: _controller,
                 );
-                final detailPanel = _MemberDetailPanel(
+                final detail = _DetailPanel(
+                  controller: _controller,
                   role: widget.user.role,
-                  member: _controller.selectedMember,
                   managerNoteController: _managerNoteController,
-                  onSaveNote: () {
-                    final note = _managerNoteController.text.trim();
-                    if (note.isEmpty) {
-                      return;
-                    }
-                    _controller.addManagerNote(note);
-                    _managerNoteController.clear();
-                    _showFeedback('Yönetici yorumu kaydedildi.');
-                  },
+                  onSaveNote: _saveManagerNote,
                   onOpenTasks: widget.onOpenTasks,
                   onOpenRevisions: widget.onOpenRevisions,
                 );
-                final queues = _QueuesPanel(
-                  corrections: _controller.corrections,
-                  alerts: _controller.alerts,
-                );
+                final queues = _QueuesPanel(controller: _controller);
 
-                if (wide) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                if (!wide) {
+                  return Column(
                     children: [
-                      Expanded(flex: 4, child: membersPanel),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        flex: 5,
-                        child: Column(
-                          children: [
-                            detailPanel,
-                            const SizedBox(height: 16),
-                            queues,
-                          ],
-                        ),
-                      ),
+                      members,
+                      const SizedBox(height: 16),
+                      detail,
+                      const SizedBox(height: 16),
+                      queues,
                     ],
                   );
                 }
 
-                return Column(
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    membersPanel,
-                    const SizedBox(height: 16),
-                    detailPanel,
-                    const SizedBox(height: 16),
-                    queues,
+                    Expanded(flex: 4, child: members),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 5,
+                      child: Column(
+                        children: [
+                          detail,
+                          const SizedBox(height: 16),
+                          queues,
+                        ],
+                      ),
+                    ),
                   ],
                 );
               },
@@ -161,19 +149,34 @@ class _TeamPageState extends State<TeamPage> {
     );
   }
 
+  Future<void> _saveManagerNote() async {
+    final note = _managerNoteController.text.trim();
+    if (note.isEmpty) {
+      return;
+    }
+    final success = await _controller.addManagerNote(note);
+    if (success) {
+      _managerNoteController.clear();
+    }
+    _showFeedback(
+      success
+          ? 'Yönetici notu kaydedildi.'
+          : (_controller.errorMessage ?? 'Yönetici notu kaydedilemedi.'),
+    );
+  }
+
   void _showFeedback(String message) {
     if (!mounted) {
       return;
     }
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
   }
 }
 
-class _TeamHeader extends StatelessWidget {
-  const _TeamHeader({
+class _Header extends StatelessWidget {
+  const _Header({
     required this.role,
     required this.canToggleManagerMode,
     required this.managerMode,
@@ -194,7 +197,7 @@ class _TeamHeader extends StatelessWidget {
       ),
       UserRole.teamLead => (
         'Ekip Yönetimi',
-        'Çalışan kartları, düzeltme kuyruğu ve bayraklı işler burada.',
+        'Çalışan kartları, düzeltme kuyruğu ve riskli işler burada.',
       ),
       UserRole.manager => (
         'Yönetici Modu',
@@ -203,7 +206,6 @@ class _TeamHeader extends StatelessWidget {
     };
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: Column(
@@ -225,215 +227,12 @@ class _TeamHeader extends StatelessWidget {
             ],
           ),
         ),
-        if (canToggleManagerMode) ...[
-          const SizedBox(width: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppPalette.border),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Yönetici modu',
-                      style: TextStyle(
-                        color: AppPalette.text,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Daha geniş kuyruk ve alarm görünümü',
-                      style: TextStyle(color: AppPalette.muted, fontSize: 12),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 10),
-                Switch.adaptive(
-                  value: managerMode,
-                  onChanged: onManagerModeChanged,
-                  activeThumbColor: AppPalette.primary,
-                ),
-              ],
-            ),
+        if (canToggleManagerMode)
+          Switch.adaptive(
+            value: managerMode,
+            onChanged: onManagerModeChanged,
           ),
-        ],
       ],
-    );
-  }
-}
-
-class _QuickActions extends StatelessWidget {
-  const _QuickActions({
-    required this.role,
-    required this.correctionsCount,
-    required this.alertsCount,
-    required this.flaggedOnly,
-    required this.onOpenTasks,
-    required this.onOpenRevisions,
-    required this.onToggleRiskMode,
-  });
-
-  final UserRole role;
-  final int correctionsCount;
-  final int alertsCount;
-  final bool flaggedOnly;
-  final VoidCallback onOpenTasks;
-  final VoidCallback onOpenRevisions;
-  final VoidCallback onToggleRiskMode;
-
-  @override
-  Widget build(BuildContext context) {
-    final taskTitle = role == UserRole.manager ? 'Görev Ata' : 'Görev Akışı';
-    final taskSubtitle = role == UserRole.employee
-        ? 'Kendi açık işlerini ve teslimlerini aç'
-        : 'İş yükünü açıp sorumluları yönlendir';
-
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      children: [
-        SizedBox(
-          width: 260,
-          child: _ActionCard(
-            icon: Icons.assignment_ind_rounded,
-            title: taskTitle,
-            subtitle: taskSubtitle,
-            badgeText: role == UserRole.manager ? 'Canlı' : null,
-            buttonLabel: 'Görevlere Git',
-            onPressed: onOpenTasks,
-          ),
-        ),
-        SizedBox(
-          width: 260,
-          child: _ActionCard(
-            icon: Icons.rate_review_rounded,
-            title: 'Revizyon Kuyruğu',
-            subtitle: '$correctionsCount kayıt aksiyon bekliyor',
-            badgeText: '$correctionsCount',
-            buttonLabel: 'Revizyonları Aç',
-            onPressed: onOpenRevisions,
-          ),
-        ),
-        SizedBox(
-          width: 260,
-          child: _ActionCard(
-            icon: Icons.flag_circle_rounded,
-            title: 'Alarm Takibi',
-            subtitle: alertsCount == 0
-                ? 'Şu an bayraklı iş görünmüyor'
-                : '$alertsCount alarm yakın takip istiyor',
-            badgeText: flaggedOnly ? 'Açık' : '$alertsCount',
-            buttonLabel: flaggedOnly ? 'Filtreyi Kapat' : 'Kritikleri Filtrele',
-            onPressed: onToggleRiskMode,
-            highlight: flaggedOnly,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  const _ActionCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.buttonLabel,
-    required this.onPressed,
-    this.badgeText,
-    this.highlight = false,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final String buttonLabel;
-  final VoidCallback onPressed;
-  final String? badgeText;
-  final bool highlight;
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = highlight ? AppPalette.danger : AppPalette.primary;
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: highlight
-              ? AppPalette.danger.withValues(alpha: 0.22)
-              : AppPalette.border,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: AppPalette.shadow,
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: accent.withValues(alpha: 0.14),
-                child: Icon(icon, color: accent),
-              ),
-              const Spacer(),
-              if (badgeText != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    badgeText!,
-                    style: TextStyle(
-                      color: accent,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppPalette.text,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: const TextStyle(color: AppPalette.muted, height: 1.5),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.tonalIcon(
-            onPressed: onPressed,
-            icon: const Icon(Icons.arrow_forward_rounded),
-            label: Text(buttonLabel),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -451,13 +250,6 @@ class _MetricCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: AppPalette.border),
-        boxShadow: const [
-          BoxShadow(
-            color: AppPalette.shadow,
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -488,16 +280,12 @@ class _MetricCard extends StatelessWidget {
 
 class _FilterBar extends StatelessWidget {
   const _FilterBar({
+    required this.controller,
     required this.searchController,
-    required this.flaggedOnly,
-    required this.onFlaggedOnlyChanged,
-    required this.onReset,
   });
 
+  final TeamController controller;
   final TextEditingController searchController;
-  final bool flaggedOnly;
-  final ValueChanged<bool> onFlaggedOnlyChanged;
-  final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
@@ -511,43 +299,27 @@ class _FilterBar extends StatelessWidget {
       child: Wrap(
         spacing: 12,
         runSpacing: 12,
-        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           SizedBox(
             width: 320,
             child: TextField(
               controller: searchController,
-              decoration: InputDecoration(
-                hintText: 'Çalışan / rol / durum ara...',
-                isDense: true,
-                prefixIcon: const Icon(Icons.search_rounded),
-                filled: true,
-                fillColor: AppPalette.background,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppPalette.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppPalette.border),
-                ),
+              decoration: const InputDecoration(
+                hintText: 'Çalışan, rol veya durum ara...',
+                prefixIcon: Icon(Icons.search_rounded),
               ),
             ),
           ),
           FilterChip(
-            selected: flaggedOnly,
-            onSelected: onFlaggedOnlyChanged,
+            selected: controller.flaggedOnly,
+            onSelected: controller.toggleFlaggedOnly,
             label: const Text('Sadece kritik risk'),
-            avatar: const Icon(Icons.flag_circle_rounded, size: 18),
-            selectedColor: AppPalette.danger.withValues(alpha: 0.16),
-            checkmarkColor: AppPalette.danger,
-            labelStyle: TextStyle(
-              color: flaggedOnly ? AppPalette.danger : AppPalette.text,
-              fontWeight: FontWeight.w700,
-            ),
           ),
           OutlinedButton.icon(
-            onPressed: onReset,
+            onPressed: () {
+              searchController.clear();
+              controller.toggleFlaggedOnly(false);
+            },
             icon: const Icon(Icons.refresh_rounded),
             label: const Text('Filtreleri Sıfırla'),
           ),
@@ -558,83 +330,30 @@ class _FilterBar extends StatelessWidget {
 }
 
 class _MembersPanel extends StatelessWidget {
-  const _MembersPanel({
-    required this.members,
-    required this.selectedMemberId,
-    required this.onSelect,
-  });
+  const _MembersPanel({required this.controller});
 
-  final List<TeamMember> members;
-  final String? selectedMemberId;
-  final ValueChanged<String> onSelect;
+  final TeamController controller;
 
   @override
   Widget build(BuildContext context) {
     return _SectionCard(
       title: 'Ekip Kartları',
-      subtitle: 'Skor, iş yükü ve risk seviyesine göre sıralanır',
-      child: members.isEmpty
-          ? const _EmptyState(
-              title: 'Çalışan bulunamadı',
-              message: 'Arama ve alarm filtresine uyan kişi görünmüyor.',
-            )
-          : Column(
-              children: [
-                for (final member in members)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _MemberTile(
-                      member: member,
-                      selected: member.id == selectedMemberId,
-                      onTap: () => onSelect(member.id),
-                    ),
-                  ),
-              ],
-            ),
-    );
-  }
-}
-
-class _MemberTile extends StatelessWidget {
-  const _MemberTile({
-    required this.member,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final TeamMember member;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? AppPalette.primarySoft : AppPalette.background,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Colors.white,
-                    child: Text(
-                      _initials(member.name),
-                      style: const TextStyle(
-                        color: AppPalette.primary,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
+      subtitle: 'Canlı çalışan, iş yükü ve risk görünümü',
+      child: Column(
+        children: [
+          for (final member in controller.members)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Material(
+                color: member.id == controller.selectedMember?.id
+                    ? AppPalette.primarySoft
+                    : AppPalette.background,
+                borderRadius: BorderRadius.circular(18),
+                child: InkWell(
+                  onTap: () => controller.selectMember(member.id),
+                  borderRadius: BorderRadius.circular(18),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -643,348 +362,236 @@ class _MemberTile extends StatelessWidget {
                           style: const TextStyle(
                             color: AppPalette.text,
                             fontWeight: FontWeight.w800,
-                            fontSize: 16,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Text(
                           member.role,
                           style: const TextStyle(color: AppPalette.muted),
                         ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _BadgeChip(label: member.status, color: _statusColor(member.status)),
+                            _BadgeChip(label: member.riskLevel.label, color: _riskColor(member.riskLevel)),
+                          ],
+                        ),
                       ],
                     ),
                   ),
-                  if (selected)
-                    const Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 16,
-                      color: AppPalette.primary,
-                    ),
-                ],
+                ),
               ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _BadgeChip(
-                    label: member.status,
-                    color: _statusColor(member.status),
-                  ),
-                  _BadgeChip(
-                    label: member.riskLevel.label,
-                    color: _riskColor(member.riskLevel),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: _InlineMetric(
-                      label: 'Aktif',
-                      value: '${member.activeTasks}',
-                    ),
-                  ),
-                  Expanded(
-                    child: _InlineMetric(
-                      label: 'Tamamlanan',
-                      value: '${member.completedTasks}',
-                    ),
-                  ),
-                  Expanded(
-                    child: _InlineMetric(
-                      label: 'Skor',
-                      value: '${member.performanceScore}',
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+            ),
+        ],
       ),
     );
   }
 }
 
-class _MemberDetailPanel extends StatelessWidget {
-  const _MemberDetailPanel({
+class _DetailPanel extends StatelessWidget {
+  const _DetailPanel({
+    required this.controller,
     required this.role,
-    required this.member,
     required this.managerNoteController,
     required this.onSaveNote,
     required this.onOpenTasks,
     required this.onOpenRevisions,
   });
 
+  final TeamController controller;
   final UserRole role;
-  final TeamMember? member;
   final TextEditingController managerNoteController;
-  final VoidCallback onSaveNote;
+  final Future<void> Function() onSaveNote;
   final VoidCallback onOpenTasks;
   final VoidCallback onOpenRevisions;
 
   @override
   Widget build(BuildContext context) {
-    final canManage = role != UserRole.employee;
+    final member = controller.selectedMember;
+    if (member == null) {
+      return const StatePanel.empty(
+        title: 'Çalışan detayı yok',
+        message: 'Soldan bir ekip kartı seçildiğinde detay burada açılır.',
+      );
+    }
 
     return _SectionCard(
       title: 'Çalışan Kartı',
-      subtitle: canManage
-          ? 'Görev ata, revizyon aç ve yönetici yorumu bırak'
-          : 'Ekip içindeki konumun ve güncel risk görünümün',
-      child: member == null
-          ? const _EmptyState(
-              title: 'Çalışan seçilmedi',
-              message: 'Detay görmek için soldan bir ekip kartı seç.',
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundColor: AppPalette.primarySoft,
-                      child: Text(
-                        _initials(member!.name),
-                        style: const TextStyle(
-                          color: AppPalette.primary,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            member!.name,
-                            style: const TextStyle(
-                              color: AppPalette.text,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            member!.role,
-                            style: const TextStyle(color: AppPalette.muted),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _BadgeChip(
-                      label: member!.status,
-                      color: _statusColor(member!.status),
-                    ),
-                    _BadgeChip(
-                      label: member!.riskLevel.label,
-                      color: _riskColor(member!.riskLevel),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _SmallStatCard(
-                      label: 'Aktif Görev',
-                      value: '${member!.activeTasks}',
-                    ),
-                    _SmallStatCard(
-                      label: 'Tamamlanan',
-                      value: '${member!.completedTasks}',
-                    ),
-                    _SmallStatCard(
-                      label: 'Performans',
-                      value: '${member!.performanceScore}/100',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                _InfoBlock(title: 'Odak Notu', content: member!.focusNote),
-                if (member!.riskLevel == MemberRiskLevel.high) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppPalette.danger.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AppPalette.danger.withValues(alpha: 0.16),
-                      ),
-                    ),
-                    child: const Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          color: AppPalette.danger,
-                        ),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Bu çalışan kritik seviyede. Önce revizyon kuyruğu ve geciken görevleri kontrol et.',
-                            style: TextStyle(
-                              color: AppPalette.text,
-                              height: 1.5,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                if (member!.lastManagerNote != null) ...[
-                  const SizedBox(height: 16),
-                  _InfoBlock(
-                    title: 'Son Yönetici Yorumu',
-                    content: member!.lastManagerNote!,
-                  ),
-                ],
-                const SizedBox(height: 18),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: onOpenTasks,
-                      icon: const Icon(Icons.assignment_turned_in_rounded),
-                      label: Text(
-                        role == UserRole.manager ? 'Görev Ata' : 'Görevlere Git',
-                      ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: onOpenRevisions,
-                      icon: const Icon(Icons.rate_review_rounded),
-                      label: const Text('Revizyonları Aç'),
-                    ),
-                  ],
-                ),
-                if (canManage) ...[
-                  const SizedBox(height: 18),
-                  TextField(
-                    controller: managerNoteController,
-                    minLines: 2,
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      labelText: 'Yönetici yorumu',
-                      hintText:
-                          'Performans, yönlendirme veya aksiyon notu bırak.',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: OutlinedButton.icon(
-                      onPressed: onSaveNote,
-                      icon: const Icon(Icons.add_comment_outlined),
-                      label: const Text('Yorumu Kaydet'),
-                    ),
-                  ),
-                ],
-              ],
+      subtitle: 'Görev ve revizyon aksiyonları bu karttan izlenir.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            member.name,
+            style: const TextStyle(
+              color: AppPalette.text,
+              fontWeight: FontWeight.w900,
+              fontSize: 20,
             ),
+          ),
+          const SizedBox(height: 6),
+          Text(member.role, style: const TextStyle(color: AppPalette.muted)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _BadgeChip(label: member.status, color: _statusColor(member.status)),
+              _BadgeChip(label: member.riskLevel.label, color: _riskColor(member.riskLevel)),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _MiniStat(label: 'Aktif Görev', value: '${member.activeTasks}'),
+              _MiniStat(label: 'Tamamlanan', value: '${member.completedTasks}'),
+              _MiniStat(label: 'Performans', value: '${member.performanceScore}/100'),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            member.focusNote,
+            style: const TextStyle(color: AppPalette.muted, height: 1.5),
+          ),
+          if (member.lastManagerNote != null) ...[
+            const SizedBox(height: 16),
+            Text(
+              'Son yönetici notu',
+              style: const TextStyle(
+                color: AppPalette.text,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              member.lastManagerNote!,
+              style: const TextStyle(color: AppPalette.muted, height: 1.5),
+            ),
+          ],
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              FilledButton.icon(
+                onPressed: onOpenTasks,
+                icon: const Icon(Icons.assignment_turned_in_rounded),
+                label: Text(role == UserRole.manager ? 'Görev Ata' : 'Görevlere Git'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onOpenRevisions,
+                icon: const Icon(Icons.rate_review_rounded),
+                label: const Text('Revizyonları Aç'),
+              ),
+            ],
+          ),
+          if (role != UserRole.employee) ...[
+            const SizedBox(height: 18),
+            TextField(
+              controller: managerNoteController,
+              minLines: 2,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                labelText: 'Yönetici notu',
+                hintText: 'Çalışan için yönlendirme veya takip notu bırak.',
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: controller.isSaving ? null : onSaveNote,
+              icon: const Icon(Icons.add_comment_outlined),
+              label: const Text('Notu Kaydet'),
+            ),
+          ],
+          if (controller.errorMessage != null) ...[
+            const SizedBox(height: 14),
+            Text(
+              controller.errorMessage!,
+              style: const TextStyle(
+                color: AppPalette.danger,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
 
 class _QueuesPanel extends StatelessWidget {
-  const _QueuesPanel({
-    required this.corrections,
-    required this.alerts,
-  });
+  const _QueuesPanel({required this.controller});
 
-  final List<TeamCorrection> corrections;
-  final List<TeamAlert> alerts;
+  final TeamController controller;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 880;
-        final correctionsPanel = _SectionCard(
+        final wide = constraints.maxWidth >= 860;
+        final corrections = _SectionCard(
           title: 'Bekleyen Düzeltmeler',
-          subtitle: 'Revizyon veya yönetici kararı bekleyen kayıtlar',
-          child: corrections.isEmpty
-              ? const _EmptyState(
-                  title: 'Kuyruk boş',
-                  message: 'Bekleyen düzeltme görünmüyor.',
-                )
-              : Column(
-                  children: [
-                    for (final correction in corrections)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _QueueTile(
-                          title: correction.title,
-                          subtitle:
-                              '${correction.owner} • ${correction.ageLabel}',
-                          detail: correction.summary,
-                          color: AppPalette.warning,
-                        ),
-                      ),
-                  ],
-                ),
+          subtitle: 'Aksiyon bekleyen revizyon veya yönetici kararları',
+          child: Column(
+            children: [
+              if (controller.corrections.isEmpty)
+                const Text('Bekleyen düzeltme görünmüyor.')
+              else
+                for (final correction in controller.corrections)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _QueueTile(
+                      title: correction.title,
+                      subtitle: '${correction.owner} • ${correction.ageLabel}',
+                      detail: correction.summary,
+                      color: AppPalette.warning,
+                    ),
+                  ),
+            ],
+          ),
         );
-        final alertsPanel = _SectionCard(
+        final alerts = _SectionCard(
           title: 'Alarm Takibi',
-          subtitle: 'Bayraklı görevler ve risk seviyesi yüksek sinyaller',
-          child: alerts.isEmpty
-              ? const _EmptyState(
-                  title: 'Alarm yok',
-                  message: 'Şu an yakın takip isteyen kayıt görünmüyor.',
-                )
-              : Column(
-                  children: [
-                    for (final alert in alerts)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _QueueTile(
-                          title: alert.title,
-                          subtitle: alert.project,
-                          detail: alert.detail,
-                          color: _riskColor(alert.riskLevel),
-                        ),
-                      ),
-                  ],
-                ),
+          subtitle: 'Bayraklı görevler ve yüksek risk sinyalleri',
+          child: Column(
+            children: [
+              if (controller.alerts.isEmpty)
+                const Text('Alarm kaydı görünmüyor.')
+              else
+                for (final alert in controller.alerts)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _QueueTile(
+                      title: alert.title,
+                      subtitle: alert.project,
+                      detail: alert.detail,
+                      color: _riskColor(alert.riskLevel),
+                    ),
+                  ),
+            ],
+          ),
         );
 
-        if (wide) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        if (!wide) {
+          return Column(
             children: [
-              Expanded(child: correctionsPanel),
-              const SizedBox(width: 16),
-              Expanded(child: alertsPanel),
+              corrections,
+              const SizedBox(height: 16),
+              alerts,
             ],
           );
         }
 
-        return Column(
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            correctionsPanel,
-            const SizedBox(height: 16),
-            alertsPanel,
+            Expanded(child: corrections),
+            const SizedBox(width: 16),
+            Expanded(child: alerts),
           ],
         );
       },
@@ -1012,13 +619,6 @@ class _SectionCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: AppPalette.border),
-        boxShadow: const [
-          BoxShadow(
-            color: AppPalette.shadow,
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1044,6 +644,45 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 130,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppPalette.surfaceMuted,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppPalette.muted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppPalette.text,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _QueueTile extends StatelessWidget {
   const _QueueTile({
     required this.title,
@@ -1063,7 +702,7 @@ class _QueueTile extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppPalette.background,
+        color: AppPalette.surfaceMuted,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -1083,134 +722,17 @@ class _QueueTile extends StatelessWidget {
               Container(
                 width: 10,
                 height: 10,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(subtitle, style: const TextStyle(color: AppPalette.primary)),
-          const SizedBox(height: 8),
-          Text(
-            detail,
-            style: const TextStyle(color: AppPalette.muted, height: 1.5),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoBlock extends StatelessWidget {
-  const _InfoBlock({
-    required this.title,
-    required this.content,
-  });
-
-  final String title;
-  final String content;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppPalette.background,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppPalette.text,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            content,
-            style: const TextStyle(color: AppPalette.muted, height: 1.5),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InlineMetric extends StatelessWidget {
-  const _InlineMetric({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppPalette.muted,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            color: AppPalette.text,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SmallStatCard extends StatelessWidget {
-  const _SmallStatCard({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 130,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppPalette.background,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppPalette.muted,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              color: AppPalette.text,
-              fontWeight: FontWeight.w900,
-              fontSize: 20,
-            ),
-          ),
+          const SizedBox(height: 6),
+          Text(detail, style: const TextStyle(color: AppPalette.muted)),
         ],
       ),
     );
@@ -1218,10 +740,7 @@ class _SmallStatCard extends StatelessWidget {
 }
 
 class _BadgeChip extends StatelessWidget {
-  const _BadgeChip({
-    required this.label,
-    required this.color,
-  });
+  const _BadgeChip({required this.label, required this.color});
 
   final String label;
   final Color color;
@@ -1242,45 +761,6 @@ class _BadgeChip extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.title,
-    required this.message,
-  });
-
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: AppPalette.background,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppPalette.text,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            style: const TextStyle(color: AppPalette.muted, height: 1.5),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 Color _statusColor(String status) => switch (status) {
   'Aktif' => AppPalette.success,
   'Sahada' => AppPalette.primary,
@@ -1293,14 +773,3 @@ Color _riskColor(MemberRiskLevel level) => switch (level) {
   MemberRiskLevel.medium => AppPalette.warning,
   MemberRiskLevel.high => AppPalette.danger,
 };
-
-String _initials(String name) {
-  final parts = name.split(' ').where((part) => part.isNotEmpty).toList();
-  if (parts.isEmpty) {
-    return '?';
-  }
-  if (parts.length == 1) {
-    return parts.first.substring(0, 1).toUpperCase();
-  }
-  return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
-}

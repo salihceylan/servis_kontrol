@@ -1,36 +1,54 @@
 import 'package:flutter/foundation.dart';
-import 'package:servis_kontrol/features/auth/domain/app_user.dart';
-import 'package:servis_kontrol/features/performance/application/mock_performance_repository.dart';
+import 'package:servis_kontrol/core/network/api_client.dart';
+import 'package:servis_kontrol/core/network/api_exception.dart';
+import 'package:servis_kontrol/features/performance/data/api_performance_repository.dart';
+import 'package:servis_kontrol/features/performance/data/performance_repository.dart';
 import 'package:servis_kontrol/features/performance/domain/performance_snapshot.dart';
 
 class PerformanceController extends ChangeNotifier {
   PerformanceController({
-    required AppUser user,
-    MockPerformanceRepository? repository,
-  })  : _user = user,
-        _repository = repository ?? const MockPerformanceRepository() {
-    _load();
+    required ApiClient apiClient,
+    PerformanceRepository? repository,
+  }) : _repository = repository ?? ApiPerformanceRepository(apiClient) {
+    load();
   }
 
-  final AppUser _user;
-  final MockPerformanceRepository _repository;
+  final PerformanceRepository _repository;
 
   PerformanceRange _range = PerformanceRange.last30Days;
   PerformanceSnapshot? _snapshot;
+  bool _isLoading = true;
+  String? _errorMessage;
 
   PerformanceRange get range => _range;
-  PerformanceSnapshot get snapshot => _snapshot!;
+  PerformanceSnapshot? get snapshot => _snapshot;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  bool get hasData => _snapshot != null;
 
-  void updateRange(PerformanceRange value) {
+  Future<void> updateRange(PerformanceRange value) async {
     if (_range == value) {
       return;
     }
     _range = value;
-    _load();
-    notifyListeners();
+    await load();
   }
 
-  void _load() {
-    _snapshot = _repository.loadFor(_user, _range);
+  Future<void> load() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      _snapshot = await _repository.load(_range);
+    } on ApiException catch (error) {
+      _snapshot = null;
+      _errorMessage = error.message;
+    } catch (_) {
+      _snapshot = null;
+      _errorMessage = 'Performans verileri alınamadı.';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }

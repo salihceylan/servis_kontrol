@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:servis_kontrol/core/network/api_client.dart';
+import 'package:servis_kontrol/core/presentation/state_panel.dart';
 import 'package:servis_kontrol/core/theme/app_palette.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/reports/application/report_controller.dart';
 import 'package:servis_kontrol/features/reports/domain/report_snapshot.dart';
 
 class ReportsPage extends StatefulWidget {
-  const ReportsPage({super.key, required this.user});
+  const ReportsPage({
+    super.key,
+    required this.user,
+    required this.apiClient,
+  });
 
   final AppUser user;
+  final ApiClient apiClient;
 
   @override
   State<ReportsPage> createState() => _ReportsPageState();
@@ -19,7 +26,10 @@ class _ReportsPageState extends State<ReportsPage> {
   @override
   void initState() {
     super.initState();
-    _controller = ReportController(user: widget.user);
+    _controller = ReportController(
+      user: widget.user,
+      apiClient: widget.apiClient,
+    );
   }
 
   @override
@@ -33,26 +43,35 @@ class _ReportsPageState extends State<ReportsPage> {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
+        if (_controller.isLoading) {
+          return const StatePanel.loading(
+            title: 'Raporlar yükleniyor',
+            message: 'Durum dağılımı, rapor çalıştırmaları ve son aktiviteler alınıyor.',
+          );
+        }
+        if (_controller.errorMessage != null && !_controller.hasData) {
+          return StatePanel.error(
+            message: _controller.errorMessage!,
+            onRetry: _controller.load,
+          );
+        }
+        if (!_controller.hasData) {
+          return const StatePanel.empty(
+            title: 'Rapor kaydı bulunamadı',
+            message: 'Bu şirket için henüz rapor çalıştırması oluşmamış.',
+          );
+        }
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _PageHeader(
+            const _Header(
               title: 'Raporlar',
               subtitle:
-                  'Filtrele, rapor oluştur, hazırlık durumunu izle ve çıktıyı indir.',
+                  'Filtrele, yeni rapor üret ve hazır çıktıları indir veya e-posta ile gönder.',
             ),
             const SizedBox(height: 18),
-            _FilterBar(
-              teamFilter: _controller.teamFilter,
-              userFilter: _controller.userFilter,
-              typeFilter: _controller.typeFilter,
-              teamOptions: _controller.teamOptions,
-              userOptions: _controller.userOptions,
-              onTeamChanged: _controller.updateTeamFilter,
-              onUserChanged: _controller.updateUserFilter,
-              onTypeChanged: _controller.updateTypeFilter,
-              onCreateReport: () => _openCreateReportDialog(context),
-            ),
+            _FilterBar(controller: _controller, onCreateReport: _createReport),
             const SizedBox(height: 18),
             Wrap(
               spacing: 16,
@@ -69,30 +88,92 @@ class _ReportsPageState extends State<ReportsPage> {
                 final distribution = _SectionCard(
                   title: 'Durum Dağılımı',
                   subtitle: 'Toplam görev ve süreç adetleri',
-                  child: _StatusTable(rows: _controller.statusCounts),
+                  child: Column(
+                    children: [
+                      for (final row in _controller.statusCounts)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  row.label,
+                                  style: const TextStyle(
+                                    color: AppPalette.text,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '${row.count}',
+                                style: const TextStyle(
+                                  color: AppPalette.muted,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                 );
                 final activities = _SectionCard(
                   title: 'Son Aktiviteler',
-                  subtitle: 'Son 20 rapor ve paylaşım hareketi',
-                  child: _ActivityList(activities: _controller.activities),
+                  subtitle: 'Rapor üretim ve paylaşım hareketleri',
+                  child: Column(
+                    children: [
+                      for (final activity in _controller.activities)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: AppPalette.surfaceMuted,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  activity.title,
+                                  style: const TextStyle(
+                                    color: AppPalette.text,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  activity.subtitle,
+                                  style: const TextStyle(
+                                    color: AppPalette.muted,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 );
 
-                if (wide) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                if (!wide) {
+                  return Column(
                     children: [
-                      Expanded(flex: 2, child: distribution),
-                      const SizedBox(width: 16),
-                      Expanded(flex: 3, child: activities),
+                      distribution,
+                      const SizedBox(height: 16),
+                      activities,
                     ],
                   );
                 }
 
-                return Column(
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    distribution,
-                    const SizedBox(height: 16),
-                    activities,
+                    Expanded(flex: 2, child: distribution),
+                    const SizedBox(width: 16),
+                    Expanded(flex: 3, child: activities),
                   ],
                 );
               },
@@ -100,16 +181,54 @@ class _ReportsPageState extends State<ReportsPage> {
             const SizedBox(height: 18),
             _SectionCard(
               title: 'Rapor Çalıştırmaları',
-              subtitle: 'Hazırlanıyor, indir ve e-posta ile gönder akışı',
-              child: _ReportRunsList(
-                runs: _controller.runs,
-                canEmail: _controller.canEmail,
-                onDownload: (run) => _showFeedback(
-                  'Rapor hazır: ${run.title} (${run.format.label}) indiriliyor.',
-                ),
-                onEmail: (run) => _showFeedback(
-                  'Rapor e-posta ile gönderildi: ${run.title}',
-                ),
+              subtitle: 'Hazırlanan raporlar ve çıktı aksiyonları',
+              child: Column(
+                children: [
+                  for (final run in _controller.runs)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppPalette.surfaceMuted,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            _RunBadge(status: run.status, format: run.format),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    run.title,
+                                    style: const TextStyle(
+                                      color: AppPalette.text,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${run.scope} • ${run.createdAtLabel}',
+                                    style: const TextStyle(color: AppPalette.muted),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: run.status == ReportRunStatus.ready
+                                  ? () => _feedback('Rapor indirme akışı backend dosya servisine bağlanacak.')
+                                  : null,
+                              icon: const Icon(Icons.file_download_outlined),
+                              label: const Text('İndir'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ],
@@ -118,111 +237,21 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
-  Future<void> _openCreateReportDialog(BuildContext context) async {
-    String scope = _controller.teamFilter ?? _controller.teamOptions.first;
-    ReportFormat format = ReportFormat.pdf;
-
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-              ),
-              title: const Text(
-                'Yeni Rapor Oluştur',
-                style: TextStyle(
-                  color: AppPalette.text,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              content: SizedBox(
-                width: 420,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Kapsam ve format seç. Hazırlık bittiğinde rapor hazır listesine düşecek.',
-                      style: const TextStyle(
-                        color: AppPalette.muted,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    DropdownButtonFormField<String>(
-                      initialValue: scope,
-                      items: [
-                        for (final option in _controller.teamOptions)
-                          DropdownMenuItem<String>(
-                            value: option,
-                            child: Text(option),
-                          ),
-                      ],
-                      onChanged: (value) {
-                        if (value == null) {
-                          return;
-                        }
-                        setDialogState(() => scope = value);
-                      },
-                      decoration: const InputDecoration(labelText: 'Kapsam'),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<ReportFormat>(
-                      initialValue: format,
-                      items: [
-                        for (final option in ReportFormat.values)
-                          DropdownMenuItem<ReportFormat>(
-                            value: option,
-                            child: Text(option.label),
-                          ),
-                      ],
-                      onChanged: (value) {
-                        if (value == null) {
-                          return;
-                        }
-                        setDialogState(() => format = value);
-                      },
-                      decoration: const InputDecoration(labelText: 'Format'),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Vazgeç'),
-                ),
-                FilledButton(
-                  onPressed: _controller.creating
-                      ? null
-                      : () async {
-                          Navigator.of(context).pop();
-                          await _controller.createReport(
-                            scope: scope,
-                            format: format,
-                          );
-                          if (!mounted) {
-                            return;
-                          }
-                          _showFeedback('Rapor hazırlandı: ${format.label}');
-                        },
-                  child: Text(
-                    _controller.creating ? 'Hazırlanıyor...' : 'Rapor Oluştur',
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
+  Future<void> _createReport() async {
+    final scope = _controller.teamFilter ??
+        (_controller.teamOptions.isEmpty ? 'Genel' : _controller.teamOptions.first);
+    final success = await _controller.createReport(
+      scope: scope,
+      format: ReportFormat.pdf,
+    );
+    _feedback(
+      success
+          ? 'Rapor oluşturma talebi kaydedildi.'
+          : (_controller.errorMessage ?? 'Rapor oluşturulamadı.'),
     );
   }
 
-  void _showFeedback(String message) {
+  void _feedback(String message) {
     if (!mounted) {
       return;
     }
@@ -232,8 +261,8 @@ class _ReportsPageState extends State<ReportsPage> {
   }
 }
 
-class _PageHeader extends StatelessWidget {
-  const _PageHeader({required this.title, required this.subtitle});
+class _Header extends StatelessWidget {
+  const _Header({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -263,26 +292,12 @@ class _PageHeader extends StatelessWidget {
 
 class _FilterBar extends StatelessWidget {
   const _FilterBar({
-    required this.teamFilter,
-    required this.userFilter,
-    required this.typeFilter,
-    required this.teamOptions,
-    required this.userOptions,
-    required this.onTeamChanged,
-    required this.onUserChanged,
-    required this.onTypeChanged,
+    required this.controller,
     required this.onCreateReport,
   });
 
-  final String? teamFilter;
-  final String? userFilter;
-  final ReportType typeFilter;
-  final List<String> teamOptions;
-  final List<String> userOptions;
-  final ValueChanged<String?> onTeamChanged;
-  final ValueChanged<String?> onUserChanged;
-  final ValueChanged<ReportType> onTypeChanged;
-  final VoidCallback onCreateReport;
+  final ReportController controller;
+  final Future<void> Function() onCreateReport;
 
   @override
   Widget build(BuildContext context) {
@@ -292,47 +307,38 @@ class _FilterBar extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppPalette.border),
-        boxShadow: const [
-          BoxShadow(
-            color: AppPalette.shadow,
-            blurRadius: 24,
-            offset: Offset(0, 10),
-          ),
-        ],
       ),
       child: Wrap(
         spacing: 12,
         runSpacing: 12,
-        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          _DropdownField<String?>(
-            width: 180,
+          _Dropdown<String?>(
             label: 'Ekip',
-            value: teamFilter,
-            items: [null, ...teamOptions],
+            value: controller.teamFilter,
+            items: [null, ...controller.teamOptions],
             itemLabel: (value) => value ?? 'Tümü',
-            onChanged: onTeamChanged,
+            onChanged: controller.updateTeamFilter,
           ),
-          _DropdownField<String?>(
-            width: 180,
+          _Dropdown<String?>(
             label: 'Kullanıcı',
-            value: userFilter,
-            items: [null, ...userOptions],
+            value: controller.userFilter,
+            items: [null, ...controller.userOptions],
             itemLabel: (value) => value ?? 'Tümü',
-            onChanged: onUserChanged,
+            onChanged: controller.updateUserFilter,
           ),
-          _DropdownField<ReportType>(
-            width: 180,
+          _Dropdown<ReportType>(
             label: 'Tür',
-            value: typeFilter,
+            value: controller.typeFilter,
             items: ReportType.values,
             itemLabel: (value) => value.label,
-            onChanged: (value) => onTypeChanged(value!),
+            onChanged: (value) => controller.updateTypeFilter(value!),
           ),
           FilledButton.icon(
-            onPressed: onCreateReport,
+            onPressed: controller.creating ? null : onCreateReport,
             icon: const Icon(Icons.post_add_rounded),
-            label: const Text('Yeni Rapor Oluştur'),
+            label: Text(
+              controller.creating ? 'Hazırlanıyor...' : 'Yeni Rapor Oluştur',
+            ),
           ),
         ],
       ),
@@ -340,9 +346,8 @@ class _FilterBar extends StatelessWidget {
   }
 }
 
-class _DropdownField<T> extends StatelessWidget {
-  const _DropdownField({
-    required this.width,
+class _Dropdown<T> extends StatelessWidget {
+  const _Dropdown({
     required this.label,
     required this.value,
     required this.items,
@@ -350,7 +355,6 @@ class _DropdownField<T> extends StatelessWidget {
     required this.onChanged,
   });
 
-  final double width;
   final String label;
   final T? value;
   final List<T> items;
@@ -360,15 +364,18 @@ class _DropdownField<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: width,
+      width: 180,
       child: DropdownButtonFormField<T>(
         initialValue: value,
         items: [
           for (final item in items)
-            DropdownMenuItem<T>(value: item, child: Text(itemLabel(item))),
+            DropdownMenuItem<T>(
+              value: item,
+              child: Text(itemLabel(item)),
+            ),
         ],
         onChanged: onChanged,
-        decoration: InputDecoration(labelText: label, fillColor: AppPalette.surfaceMuted),
+        decoration: InputDecoration(labelText: label),
       ),
     );
   }
@@ -387,13 +394,6 @@ class _MetricCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppPalette.border),
-        boxShadow: const [
-          BoxShadow(
-            color: AppPalette.shadow,
-            blurRadius: 24,
-            offset: Offset(0, 10),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -442,13 +442,6 @@ class _SectionCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppPalette.border),
-        boxShadow: const [
-          BoxShadow(
-            color: AppPalette.shadow,
-            blurRadius: 24,
-            offset: Offset(0, 10),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,194 +463,6 @@ class _SectionCard extends StatelessWidget {
           child,
         ],
       ),
-    );
-  }
-}
-
-class _StatusTable extends StatelessWidget {
-  const _StatusTable({required this.rows});
-
-  final List<ReportStatusCount> rows;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppPalette.surfaceMuted,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppPalette.border),
-        ),
-        child: DataTable(
-          headingTextStyle: const TextStyle(
-            color: AppPalette.muted,
-            fontWeight: FontWeight.w700,
-          ),
-          dataTextStyle: const TextStyle(
-            color: AppPalette.text,
-            fontWeight: FontWeight.w500,
-          ),
-          columns: const [
-            DataColumn(label: Text('Durum')),
-            DataColumn(label: Text('Adet')),
-          ],
-          rows: [
-            for (final row in rows)
-              DataRow(
-                cells: [
-                  DataCell(Text(row.label)),
-                  DataCell(
-                    Text(
-                      '${row.count}',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActivityList extends StatelessWidget {
-  const _ActivityList({required this.activities});
-
-  final List<ReportActivity> activities;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (final activity in activities)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppPalette.surfaceMuted,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppPalette.border),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: AppPalette.primarySoft,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.insights_rounded,
-                      color: AppPalette.primary,
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          activity.title,
-                          style: const TextStyle(
-                            color: AppPalette.text,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          activity.subtitle,
-                          style: const TextStyle(color: AppPalette.muted),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _ReportRunsList extends StatelessWidget {
-  const _ReportRunsList({
-    required this.runs,
-    required this.canEmail,
-    required this.onDownload,
-    required this.onEmail,
-  });
-
-  final List<ReportRun> runs;
-  final bool canEmail;
-  final ValueChanged<ReportRun> onDownload;
-  final ValueChanged<ReportRun> onEmail;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (final run in runs)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppPalette.surfaceMuted,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppPalette.border),
-              ),
-              child: Row(
-                children: [
-                  _RunBadge(status: run.status, format: run.format),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          run.title,
-                          style: const TextStyle(
-                            color: AppPalette.text,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${run.scope} • ${run.createdAtLabel}',
-                          style: const TextStyle(color: AppPalette.muted),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  OutlinedButton.icon(
-                    onPressed: run.status == ReportRunStatus.ready
-                        ? () => onDownload(run)
-                        : null,
-                    icon: const Icon(Icons.file_download_outlined),
-                    label: const Text('İndir'),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: run.status == ReportRunStatus.ready && canEmail
-                        ? () => onEmail(run)
-                        : null,
-                    icon: const Icon(Icons.mail_outline_rounded),
-                    label: const Text('E-posta ile Gönder'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
     );
   }
 }

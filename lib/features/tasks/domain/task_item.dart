@@ -8,7 +8,23 @@ extension TaskStatusX on TaskStatus {
     TaskStatus.revision => 'Revizyonda',
     TaskStatus.delivered => 'Teslim Edildi',
   };
+
+  String get apiValue => switch (this) {
+    TaskStatus.pending => 'pending',
+    TaskStatus.inProgress => 'in_progress',
+    TaskStatus.inReview => 'in_review',
+    TaskStatus.revision => 'revision',
+    TaskStatus.delivered => 'delivered',
+  };
 }
+
+TaskStatus taskStatusFromApi(String? value) => switch (value) {
+  'in_progress' => TaskStatus.inProgress,
+  'in_review' => TaskStatus.inReview,
+  'revision' => TaskStatus.revision,
+  'delivered' => TaskStatus.delivered,
+  _ => TaskStatus.pending,
+};
 
 enum TaskPriority { low, medium, high }
 
@@ -18,7 +34,19 @@ extension TaskPriorityX on TaskPriority {
     TaskPriority.medium => 'Orta',
     TaskPriority.high => 'Yüksek',
   };
+
+  String get apiValue => switch (this) {
+    TaskPriority.low => 'low',
+    TaskPriority.medium => 'medium',
+    TaskPriority.high => 'high',
+  };
 }
+
+TaskPriority taskPriorityFromApi(String? value) => switch (value) {
+  'low' => TaskPriority.low,
+  'high' => TaskPriority.high,
+  _ => TaskPriority.medium,
+};
 
 enum TaskDateFilter { all, today, thisWeek, overdue }
 
@@ -28,6 +56,13 @@ extension TaskDateFilterX on TaskDateFilter {
     TaskDateFilter.today => 'Bugün',
     TaskDateFilter.thisWeek => 'Bu Hafta',
     TaskDateFilter.overdue => 'Geciken',
+  };
+
+  String get apiValue => switch (this) {
+    TaskDateFilter.all => 'all',
+    TaskDateFilter.today => 'today',
+    TaskDateFilter.thisWeek => 'this_week',
+    TaskDateFilter.overdue => 'overdue',
   };
 }
 
@@ -43,6 +78,16 @@ class TaskTimelineEntry {
   final String detail;
   final String actor;
   final DateTime timestamp;
+
+  factory TaskTimelineEntry.fromJson(Map<String, dynamic> json) {
+    return TaskTimelineEntry(
+      title: json['title'] as String? ?? '',
+      detail: json['detail'] as String? ?? '',
+      actor: json['actor'] as String? ?? '',
+      timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+          DateTime.now(),
+    );
+  }
 }
 
 class TaskItem {
@@ -77,6 +122,30 @@ class TaskItem {
   final int checklistTotal;
   final List<TaskTimelineEntry> timeline;
   final String? meetingLink;
+
+  factory TaskItem.fromJson(Map<String, dynamic> json) {
+    final timeline = (json['timeline'] as List<dynamic>? ?? const [])
+        .map((item) => TaskTimelineEntry.fromJson(item as Map<String, dynamic>))
+        .toList(growable: false);
+
+    return TaskItem(
+      id: json['id']?.toString() ?? '',
+      title: json['title'] as String? ?? '',
+      project: json['project'] as String? ?? '',
+      assignee: json['assignee'] as String? ?? '',
+      status: taskStatusFromApi(json['status'] as String?),
+      priority: taskPriorityFromApi(json['priority'] as String?),
+      dueAt: DateTime.tryParse(json['due_at'] as String? ?? '') ?? DateTime.now(),
+      updatedAt:
+          DateTime.tryParse(json['updated_at'] as String? ?? '') ?? DateTime.now(),
+      tag: json['tag'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      checklistCompleted: json['checklist_completed'] as int? ?? 0,
+      checklistTotal: json['checklist_total'] as int? ?? 0,
+      timeline: timeline,
+      meetingLink: json['meeting_link'] as String?,
+    );
+  }
 
   double get progress =>
       checklistTotal == 0 ? 0 : checklistCompleted / checklistTotal;

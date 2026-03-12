@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
+import 'package:servis_kontrol/core/network/api_client.dart';
+import 'package:servis_kontrol/core/network/api_exception.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/auth/domain/user_role.dart';
-import 'package:servis_kontrol/features/revisions/application/mock_revision_repository.dart';
+import 'package:servis_kontrol/features/revisions/data/api_revision_repository.dart';
+import 'package:servis_kontrol/features/revisions/data/revision_repository.dart';
 import 'package:servis_kontrol/features/revisions/domain/revision_item.dart';
 
 class RevisionMetric {
@@ -19,23 +22,49 @@ class RevisionMetric {
 class RevisionController extends ChangeNotifier {
   RevisionController({
     required AppUser user,
-    MockRevisionRepository? repository,
+    required ApiClient apiClient,
+    RevisionRepository? repository,
   })  : _user = user,
-        _repository = repository ?? const MockRevisionRepository() {
-    _items = _repository.loadFor(user);
-    if (_items.isNotEmpty) {
-      _selectedId = _items.first.id;
-    }
+        _repository = repository ?? ApiRevisionRepository(apiClient) {
+    load();
   }
 
   final AppUser _user;
-  final MockRevisionRepository _repository;
-  late List<RevisionItem> _items;
+  final RevisionRepository _repository;
+  List<RevisionItem> _items = const [];
   String _query = '';
   String? _selectedId;
+  bool _isLoading = true;
+  bool _isSaving = false;
+  String? _errorMessage;
 
   UserRole get role => _user.role;
   String get query => _query;
+  bool get isLoading => _isLoading;
+  bool get isSaving => _isSaving;
+  String? get errorMessage => _errorMessage;
+  bool get hasData => _items.isNotEmpty;
+
+  Future<void> load() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      _items = await _repository.load(query: _query);
+      _ensureSelection();
+    } on ApiException catch (error) {
+      _items = const [];
+      _selectedId = null;
+      _errorMessage = error.message;
+    } catch (_) {
+      _items = const [];
+      _selectedId = null;
+      _errorMessage = 'Revizyon verileri alınamadı.';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
   void updateQuery(String value) {
     _query = value;
@@ -125,87 +154,60 @@ class RevisionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void approveSelected() {
+  Future<bool> approveSelected() {
     final item = selectedItem;
     if (item == null) {
-      return;
+      return Future.value(false);
     }
-
-    _writeItem(
-      item.copyWith(
-        stage: RevisionStage.completed,
-        updatedAt: DateTime.now(),
-        performanceReady: true,
-        clearRevisionReason: true,
-        histories: [
-          RevisionHistoryEntry(
-            title: 'Onaylandı',
-            detail: 'Revizyon kapatıldı ve performans verisi üretildi.',
-            actor: _user.firstName,
-            timestamp: DateTime.now(),
-          ),
-          ...item.histories,
-        ],
-      ),
-    );
+    return _persist(() => _repository.approve(item.id));
   }
 
-  void requestRevision(String reason) {
+  Future<bool> requestRevision(String reason) {
     final item = selectedItem;
     final normalized = reason.trim();
     if (item == null || normalized.isEmpty) {
-      return;
+      return Future.value(false);
     }
-
-    final nextCount = item.revisionCount + 1;
-    final warning = nextCount >= 3;
-    final detail = warning
-        ? '$normalized Erken uyarı tetiklendi, yönetici bayrağı açıldı ve e-posta/Slack bildirimi gönderildi.'
-        : '$normalized Çalışana bildirim ve açıklama gönderildi.';
-
-    _writeItem(
-      item.copyWith(
-        stage: RevisionStage.inRevision,
-        revisionCount: nextCount,
-        revisionReason: normalized,
-        updatedAt: DateTime.now(),
-        earlyWarning: warning,
-        performanceReady: false,
-        histories: [
-          RevisionHistoryEntry(
-            title: 'Revizyon istendi',
-            detail: detail,
-            actor: _user.firstName,
-            timestamp: DateTime.now(),
-          ),
-          ...item.histories,
-        ],
+    return _persist(
+      () => _repository.requestRevision(
+        revisionId: item.id,
+        reason: normalized,
       ),
     );
   }
 
-  void markEmployeeUpdated(String note) {
+  Future<bool> markEmployeeUpdated(String note) {
     final item = selectedItem;
     final normalized = note.trim();
     if (item == null || normalized.isEmpty) {
-      return;
+      return Future.value(false);
     }
-
-    _writeItem(
-      item.copyWith(
-        stage: RevisionStage.pendingReview,
-        updatedAt: DateTime.now(),
-        histories: [
-          RevisionHistoryEntry(
-            title: 'Çalışan güncelledi',
-            detail: normalized,
-            actor: _user.firstName,
-            timestamp: DateTime.now(),
-          ),
-          ...item.histories,
-        ],
+    return _persist(
+      () => _repository.markEmployeeUpdated(
+        revisionId: item.id,
+        note: normalized,
       ),
     );
+  }
+
+  Future<bool> _persist(Future<RevisionItem> Function() action) async {
+    _isSaving = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final updated = await action();
+      _writeItem(updated);
+      return true;
+    } on ApiException catch (error) {
+      _errorMessage = error.message;
+      return false;
+    } catch (_) {
+      _errorMessage = 'Revizyon kaydı güncellenemedi.';
+      return false;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
   }
 
   void _writeItem(RevisionItem updated) {
@@ -214,7 +216,6 @@ class RevisionController extends ChangeNotifier {
     ];
     _selectedId = updated.id;
     _ensureSelection();
-    notifyListeners();
   }
 
   void _ensureSelection() {

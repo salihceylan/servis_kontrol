@@ -21,4 +21,18 @@ extension UserRoleX on UserRole {
     UserRole.teamLead => 'Revizyonları İncele',
     UserRole.manager => 'Görev Ata',
   };
+
+  String get apiValue => switch (this) {
+    UserRole.employee => 'employee',
+    UserRole.teamLead => 'team_lead',
+    UserRole.manager => 'manager',
+  };
 }
+
+UserRole userRoleFromApi(String? value) => switch (value) {
+  'employee' => UserRole.employee,
+  'team_lead' => UserRole.teamLead,
+  'teamLead' => UserRole.teamLead,
+  'manager' => UserRole.manager,
+  _ => UserRole.employee,
+};

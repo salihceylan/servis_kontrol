@@ -1,25 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:servis_kontrol/core/network/api_client.dart';
 import 'package:servis_kontrol/core/theme/app_palette.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/auth/domain/user_role.dart';
 import 'package:servis_kontrol/features/dashboard/presentation/dashboard_page.dart';
+import 'package:servis_kontrol/features/help/presentation/help_center_page.dart';
 import 'package:servis_kontrol/features/performance/presentation/performance_page.dart';
 import 'package:servis_kontrol/features/revisions/presentation/revision_page.dart';
 import 'package:servis_kontrol/features/reports/presentation/reports_page.dart';
+import 'package:servis_kontrol/features/settings/presentation/general_settings_page.dart';
 import 'package:servis_kontrol/features/tasks/presentation/task_page.dart';
 import 'package:servis_kontrol/features/team/presentation/team_page.dart';
 
-enum AppSection { panel, tasks, revisions, team, performance, reports }
+enum AppSection {
+  panel,
+  tasks,
+  revisions,
+  team,
+  performance,
+  reports,
+  settings,
+  help,
+}
 
 class ServisKontrolShell extends StatefulWidget {
   const ServisKontrolShell({
     super.key,
     required this.user,
+    required this.apiClient,
     required this.onLogout,
   });
 
   final AppUser user;
-  final VoidCallback onLogout;
+  final ApiClient apiClient;
+  final Future<void> Function() onLogout;
 
   @override
   State<ServisKontrolShell> createState() => _ServisKontrolShellState();
@@ -31,27 +45,27 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
   AppUser get _user => widget.user;
   UserRole get _role => _user.role;
 
-  List<(AppSection, String, IconData, String?)> get _sidebarItems => switch (_role) {
+  List<(AppSection, String, IconData)> get _sidebarItems => switch (_role) {
     UserRole.employee => [
-      (AppSection.panel, 'Panel', Icons.grid_view_rounded, null),
-      (AppSection.tasks, 'Görevler', Icons.task_alt_rounded, '3'),
-      (AppSection.revisions, 'Revizyonlar', Icons.autorenew_rounded, '1'),
-      (AppSection.performance, 'Performans', Icons.insights_rounded, null),
+      (AppSection.panel, 'Panel', Icons.grid_view_rounded),
+      (AppSection.tasks, 'Görevler', Icons.task_alt_rounded),
+      (AppSection.revisions, 'Revizyonlar', Icons.autorenew_rounded),
+      (AppSection.performance, 'Performans', Icons.insights_rounded),
     ],
     UserRole.teamLead => [
-      (AppSection.panel, 'Panel', Icons.grid_view_rounded, null),
-      (AppSection.tasks, 'Görevler', Icons.task_alt_rounded, '6'),
-      (AppSection.revisions, 'Revizyonlar', Icons.autorenew_rounded, '4'),
-      (AppSection.team, 'Ekip', Icons.groups_2_outlined, null),
-      (AppSection.performance, 'Performans', Icons.insights_rounded, null),
+      (AppSection.panel, 'Panel', Icons.grid_view_rounded),
+      (AppSection.tasks, 'Görevler', Icons.task_alt_rounded),
+      (AppSection.revisions, 'Revizyonlar', Icons.autorenew_rounded),
+      (AppSection.team, 'Ekip', Icons.groups_2_outlined),
+      (AppSection.performance, 'Performans', Icons.insights_rounded),
     ],
     UserRole.manager => [
-      (AppSection.panel, 'Panel', Icons.grid_view_rounded, null),
-      (AppSection.tasks, 'Görevler', Icons.task_alt_rounded, '9'),
-      (AppSection.revisions, 'Revizyonlar', Icons.autorenew_rounded, '5'),
-      (AppSection.team, 'Ekip', Icons.groups_2_outlined, null),
-      (AppSection.performance, 'Performans', Icons.insights_rounded, null),
-      (AppSection.reports, 'Raporlar', Icons.insert_chart_outlined_rounded, null),
+      (AppSection.panel, 'Panel', Icons.grid_view_rounded),
+      (AppSection.tasks, 'Görevler', Icons.task_alt_rounded),
+      (AppSection.revisions, 'Revizyonlar', Icons.autorenew_rounded),
+      (AppSection.team, 'Ekip', Icons.groups_2_outlined),
+      (AppSection.performance, 'Performans', Icons.insights_rounded),
+      (AppSection.reports, 'Raporlar', Icons.insert_chart_outlined_rounded),
     ],
   };
 
@@ -78,8 +92,8 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
 
   (String, IconData, AppSection) get _primaryAction => switch (_role) {
     UserRole.employee => (
-      'Teslim Güncelle',
-      Icons.playlist_add_check_circle_rounded,
+      'Görevlerim',
+      Icons.assignment_turned_in_rounded,
       AppSection.tasks,
     ),
     UserRole.teamLead => (
@@ -105,7 +119,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
           body: SafeArea(
             child: Row(
               children: [
-                if (wide) SizedBox(width: 244, child: _sidebar()),
+                if (wide) SizedBox(width: 252, child: _sidebar()),
                 Expanded(
                   child: Column(
                     children: [
@@ -118,7 +132,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                             wide ? 20 : 14,
                             24,
                           ),
-                          child: _content(wide),
+                          child: _content(),
                         ),
                       ),
                     ],
@@ -133,8 +147,6 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
   }
 
   Widget _sidebar() {
-    final items = _sidebarItems;
-
     return Container(
       color: AppPalette.sidebar,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
@@ -169,12 +181,10 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'Operasyon Platformu',
+                        'Workflow Work OS',
                         style: TextStyle(
                           color: Color(0x99FFFFFF),
                           fontSize: 12,
@@ -190,74 +200,40 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
           Expanded(
             child: ListView(
               children: [
-                for (final item in items)
+                for (final item in _sidebarItems)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
+                    child: _SidebarTile(
+                      icon: item.$3,
+                      label: item.$2,
+                      selected: _selected == item.$1,
                       onTap: () => setState(() => _selected = item.$1),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 2,
-                      ),
-                      horizontalTitleGap: 10,
-                      minLeadingWidth: 18,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      tileColor: _selected == item.$1
-                          ? AppPalette.primary
-                          : Colors.transparent,
-                      leading: Icon(item.$3, color: Colors.white, size: 19),
-                      title: Text(
-                        item.$2,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                      ),
-                      trailing: item.$4 == null
-                          ? null
-                          : CircleAvatar(
-                              radius: 11,
-                              backgroundColor: _selected == item.$1
-                                  ? Colors.white24
-                                  : AppPalette.sidebarSoft,
-                              child: Text(
-                                item.$4!,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
                     ),
                   ),
                 const SizedBox(height: 18),
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: EdgeInsets.only(left: 8, bottom: 8),
-                    child: Text(
-                      'Ayarlar',
-                      style: TextStyle(
-                        color: Color(0x88FFFFFF),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
+                const Padding(
+                  padding: EdgeInsets.only(left: 8, bottom: 8),
+                  child: Text(
+                    'Ayarlar',
+                    style: TextStyle(
+                      color: Color(0x88FFFFFF),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-                const _SidebarMeta(
+                _SidebarTile(
                   icon: Icons.settings_outlined,
                   label: 'Genel Ayarlar',
+                  selected: _selected == AppSection.settings,
+                  onTap: () => setState(() => _selected = AppSection.settings),
                 ),
-                const _SidebarMeta(
+                const SizedBox(height: 8),
+                _SidebarTile(
                   icon: Icons.help_outline_rounded,
                   label: 'Yardım Merkezi',
+                  selected: _selected == AppSection.help,
+                  onTap: () => setState(() => _selected = AppSection.help),
                 ),
               ],
             ),
@@ -319,7 +295,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                   ),
                 ),
                 IconButton(
-                  onPressed: widget.onLogout,
+                  onPressed: () async => widget.onLogout(),
                   icon: const Icon(
                     Icons.logout_rounded,
                     color: Colors.white70,
@@ -358,10 +334,10 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
           Expanded(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 320),
-              child: TextField(
+              child: const TextField(
                 decoration: InputDecoration(
                   hintText: 'Ara...',
-                  prefixIcon: const Icon(Icons.search_rounded),
+                  prefixIcon: Icon(Icons.search_rounded),
                   fillColor: AppPalette.surfaceMuted,
                 ),
               ),
@@ -411,74 +387,74 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
             label: Text(primaryAction.$1),
           ),
           const SizedBox(width: 10),
-          const _RoundAction(
-            icon: Icons.notifications_none_rounded,
-            badge: '1',
+          _RoundAction(
+            icon: Icons.settings_outlined,
+            onTap: () => setState(() => _selected = AppSection.settings),
           ),
-          const SizedBox(width: 10),
-          const _RoundAction(icon: Icons.settings_outlined),
         ],
       ),
     );
   }
 
-  Widget _content(bool wide) {
+  Widget _content() {
     switch (_selected) {
       case AppSection.panel:
-        return DashboardPage(user: _user);
+        return DashboardPage(apiClient: widget.apiClient);
       case AppSection.tasks:
-        return _tasksPage();
+        return TaskPage(user: _user, apiClient: widget.apiClient);
       case AppSection.revisions:
-        return _revisionsPage(wide);
+        return RevisionPage(user: _user, apiClient: widget.apiClient);
       case AppSection.team:
-        return _teamPage(wide);
+        return TeamPage(
+          user: _user,
+          apiClient: widget.apiClient,
+          onOpenTasks: () => setState(() => _selected = AppSection.tasks),
+          onOpenRevisions: () => setState(() => _selected = AppSection.revisions),
+        );
       case AppSection.performance:
-        return _performancePage();
+        return PerformancePage(apiClient: widget.apiClient);
       case AppSection.reports:
-        return _reportsPage(wide);
+        return ReportsPage(user: _user, apiClient: widget.apiClient);
+      case AppSection.settings:
+        return GeneralSettingsPage(apiClient: widget.apiClient);
+      case AppSection.help:
+        return HelpCenterPage(apiClient: widget.apiClient);
     }
-  }
-
-  Widget _tasksPage() {
-    return TaskPage(user: _user);
-  }
-
-  Widget _revisionsPage(bool _) {
-    return RevisionPage(user: _user);
-  }
-
-  Widget _teamPage(bool _) {
-    return TeamPage(
-      user: _user,
-      onOpenTasks: () => setState(() => _selected = AppSection.tasks),
-      onOpenRevisions: () => setState(() => _selected = AppSection.revisions),
-    );
-  }
-
-  Widget _performancePage() {
-    return PerformancePage(user: _user);
-  }
-
-  Widget _reportsPage(bool _) {
-    return ReportsPage(user: _user);
   }
 }
 
-class _SidebarMeta extends StatelessWidget {
-  const _SidebarMeta({required this.icon, required this.label});
+class _SidebarTile extends StatelessWidget {
+  const _SidebarTile({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
   final IconData icon;
   final String label;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      dense: true,
-      leading: Icon(icon, color: const Color(0xD2F2F6FF), size: 18),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      horizontalTitleGap: 10,
+      minLeadingWidth: 18,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      tileColor: selected ? AppPalette.primary : Colors.transparent,
+      leading: Icon(icon, color: Colors.white, size: 19),
       title: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: const TextStyle(
           color: Colors.white,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
           fontSize: 14,
         ),
       ),
@@ -487,44 +463,29 @@ class _SidebarMeta extends StatelessWidget {
 }
 
 class _RoundAction extends StatelessWidget {
-  const _RoundAction({required this.icon, this.badge});
+  const _RoundAction({
+    required this.icon,
+    required this.onTap,
+  });
+
   final IconData icon;
-  final String? badge;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: AppPalette.background,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppPalette.border),
-          ),
-          child: Icon(icon, color: AppPalette.text, size: 20),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: AppPalette.background,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppPalette.border),
         ),
-        if (badge != null)
-          Positioned(
-            right: -2,
-            top: -4,
-            child: CircleAvatar(
-              radius: 9,
-              backgroundColor: AppPalette.danger,
-              child: Text(
-                badge!,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-      ],
+        child: Icon(icon, color: AppPalette.text, size: 20),
+      ),
     );
   }
 }
-

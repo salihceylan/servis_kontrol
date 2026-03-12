@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:servis_kontrol/core/network/api_client.dart';
+import 'package:servis_kontrol/core/network/api_exception.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
-import 'package:servis_kontrol/features/tasks/application/mock_task_repository.dart';
+import 'package:servis_kontrol/features/tasks/data/api_task_repository.dart';
+import 'package:servis_kontrol/features/tasks/data/task_repository.dart';
 import 'package:servis_kontrol/features/tasks/domain/task_item.dart';
 
 class TaskSummaryMetric {
@@ -18,19 +21,15 @@ class TaskSummaryMetric {
 class TaskController extends ChangeNotifier {
   TaskController({
     required AppUser user,
-    MockTaskRepository? repository,
-  })  : _user = user,
-        _repository = repository ?? const MockTaskRepository() {
-    _allTasks = _repository.loadFor(user);
-    if (_allTasks.isNotEmpty) {
-      _selectedTaskId = _allTasks.first.id;
-    }
+    required ApiClient apiClient,
+    TaskRepository? repository,
+  }) : _repository = repository ?? ApiTaskRepository(apiClient) {
+    load();
   }
 
-  final AppUser _user;
-  final MockTaskRepository _repository;
+  final TaskRepository _repository;
 
-  late List<TaskItem> _allTasks;
+  List<TaskItem> _allTasks = const [];
   String _query = '';
   TaskStatus? _statusFilter;
   TaskPriority? _priorityFilter;
@@ -38,6 +37,9 @@ class TaskController extends ChangeNotifier {
   String? _assigneeFilter;
   String? _tagFilter;
   String? _selectedTaskId;
+  bool _isLoading = true;
+  bool _isSaving = false;
+  String? _errorMessage;
 
   String get query => _query;
   TaskStatus? get statusFilter => _statusFilter;
@@ -45,6 +47,10 @@ class TaskController extends ChangeNotifier {
   TaskDateFilter get dateFilter => _dateFilter;
   String? get assigneeFilter => _assigneeFilter;
   String? get tagFilter => _tagFilter;
+  bool get isLoading => _isLoading;
+  bool get isSaving => _isSaving;
+  String? get errorMessage => _errorMessage;
+  bool get hasData => _allTasks.isNotEmpty;
 
   List<String> get assignees => {
     for (final task in _allTasks) task.assignee,
@@ -156,6 +162,34 @@ class TaskController extends ChangeNotifier {
     ];
   }
 
+  Future<void> load() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      _allTasks = await _repository.load(
+        query: _query,
+        status: _statusFilter,
+        priority: _priorityFilter,
+        dateFilter: _dateFilter,
+        assignee: _assigneeFilter,
+        tag: _tagFilter,
+      );
+      _ensureSelection();
+    } on ApiException catch (error) {
+      _allTasks = const [];
+      _selectedTaskId = null;
+      _errorMessage = error.message;
+    } catch (_) {
+      _allTasks = const [];
+      _selectedTaskId = null;
+      _errorMessage = 'Görev verileri alınamadı.';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   void updateQuery(String value) {
     _query = value;
     _ensureSelection();
@@ -208,100 +242,61 @@ class TaskController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void startSelectedTask() {
+  Future<bool> startSelectedTask() async {
     final task = selectedTask;
     if (task == null) {
-      return;
+      return false;
     }
-
-    _writeTask(
-      task.copyWith(
-        status: TaskStatus.inProgress,
-        updatedAt: DateTime.now(),
-        timeline: [
-          TaskTimelineEntry(
-            title: 'Başlatıldı',
-            detail: 'Durum güncellendi, zaman sayacı başladı.',
-            actor: _user.firstName,
-            timestamp: DateTime.now(),
-          ),
-          ...task.timeline,
-        ],
-      ),
-    );
+    return _persistTask(() => _repository.start(task.id));
   }
 
-  void addComment(String message) {
+  Future<bool> addComment(String message) async {
     final task = selectedTask;
     final normalized = message.trim();
     if (task == null || normalized.isEmpty) {
-      return;
+      return false;
     }
-
-    _writeTask(
-      task.copyWith(
-        updatedAt: DateTime.now(),
-        timeline: [
-          TaskTimelineEntry(
-            title: 'Yorum eklendi',
-            detail: '$normalized İlgililere bildirim gönderildi.',
-            actor: _user.firstName,
-            timestamp: DateTime.now(),
-          ),
-          ...task.timeline,
-        ],
-      ),
+    return _persistTask(
+      () => _repository.addComment(taskId: task.id, message: normalized),
     );
   }
 
-  void scheduleMeeting() {
+  Future<bool> scheduleMeeting() async {
     final task = selectedTask;
     if (task == null) {
-      return;
+      return false;
     }
-
-    final link =
-        task.meetingLink ?? 'https://meet.workflow.local/${task.id.toLowerCase()}';
-
-    _writeTask(
-      task.copyWith(
-        meetingLink: link,
-        updatedAt: DateTime.now(),
-        timeline: [
-          TaskTimelineEntry(
-            title: 'Toplantı planlandı',
-            detail: 'Toplantı linki göreve eklendi ve katılımcılara davet çıktı.',
-            actor: _user.firstName,
-            timestamp: DateTime.now(),
-          ),
-          ...task.timeline,
-        ],
-      ),
-    );
+    return _persistTask(() => _repository.scheduleMeeting(task.id));
   }
 
-  void submitSelectedTask() {
+  Future<bool> submitSelectedTask() async {
     final task = selectedTask;
     if (task == null) {
-      return;
+      return false;
     }
+    return _persistTask(() => _repository.submit(task.id));
+  }
 
-    _writeTask(
-      task.copyWith(
-        status: TaskStatus.inReview,
-        updatedAt: DateTime.now(),
-        checklistCompleted: task.checklistTotal,
-        timeline: [
-          TaskTimelineEntry(
-            title: 'Teslim edildi',
-            detail: 'Görev lider incelemesine gönderildi.',
-            actor: _user.firstName,
-            timestamp: DateTime.now(),
-          ),
-          ...task.timeline,
-        ],
-      ),
-    );
+  Future<bool> _persistTask(Future<TaskItem> Function() action) async {
+    _isSaving = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final updatedTask = await action();
+      _writeTask(updatedTask);
+      return true;
+    } on ApiException catch (error) {
+      _errorMessage = error.message;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _errorMessage = 'Görev güncellemesi kaydedilemedi.';
+      notifyListeners();
+      return false;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
   }
 
   void _writeTask(TaskItem updatedTask) {
@@ -311,7 +306,6 @@ class TaskController extends ChangeNotifier {
     ];
     _selectedTaskId = updatedTask.id;
     _ensureSelection();
-    notifyListeners();
   }
 
   void _ensureSelection() {
