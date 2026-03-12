@@ -1,0 +1,482 @@
+# Workflow Veritabanı Şeması
+
+Bu belge iki şeyi netleştirir:
+
+1. Şu anda backend tarafında gerçekten oluşmuş tablolar
+2. Arayüzde gördüğümüz tüm modüllerin canlı ve dinamik çalışması için açılması gereken asıl tablolar
+
+## Şu anda oluşmuş tablolar
+
+Laravel iskeleti kurulduğunda aşağıdaki çekirdek tablolar oluştu:
+
+- `users`
+- `cache`
+- `cache_locks`
+- `jobs`
+- `job_batches`
+- `failed_jobs`
+- `personal_access_tokens`
+
+Bu tablolar sadece framework ayağa kalksın diye var. Mevcut arayüzdeki görev, revizyon, ekip, performans, rapor, ayarlar ve yetki akışlarını karşılamaz.
+
+## ID yaklaşımı
+
+İşletme tarafında gösterilecek kimliklerle sistem içi primary key aynı olmamalı.
+
+- Her tabloda iç kullanım için `id` tutulmalı
+  - öneri: `uuid` veya `bigint`
+- Şirket için ayrıca:
+  - `company_code CHAR(6) UNIQUE`
+  - sadece rakam, rastgele üretilmiş dış kimlik
+- Kullanıcı için ayrıca:
+  - `user_code CHAR(11) UNIQUE`
+  - sadece rakam, benzersiz dış kimlik
+
+Öneri:
+
+- `id` = sistem içi ilişki anahtarı
+- `company_code` ve `user_code` = ekranda gösterilen iş kodu
+
+Bu yaklaşım, ileride veri taşıma, merge, entegrasyon ve güvenlik açısından daha doğru olur.
+
+## Zorunlu ana tablolar
+
+### Şirket / tenant yapısı
+
+- `companies`
+  - `id`
+  - `company_code`
+  - `name`
+  - `status`
+  - `owner_user_id`
+  - `timezone`
+  - `locale`
+  - `created_at`
+
+- `company_settings`
+  - `id`
+  - `company_id`
+  - `workday_start`
+  - `workday_end`
+  - `default_report_format`
+  - `default_notification_channel`
+  - `revision_warning_threshold`
+  - `task_due_warning_hours`
+  - `allow_email_reports`
+  - `allow_slack_reports`
+  - `created_at`
+  - `updated_at`
+
+### Kullanıcı, pozisyon, rol, hak, yetki
+
+- `users`
+  - `id`
+  - `company_id`
+  - `user_code`
+  - `full_name`
+  - `email`
+  - `phone`
+  - `password_hash`
+  - `position_id`
+  - `department_id`
+  - `status`
+  - `is_first_login`
+  - `last_login_at`
+  - `created_at`
+  - `updated_at`
+
+- `departments`
+  - `id`
+  - `company_id`
+  - `name`
+  - `code`
+
+- `positions`
+  - `id`
+  - `company_id`
+  - `name`
+  - `code`
+  - `level`
+
+- `roles`
+  - `id`
+  - `company_id`
+  - `name`
+  - `code`
+  - `is_system_role`
+
+- `permissions`
+  - `id`
+  - `module`
+  - `action`
+  - `code`
+
+- `role_permissions`
+  - `id`
+  - `role_id`
+  - `permission_id`
+
+- `user_roles`
+  - `id`
+  - `user_id`
+  - `role_id`
+
+- `user_permission_overrides`
+  - `id`
+  - `user_id`
+  - `permission_id`
+  - `is_allowed`
+
+- `user_settings`
+  - `id`
+  - `user_id`
+  - `theme_preference`
+  - `language`
+  - `wants_quick_tour`
+  - `default_dashboard_view`
+  - `created_at`
+  - `updated_at`
+
+- `notification_preferences`
+  - `id`
+  - `user_id`
+  - `in_app_enabled`
+  - `email_enabled`
+  - `slack_enabled`
+  - `daily_summary_enabled`
+  - `report_ready_enabled`
+  - `revision_alert_enabled`
+
+### Ekip yapısı
+
+- `teams`
+  - `id`
+  - `company_id`
+  - `name`
+  - `code`
+  - `manager_user_id`
+
+- `team_members`
+  - `id`
+  - `team_id`
+  - `user_id`
+  - `joined_at`
+  - `is_lead`
+
+### Proje ve iş takibi
+
+- `projects`
+  - `id`
+  - `company_id`
+  - `team_id`
+  - `code`
+  - `name`
+  - `client_name`
+  - `status`
+  - `start_date`
+  - `due_date`
+  - `priority`
+  - `created_by`
+
+- `project_members`
+  - `id`
+  - `project_id`
+  - `user_id`
+  - `role`
+
+- `task_statuses`
+  - `id`
+  - `company_id`
+  - `name`
+  - `code`
+  - `sort_order`
+  - `is_closed`
+
+- `tasks`
+  - `id`
+  - `company_id`
+  - `project_id`
+  - `parent_task_id`
+  - `task_no`
+  - `title`
+  - `description`
+  - `status_id`
+  - `priority`
+  - `primary_assignee_id`
+  - `created_by`
+  - `due_at`
+  - `started_at`
+  - `completed_at`
+  - `estimated_minutes`
+  - `actual_minutes`
+  - `quality_score`
+  - `revision_count`
+  - `is_flagged`
+  - `flag_reason`
+  - `created_at`
+  - `updated_at`
+
+- `task_assignments`
+  - `id`
+  - `task_id`
+  - `user_id`
+  - `assignment_type`
+  - `assigned_by`
+  - `assigned_at`
+
+- `task_checklists`
+  - `id`
+  - `task_id`
+  - `title`
+  - `is_completed`
+  - `completed_by`
+  - `completed_at`
+  - `sort_order`
+
+- `task_labels`
+  - `id`
+  - `company_id`
+  - `name`
+  - `color`
+
+- `task_label_links`
+  - `id`
+  - `task_id`
+  - `label_id`
+
+- `task_comments`
+  - `id`
+  - `task_id`
+  - `user_id`
+  - `body`
+  - `comment_type`
+  - `created_at`
+
+- `task_attachments`
+  - `id`
+  - `task_id`
+  - `uploaded_by`
+  - `file_name`
+  - `file_path`
+  - `mime_type`
+  - `file_size`
+  - `created_at`
+
+- `task_status_history`
+  - `id`
+  - `task_id`
+  - `from_status_id`
+  - `to_status_id`
+  - `changed_by`
+  - `note`
+  - `created_at`
+
+- `task_time_logs`
+  - `id`
+  - `task_id`
+  - `user_id`
+  - `started_at`
+  - `ended_at`
+  - `duration_minutes`
+  - `source`
+
+### Revizyon / onay akışı
+
+- `revisions`
+  - `id`
+  - `task_id`
+  - `requested_by`
+  - `assigned_to`
+  - `revision_no`
+  - `reason`
+  - `status`
+  - `is_warning_triggered`
+  - `requested_at`
+  - `resolved_at`
+
+- `revision_messages`
+  - `id`
+  - `revision_id`
+  - `user_id`
+  - `message`
+  - `message_type`
+  - `created_at`
+
+- `approvals`
+  - `id`
+  - `task_id`
+  - `revision_id`
+  - `approver_user_id`
+  - `decision`
+  - `decision_note`
+  - `decided_at`
+
+### Dashboard, performans ve raporlama
+
+- `performance_snapshots`
+  - `id`
+  - `company_id`
+  - `user_id`
+  - `team_id`
+  - `period_type`
+  - `period_start`
+  - `period_end`
+  - `completed_count`
+  - `late_count`
+  - `avg_completion_minutes`
+  - `avg_revision_count`
+  - `quality_score`
+  - `overall_score`
+  - `created_at`
+
+- `dashboard_widgets`
+  - `id`
+  - `company_id`
+  - `user_id`
+  - `widget_type`
+  - `config_json`
+  - `sort_order`
+
+- `report_templates`
+  - `id`
+  - `company_id`
+  - `name`
+  - `report_type`
+  - `scope_type`
+  - `filters_json`
+  - `default_format`
+
+- `report_runs`
+  - `id`
+  - `company_id`
+  - `template_id`
+  - `requested_by`
+  - `report_type`
+  - `scope_label`
+  - `format`
+  - `status`
+  - `file_path`
+  - `emailed_to`
+  - `created_at`
+  - `completed_at`
+
+### Bildirim, alarm ve ayarlar menüsü
+
+- `notifications`
+  - `id`
+  - `company_id`
+  - `user_id`
+  - `title`
+  - `body`
+  - `notification_type`
+  - `related_task_id`
+  - `related_revision_id`
+  - `is_read`
+  - `created_at`
+
+- `alerts`
+  - `id`
+  - `company_id`
+  - `task_id`
+  - `user_id`
+  - `alert_type`
+  - `severity`
+  - `message`
+  - `is_resolved`
+  - `created_at`
+  - `resolved_at`
+
+- `help_articles`
+  - `id`
+  - `company_id`
+  - `title`
+  - `slug`
+  - `body`
+  - `status`
+
+- `system_settings`
+  - `id`
+  - `company_id`
+  - `setting_key`
+  - `setting_value`
+
+### Güvenlik ve denetim
+
+- `audit_logs`
+  - `id`
+  - `company_id`
+  - `user_id`
+  - `entity_type`
+  - `entity_id`
+  - `action`
+  - `old_values_json`
+  - `new_values_json`
+  - `ip_address`
+  - `created_at`
+
+- `login_attempts`
+  - `id`
+  - `email`
+  - `ip_address`
+  - `is_success`
+  - `attempted_at`
+
+- `password_reset_tokens`
+  - Laravel standard tablo
+
+- `sessions`
+  - veritabanı tabanlı oturum tutulacaksa gerekli
+
+## Minimum canlı sürüm için ilk açılması gereken tablo seti
+
+Eğer ilk hedef ekrandaki her şeyi dinamik yapmaksa önce şu set açılmalı:
+
+- `companies`
+- `company_settings`
+- `users`
+- `departments`
+- `positions`
+- `roles`
+- `permissions`
+- `role_permissions`
+- `user_roles`
+- `user_settings`
+- `notification_preferences`
+- `teams`
+- `team_members`
+- `projects`
+- `tasks`
+- `task_assignments`
+- `task_comments`
+- `task_attachments`
+- `task_status_history`
+- `task_time_logs`
+- `revisions`
+- `revision_messages`
+- `approvals`
+- `notifications`
+- `alerts`
+- `performance_snapshots`
+- `report_runs`
+- `audit_logs`
+
+## Settings menüsü için doğrudan gereken veri
+
+Şu an arayüzde görünen `Genel Ayarlar` ve `Yardım Merkezi` için en az:
+
+- `company_settings`
+- `user_settings`
+- `notification_preferences`
+- `help_articles`
+- `system_settings`
+
+## Sonuç
+
+Mevcut backend tablo seti sadece iskelet seviyesinde.
+
+Arayüzde şu an gördüğümüz her şeyin gerçek veriyle çalışması için:
+
+1. Yukarıdaki iş tabloları açılmalı
+2. Mock Flutter repository’ler gerçek API repository’lerine çevrilmeli
+3. Şirket, kullanıcı, görev, revizyon, performans ve rapor endpoint’leri hazırlanmalı
+4. Ayarlar ve yetki sistemi backend tarafında netleşmeli
