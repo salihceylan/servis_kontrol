@@ -40,6 +40,9 @@ class ServisKontrolShell extends StatefulWidget {
 }
 
 class _ServisKontrolShellState extends State<ServisKontrolShell> {
+  static const _sidebarBase = Color(0xFF0D2545);
+  static const _sidebarPanel = Color(0xFF183659);
+
   AppSection _selected = AppSection.panel;
 
   AppUser get _user => widget.user;
@@ -113,13 +116,13 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
           drawer: wide
               ? null
               : Drawer(
-                  backgroundColor: AppPalette.sidebar,
+                  backgroundColor: _sidebarBase,
                   child: SafeArea(child: _sidebar()),
                 ),
           body: SafeArea(
             child: Row(
               children: [
-                if (wide) SizedBox(width: 252, child: _sidebar()),
+                if (wide) SizedBox(width: 244, child: _sidebar()),
                 Expanded(
                   child: Column(
                     children: [
@@ -148,16 +151,16 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
 
   Widget _sidebar() {
     return Container(
-      color: AppPalette.sidebar,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      color: _sidebarBase,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppPalette.sidebarSoft,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              color: _sidebarPanel,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
             ),
             child: const Row(
               children: [
@@ -178,7 +181,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                         'ServisKontrol Pro',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -187,7 +190,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                         'Workflow Work OS',
                         style: TextStyle(
                           color: Color(0x99FFFFFF),
-                          fontSize: 12,
+                          fontSize: 11,
                         ),
                       ),
                     ],
@@ -196,13 +199,13 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Expanded(
             child: ListView(
               children: [
                 for (final item in _sidebarItems)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.only(bottom: 4),
                     child: _SidebarTile(
                       icon: item.$3,
                       label: item.$2,
@@ -210,14 +213,14 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                       onTap: () => setState(() => _selected = item.$1),
                     ),
                   ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 10),
                 const Padding(
-                  padding: EdgeInsets.only(left: 8, bottom: 8),
+                  padding: EdgeInsets.only(left: 8, bottom: 6),
                   child: Text(
                     'Ayarlar',
                     style: TextStyle(
                       color: Color(0x88FFFFFF),
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -228,7 +231,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                   selected: _selected == AppSection.settings,
                   onTap: () => setState(() => _selected = AppSection.settings),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 _SidebarTile(
                   icon: Icons.help_outline_rounded,
                   label: 'Yardım Merkezi',
@@ -239,10 +242,10 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
             ),
           ),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
             ),
             child: Row(
@@ -268,6 +271,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
+                          fontSize: 13,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -278,7 +282,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0xCCFFFFFF),
-                          fontSize: 11,
+                          fontSize: 10.5,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -288,7 +292,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0x99FFFFFF),
-                          fontSize: 11,
+                          fontSize: 10,
                         ),
                       ),
                     ],
@@ -439,15 +443,17 @@ class _SidebarTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      dense: true,
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      horizontalTitleGap: 10,
-      minLeadingWidth: 18,
+      visualDensity: const VisualDensity(horizontal: -1, vertical: -2),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+      horizontalTitleGap: 8,
+      minLeadingWidth: 16,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
       ),
       tileColor: selected ? AppPalette.primary : Colors.transparent,
-      leading: Icon(icon, color: Colors.white, size: 19),
+      leading: Icon(icon, color: Colors.white, size: 18),
       title: Text(
         label,
         maxLines: 1,
@@ -455,7 +461,7 @@ class _SidebarTile extends StatelessWidget {
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w700,
-          fontSize: 14,
+          fontSize: 13,
         ),
       ),
     );
