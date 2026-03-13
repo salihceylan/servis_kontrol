@@ -7,8 +7,10 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 class WorkflowApiService
 {
@@ -37,19 +39,41 @@ class WorkflowApiService
 
     public function recordForgotPasswordRequest(string $email, ?string $ipAddress = null): void
     {
+        $normalizedEmail = trim(Str::lower($email));
+
         DB::table('audit_logs')->insert([
             'company_id' => null,
             'user_id' => null,
             'entity_type' => 'auth',
-            'entity_id' => trim(Str::lower($email)),
+            'entity_id' => $normalizedEmail,
             'action' => 'forgot_password_requested',
             'old_values_json' => null,
             'new_values_json' => json_encode([
-                'email' => trim(Str::lower($email)),
+                'email' => $normalizedEmail,
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'ip_address' => $ipAddress,
             'created_at' => now(),
         ]);
+
+        $mailFrom = config('mail.from.address');
+        if (is_string($mailFrom) && $mailFrom !== '') {
+            try {
+                Mail::raw(
+                    implode("\n", [
+                        'Workflow parola sifirlama talebiniz alindi.',
+                        'Guvenlik nedeniyle sifre sifirlama islemine destek ekibimiz geri donus saglayacaktir.',
+                        'Destek e-postasi: ' . $mailFrom,
+                    ]),
+                    function ($message) use ($normalizedEmail): void {
+                        $message
+                            ->to($normalizedEmail)
+                            ->subject('Workflow parola sifirlama talebi');
+                    },
+                );
+            } catch (Throwable) {
+                // SMTP hatasi audit kaydini bozmasin.
+            }
+        }
     }
 
     public function completeOnboarding(User $user, array $payload): array
@@ -862,7 +886,7 @@ class WorkflowApiService
         $settings = $this->settingsMap($context['company_id']);
 
         return [
-            'contact_email' => $settings['support_email'] ?? 'destek@workflow.local',
+            'contact_email' => $settings['support_email'] ?? 'kodver@gudeteknoloji.com.tr',
             'response_sla' => $settings['response_sla'] ?? '4 iş saati',
             'articles' => DB::table('help_articles')
                 ->where(function ($q) use ($context) {

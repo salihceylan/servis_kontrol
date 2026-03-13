@@ -22,6 +22,9 @@ Bu klasör, VPS tarafında elle tek tek SQL yazmak yerine doğrudan uygulanabili
 - `scripts/grant_workflow_privileges.sh`
   - uygulama kullanicisi icin tablo, sequence ve function yetkilerini verir
 
+- `scripts/configure_laravel_mail.sh`
+  - Laravel `.env` icin SMTP ayarlarini yazar
+
 - `scripts/verify_workflow_schema.sh`
   - ana tabloların oluşup oluşmadığını doğrular
 

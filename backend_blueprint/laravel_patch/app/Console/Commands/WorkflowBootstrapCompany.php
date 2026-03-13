@@ -125,7 +125,7 @@ class WorkflowBootstrapCompany extends Command
                 [
                     'company_id' => $companyId,
                     'setting_key' => 'support_email',
-                    'setting_value' => 'destek@workflow.local',
+                    'setting_value' => 'kodver@gudeteknoloji.com.tr',
                     'updated_at' => now(),
                 ],
                 [

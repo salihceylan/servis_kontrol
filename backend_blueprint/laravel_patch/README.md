@@ -27,6 +27,7 @@ Amac:
 
 - `app/Services/Workflow/WorkflowApiService.php`
   - tum sorgu ve cevap haritalama mantigi
+  - forgot-password talebinde audit kaydi ve SMTP tanimliysa teyit maili
 
 - `routes/api.workflow.php`
   - route tanimlari
@@ -68,6 +69,19 @@ bash backend_blueprint/scripts/grant_workflow_privileges.sh
 
 - `app/Models/User.php` dosyasinda Sanctum token uretimi icin
   `Laravel\\Sanctum\\HasApiTokens` trait'i bulunmalidir.
+
+- SMTP ayarlarini `.env` dosyasina yazmak icin:
+
+```bash
+cd /var/www/workflow_source
+MAIL_HOST=mail.example.com \
+MAIL_PORT=587 \
+MAIL_USERNAME=user@example.com \
+MAIL_PASSWORD='secret' \
+MAIL_FROM_ADDRESS=user@example.com \
+MAIL_FROM_NAME='Workflow' \
+bash backend_blueprint/scripts/configure_laravel_mail.sh
+```
 
 ## Manuel kopyalama
 
