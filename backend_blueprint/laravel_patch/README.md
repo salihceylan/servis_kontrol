@@ -56,6 +56,19 @@ Bu script su isleri yapar:
 - `routes/api.php` icine `require __DIR__.'/api.workflow.php';` satirini ekler
 - `php artisan optimize:clear` calistirir
 
+## Kritik notlar
+
+- PostgreSQL semasi `postgres` kullanicisi ile kurulduysa, Laravel uygulama
+  kullanicisi icin tablo yetkilerini ayri vermelisin:
+
+```bash
+cd /var/www/workflow_source
+bash backend_blueprint/scripts/grant_workflow_privileges.sh
+```
+
+- `app/Models/User.php` dosyasinda Sanctum token uretimi icin
+  `Laravel\\Sanctum\\HasApiTokens` trait'i bulunmalidir.
+
 ## Manuel kopyalama
 
 VPS'teki Laravel uygulamasi `/var/www/workflow/api` altindaysa:

@@ -17,7 +17,10 @@ Bu klasör, VPS tarafında elle tek tek SQL yazmak yerine doğrudan uygulanabili
   - `wf_seed_company_defaults(company_id)` fonksiyonu
 
 - `scripts/apply_workflow_schema.sh`
-  - Docker içindeki PostgreSQL container'a schema ve seed uygular
+  - Docker içindeki PostgreSQL container'a schema, seed ve DB yetkileri uygular
+
+- `scripts/grant_workflow_privileges.sh`
+  - uygulama kullanicisi icin tablo, sequence ve function yetkilerini verir
 
 - `scripts/verify_workflow_schema.sh`
   - ana tabloların oluşup oluşmadığını doğrular
@@ -49,6 +52,7 @@ git pull origin main
 
 ```bash
 chmod +x backend_blueprint/scripts/apply_workflow_schema.sh
+chmod +x backend_blueprint/scripts/grant_workflow_privileges.sh
 chmod +x backend_blueprint/scripts/verify_workflow_schema.sh
 ```
 
@@ -56,6 +60,12 @@ chmod +x backend_blueprint/scripts/verify_workflow_schema.sh
 
 ```bash
 ./backend_blueprint/scripts/apply_workflow_schema.sh
+```
+
+Sadece uygulama kullanicisi yetkilerini duzeltmek istersen:
+
+```bash
+./backend_blueprint/scripts/grant_workflow_privileges.sh
 ```
 
 4. Tabloları doğrula
