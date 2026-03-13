@@ -74,12 +74,12 @@ bash backend_blueprint/scripts/grant_workflow_privileges.sh
 
 ```bash
 cd /var/www/workflow_source
-MAIL_HOST=mail.example.com \
-MAIL_PORT=587 \
-MAIL_USERNAME=user@example.com \
-MAIL_PASSWORD='secret' \
-MAIL_FROM_ADDRESS=user@example.com \
-MAIL_FROM_NAME='Workflow' \
+SMTP_HOST=mail.example.com \
+SMTP_PORT=587 \
+SMTP_USER=user@example.com \
+SMTP_PASSWORD='secret' \
+SMTP_FROM=user@example.com \
+SMTP_FROM_NAME='Workflow' \
 bash backend_blueprint/scripts/configure_laravel_mail.sh
 ```
 
