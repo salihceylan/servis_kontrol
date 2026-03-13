@@ -31,7 +31,32 @@ Amac:
 - `routes/api.workflow.php`
   - route tanimlari
 
-## Kopyalama
+## Otomatik kurulum
+
+VPS'te repo kaynak klasoru `/var/www/workflow_source` ve canli Laravel
+uygulamasi `/var/www/workflow/api` altindaysa:
+
+```bash
+cd /var/www/workflow_source
+bash backend_blueprint/scripts/apply_laravel_patch.sh
+```
+
+Gerekirse hedef klasoru degistir:
+
+```bash
+cd /var/www/workflow_source
+LARAVEL_APP_DIR=/ozel/laravel/yolu bash backend_blueprint/scripts/apply_laravel_patch.sh
+```
+
+Bu script su isleri yapar:
+
+- controller, service ve artisan command dosyalarini kopyalar
+- `routes/api.workflow.php` dosyasini kopyalar
+- `config/cors.php` dosyasini yazar
+- `routes/api.php` icine `require __DIR__.'/api.workflow.php';` satirini ekler
+- `php artisan optimize:clear` calistirir
+
+## Manuel kopyalama
 
 VPS'teki Laravel uygulamasi `/var/www/workflow/api` altindaysa:
 
@@ -42,6 +67,7 @@ mkdir -p /var/www/workflow/api/app/Services/Workflow
 cp -R /var/www/workflow_source/backend_blueprint/laravel_patch/app/Http/Controllers/Api/Workflow/* /var/www/workflow/api/app/Http/Controllers/Api/Workflow/
 cp -R /var/www/workflow_source/backend_blueprint/laravel_patch/app/Services/Workflow/* /var/www/workflow/api/app/Services/Workflow/
 cp /var/www/workflow_source/backend_blueprint/laravel_patch/routes/api.workflow.php /var/www/workflow/api/routes/api.workflow.php
+cp /var/www/workflow_source/backend_blueprint/laravel_patch/config/cors.php /var/www/workflow/api/config/cors.php
 ```
 
 ## Route baglama
