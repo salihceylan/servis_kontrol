@@ -115,14 +115,57 @@ class _DashboardPageState extends State<DashboardPage> {
               builder: (context, constraints) {
                 final wide = constraints.maxWidth >= 1100;
                 if (wide) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  return Column(
                     children: [
-                      Expanded(flex: 2, child: _FocusPanel(items: snapshot.focusItems)),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        flex: 3,
-                        child: _ProjectPanel(projects: snapshot.projects),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: _FocusPanel(items: snapshot.focusItems),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 3,
+                            child: _ProjectPanel(projects: snapshot.projects),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: _AutomationPanel(
+                              automations: snapshot.automations,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 3,
+                            child: _ActivityFeedPanel(
+                              items: snapshot.activityFeed,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: _WorkloadPanel(rows: snapshot.workloadRows),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 2,
+                            child: _RequestFormsPanel(
+                              forms: snapshot.requestForms,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   );
@@ -133,6 +176,14 @@ class _DashboardPageState extends State<DashboardPage> {
                     _FocusPanel(items: snapshot.focusItems),
                     const SizedBox(height: 16),
                     _ProjectPanel(projects: snapshot.projects),
+                    const SizedBox(height: 16),
+                    _AutomationPanel(automations: snapshot.automations),
+                    const SizedBox(height: 16),
+                    _ActivityFeedPanel(items: snapshot.activityFeed),
+                    const SizedBox(height: 16),
+                    _WorkloadPanel(rows: snapshot.workloadRows),
+                    const SizedBox(height: 16),
+                    _RequestFormsPanel(forms: snapshot.requestForms),
                   ],
                 );
               },
@@ -582,6 +633,351 @@ class _FocusPanel extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _AutomationPanel extends StatelessWidget {
+  const _AutomationPanel({required this.automations});
+
+  final List<DashboardAutomation> automations;
+
+  @override
+  Widget build(BuildContext context) {
+    return _DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            title: 'Otomasyon Merkezi',
+            subtitle: 'Monday benzeri kural ve tetik görünümü',
+          ),
+          const SizedBox(height: 18),
+          if (automations.isEmpty)
+            const Text(
+              'Henüz otomasyon kuralı görünmüyor.',
+              style: TextStyle(color: AppPalette.muted),
+            )
+          else
+            for (final automation in automations)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppPalette.background,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        automation.name,
+                        style: const TextStyle(
+                          color: AppPalette.text,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        automation.summary,
+                        style: const TextStyle(
+                          color: AppPalette.muted,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _DashboardPill(
+                            label: automation.statusLabel,
+                            color: AppPalette.primary,
+                          ),
+                          _DashboardPill(
+                            label: automation.lastRunLabel,
+                            color: AppPalette.success,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActivityFeedPanel extends StatelessWidget {
+  const _ActivityFeedPanel({required this.items});
+
+  final List<DashboardActivityItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return _DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            title: 'Aktivite Akışı',
+            subtitle: 'Öğe güncellemeleri, yorumlar ve otomasyon sonuçları',
+          ),
+          const SizedBox(height: 18),
+          if (items.isEmpty)
+            const Text(
+              'Henüz aktivite kaydı görünmüyor.',
+              style: TextStyle(color: AppPalette.muted),
+            )
+          else
+            for (final item in items)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      margin: const EdgeInsets.only(top: 5),
+                      decoration: const BoxDecoration(
+                        color: AppPalette.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppPalette.background,
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    item.title,
+                                    style: const TextStyle(
+                                      color: AppPalette.text,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  item.ageLabel,
+                                  style: const TextStyle(
+                                    color: AppPalette.muted,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              item.detail,
+                              style: const TextStyle(
+                                color: AppPalette.muted,
+                                height: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              item.actor,
+                              style: const TextStyle(
+                                color: AppPalette.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkloadPanel extends StatelessWidget {
+  const _WorkloadPanel({required this.rows});
+
+  final List<DashboardWorkloadRow> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    return _DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            title: 'İş Yükü',
+            subtitle: 'Kişi bazlı kapasite ve takip edilen süre',
+          ),
+          const SizedBox(height: 18),
+          if (rows.isEmpty)
+            const Text(
+              'İş yükü verisi henüz görünmüyor.',
+              style: TextStyle(color: AppPalette.muted),
+            )
+          else
+            for (final row in rows)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppPalette.background,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              row.name,
+                              style: const TextStyle(
+                                color: AppPalette.text,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            row.statusLabel,
+                            style: const TextStyle(
+                              color: AppPalette.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${row.assignedCount} aktif iş · ${row.trackedHoursLabel}',
+                        style: const TextStyle(color: AppPalette.muted),
+                      ),
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          value: (row.capacityPercent / 100).clamp(0, 1),
+                          minHeight: 8,
+                          backgroundColor: AppPalette.primarySoft,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            row.capacityPercent >= 100
+                                ? AppPalette.danger
+                                : AppPalette.success,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RequestFormsPanel extends StatelessWidget {
+  const _RequestFormsPanel({required this.forms});
+
+  final List<DashboardRequestForm> forms;
+
+  @override
+  Widget build(BuildContext context) {
+    return _DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            title: 'İstek Formları',
+            subtitle: 'Formdan açılan iş akışları',
+          ),
+          const SizedBox(height: 18),
+          if (forms.isEmpty)
+            const Text(
+              'Henüz form akışı tanımlanmamış.',
+              style: TextStyle(color: AppPalette.muted),
+            )
+          else
+            for (final form in forms)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppPalette.background,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AppPalette.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        form.title,
+                        style: const TextStyle(
+                          color: AppPalette.text,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${form.targetTeam} · Bugün ${form.submissionsToday} kayıt',
+                        style: const TextStyle(color: AppPalette.muted),
+                      ),
+                      const SizedBox(height: 10),
+                      _DashboardPill(
+                        label: form.ctaLabel,
+                        color: const Color(0xFF7A7AE6),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardPill extends StatelessWidget {
+  const _DashboardPill({
+    required this.label,
+    required this.color,
+  });
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+        ),
       ),
     );
   }

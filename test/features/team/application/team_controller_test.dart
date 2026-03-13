@@ -55,6 +55,9 @@ class _FakeTeamRepository implements TeamRepository {
         performanceScore: 82,
         focusNote: 'Revizyonlari takip ediyor',
         riskLevel: MemberRiskLevel.medium,
+        capacityPercent: 72,
+        trackedHoursLabel: '5.2 saat',
+        workloadStatusLabel: 'Dengeli kapasite',
       ),
       TeamMember(
         id: '2',
@@ -66,6 +69,9 @@ class _FakeTeamRepository implements TeamRepository {
         performanceScore: 68,
         focusNote: 'Kritik teslimi var',
         riskLevel: MemberRiskLevel.high,
+        capacityPercent: 108,
+        trackedHoursLabel: '7.8 saat',
+        workloadStatusLabel: 'Aşırı yükte',
       ),
     ],
     corrections: const [

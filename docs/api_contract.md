@@ -550,6 +550,118 @@ Yanıt:
 }
 ```
 
+## 10. Monday benzeri ek yüzeyler
+
+Bu turda ürün omurgasına eklenen ama geriye dönük uyumluluğu bozmayan alanlar:
+
+### Dashboard ek alanları
+
+`GET /dashboard` yanıtına opsiyonel olarak şunlar eklenebilir:
+
+```json
+{
+  "activity_feed": [
+    {
+      "title": "Görev güncellendi",
+      "detail": "Durum In Progress oldu",
+      "actor": "Seda Yılmaz",
+      "age_label": "12 dk"
+    }
+  ],
+  "automations": [
+    {
+      "name": "Geciken işe uyarı",
+      "summary": "Son teslim geçmişse yöneticiye bildirim gönder",
+      "status_label": "Aktif",
+      "last_run_label": "Bugün 09:14"
+    }
+  ],
+  "workload_rows": [
+    {
+      "name": "Onur Kaya",
+      "assigned_count": 5,
+      "tracked_hours_label": "7.8 saat",
+      "capacity_percent": 108,
+      "status_label": "Aşırı yükte"
+    }
+  ],
+  "request_forms": [
+    {
+      "title": "Saha Talep Formu",
+      "target_team": "Saha Operasyon",
+      "submissions_today": 6,
+      "cta_label": "Form akışı açık"
+    }
+  ]
+}
+```
+
+### Görev ek alanları
+
+`GET /tasks` içindeki her görev nesnesi opsiyonel olarak:
+
+```json
+{
+  "estimated_minutes": 180,
+  "tracked_minutes": 95,
+  "blocked_by_count": 1,
+  "subtask_count": 2,
+  "request_source": "Saha Talep Formu",
+  "dependencies": [
+    {
+      "title": "Malzeme onayı",
+      "status_label": "Bekleniyor"
+    }
+  ],
+  "time_entries": [
+    {
+      "user_name": "Merve Aydın",
+      "duration_label": "1s 35dk",
+      "started_at_label": "12.03.2026 09:00"
+    }
+  ]
+}
+```
+
+### Ekip ek alanları
+
+`GET /team` içindeki her `member` nesnesi opsiyonel olarak:
+
+```json
+{
+  "capacity_percent": 72,
+  "tracked_hours_label": "5.2 saat",
+  "workload_status_label": "Dengeli kapasite"
+}
+```
+
+### Ayarlar ek alanları
+
+`GET /settings/general` ve `PUT /settings/general` için opsiyonel alanlar:
+
+```json
+{
+  "automation_center_enabled": true,
+  "work_forms_enabled": true,
+  "time_tracking_enabled": true,
+  "permission_profiles": [
+    {
+      "title": "Lider görünümü",
+      "summary": "Görev atar, form kayıtlarını görür, rapor export eder."
+    }
+  ],
+  "integrations": [
+    {
+      "name": "Slack",
+      "status_label": "Webhook bağlı",
+      "connected": true
+    }
+  ]
+}
+```
+
+Bu alanlar Monday.com’daki otomasyon, WorkForms, workload, item updates ve entegrasyon görünümüne karşılık gelir.
+
 ## Backend notları
 
 - `company_code` üretimi backend tarafında benzersiz doğrulanmalı

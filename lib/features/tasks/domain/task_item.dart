@@ -90,6 +90,43 @@ class TaskTimelineEntry {
   }
 }
 
+class TaskDependency {
+  const TaskDependency({
+    required this.title,
+    required this.statusLabel,
+  });
+
+  final String title;
+  final String statusLabel;
+
+  factory TaskDependency.fromJson(Map<String, dynamic> json) {
+    return TaskDependency(
+      title: json['title'] as String? ?? '',
+      statusLabel: json['status_label'] as String? ?? '',
+    );
+  }
+}
+
+class TaskTimeEntry {
+  const TaskTimeEntry({
+    required this.userName,
+    required this.durationLabel,
+    required this.startedAtLabel,
+  });
+
+  final String userName;
+  final String durationLabel;
+  final String startedAtLabel;
+
+  factory TaskTimeEntry.fromJson(Map<String, dynamic> json) {
+    return TaskTimeEntry(
+      userName: json['user_name'] as String? ?? '',
+      durationLabel: json['duration_label'] as String? ?? '',
+      startedAtLabel: json['started_at_label'] as String? ?? '',
+    );
+  }
+}
+
 class TaskItem {
   const TaskItem({
     required this.id,
@@ -105,7 +142,14 @@ class TaskItem {
     required this.checklistCompleted,
     required this.checklistTotal,
     required this.timeline,
+    required this.estimatedMinutes,
+    required this.trackedMinutes,
+    required this.blockedByCount,
+    required this.subtaskCount,
+    required this.dependencies,
+    required this.timeEntries,
     this.meetingLink,
+    this.requestSource,
   });
 
   final String id;
@@ -121,11 +165,24 @@ class TaskItem {
   final int checklistCompleted;
   final int checklistTotal;
   final List<TaskTimelineEntry> timeline;
+  final int estimatedMinutes;
+  final int trackedMinutes;
+  final int blockedByCount;
+  final int subtaskCount;
+  final List<TaskDependency> dependencies;
+  final List<TaskTimeEntry> timeEntries;
   final String? meetingLink;
+  final String? requestSource;
 
   factory TaskItem.fromJson(Map<String, dynamic> json) {
     final timeline = (json['timeline'] as List<dynamic>? ?? const [])
         .map((item) => TaskTimelineEntry.fromJson(item as Map<String, dynamic>))
+        .toList(growable: false);
+    final dependencies = (json['dependencies'] as List<dynamic>? ?? const [])
+        .map((item) => TaskDependency.fromJson(item as Map<String, dynamic>))
+        .toList(growable: false);
+    final timeEntries = (json['time_entries'] as List<dynamic>? ?? const [])
+        .map((item) => TaskTimeEntry.fromJson(item as Map<String, dynamic>))
         .toList(growable: false);
 
     return TaskItem(
@@ -143,7 +200,14 @@ class TaskItem {
       checklistCompleted: json['checklist_completed'] as int? ?? 0,
       checklistTotal: json['checklist_total'] as int? ?? 0,
       timeline: timeline,
+      estimatedMinutes: json['estimated_minutes'] as int? ?? 0,
+      trackedMinutes: json['tracked_minutes'] as int? ?? 0,
+      blockedByCount: json['blocked_by_count'] as int? ?? 0,
+      subtaskCount: json['subtask_count'] as int? ?? 0,
+      dependencies: dependencies,
+      timeEntries: timeEntries,
       meetingLink: json['meeting_link'] as String?,
+      requestSource: json['request_source'] as String?,
     );
   }
 
@@ -164,7 +228,14 @@ class TaskItem {
     int? checklistCompleted,
     int? checklistTotal,
     List<TaskTimelineEntry>? timeline,
+    int? estimatedMinutes,
+    int? trackedMinutes,
+    int? blockedByCount,
+    int? subtaskCount,
+    List<TaskDependency>? dependencies,
+    List<TaskTimeEntry>? timeEntries,
     String? meetingLink,
+    String? requestSource,
     bool clearMeetingLink = false,
   }) {
     return TaskItem(
@@ -181,7 +252,14 @@ class TaskItem {
       checklistCompleted: checklistCompleted ?? this.checklistCompleted,
       checklistTotal: checklistTotal ?? this.checklistTotal,
       timeline: timeline ?? this.timeline,
+      estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
+      trackedMinutes: trackedMinutes ?? this.trackedMinutes,
+      blockedByCount: blockedByCount ?? this.blockedByCount,
+      subtaskCount: subtaskCount ?? this.subtaskCount,
+      dependencies: dependencies ?? this.dependencies,
+      timeEntries: timeEntries ?? this.timeEntries,
       meetingLink: clearMeetingLink ? null : (meetingLink ?? this.meetingLink),
+      requestSource: requestSource ?? this.requestSource,
     );
   }
 }

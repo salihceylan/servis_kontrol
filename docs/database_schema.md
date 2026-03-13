@@ -476,6 +476,111 @@ Arayüzde görülen her şeyi gerçek veriye bağlamak için ilk migration paket
 - `help_articles`
 - `system_settings`
 
+## Monday benzeri eksikler için ek tablo seti
+
+Monday.com karşılaştırmasına göre ürün omurgasını tamamlamak için aşağıdaki tablo grubu da eklenmeli:
+
+- `task_dependencies`
+  - görevler arası blokaj / sıra ilişkisi
+  - `predecessor_task_id`
+  - `successor_task_id`
+  - `dependency_type`
+  - `created_at`
+
+- `activity_events`
+  - item update, yorum, durum değişimi, otomasyon sonucu
+  - `company_id`
+  - `user_id`
+  - `entity_type`
+  - `entity_id`
+  - `event_type`
+  - `title`
+  - `detail`
+  - `metadata_json`
+  - `created_at`
+
+- `request_forms`
+  - WorkForms benzeri form tanımı
+  - `company_id`
+  - `team_id`
+  - `name`
+  - `slug`
+  - `description`
+  - `is_active`
+  - `created_by`
+  - `created_at`
+  - `updated_at`
+
+- `request_form_fields`
+  - form alanları
+  - `request_form_id`
+  - `label`
+  - `field_key`
+  - `field_type`
+  - `is_required`
+  - `sort_order`
+
+- `request_submissions`
+  - formdan açılan talepler
+  - `request_form_id`
+  - `company_id`
+  - `task_id`
+  - `submitted_by_email`
+  - `payload_json`
+  - `status`
+  - `created_at`
+
+- `automation_rules`
+  - otomasyon tetik ve koşulları
+  - `company_id`
+  - `name`
+  - `trigger_type`
+  - `scope_type`
+  - `scope_id`
+  - `conditions_json`
+  - `is_active`
+  - `created_by`
+  - `created_at`
+  - `updated_at`
+
+- `automation_rule_actions`
+  - kural aksiyonları
+  - `automation_rule_id`
+  - `action_type`
+  - `action_config_json`
+  - `sort_order`
+
+- `automation_runs`
+  - otomasyon çalışma kayıtları
+  - `automation_rule_id`
+  - `company_id`
+  - `entity_type`
+  - `entity_id`
+  - `status`
+  - `result_message`
+  - `executed_at`
+
+- `integration_connections`
+  - Slack, e-posta, takvim, webhook bağlantıları
+  - `company_id`
+  - `provider`
+  - `connection_name`
+  - `status`
+  - `config_json`
+  - `last_synced_at`
+  - `created_at`
+  - `updated_at`
+
+- `user_capacity_profiles`
+  - workload ve kapasite planı
+  - `company_id`
+  - `user_id`
+  - `daily_capacity_minutes`
+  - `weekly_capacity_minutes`
+  - `effective_from`
+  - `created_at`
+  - `updated_at`
+
 ## Sonuç
 
 Şu an canlı backend yalnızca framework iskelet seviyesinde.

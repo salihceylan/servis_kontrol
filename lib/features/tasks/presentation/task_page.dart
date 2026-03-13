@@ -530,6 +530,8 @@ class _TaskDetailPanel extends StatelessWidget {
           _InfoRow(label: 'Atanan', value: task!.assignee),
           _InfoRow(label: 'Son teslim', value: _formatDate(task!.dueAt)),
           _InfoRow(label: 'Güncelleme', value: _formatDateTime(task!.updatedAt)),
+          if (task!.requestSource != null && task!.requestSource!.isNotEmpty)
+            _InfoRow(label: 'Talep kaynağı', value: task!.requestSource!),
           const SizedBox(height: 14),
           Text(
             'Kontrol ilerlemesi ${task!.checklistCompleted}/${task!.checklistTotal}',
@@ -547,6 +549,29 @@ class _TaskDetailPanel extends StatelessWidget {
               backgroundColor: AppPalette.primarySoft,
               valueColor: const AlwaysStoppedAnimation<Color>(AppPalette.primary),
             ),
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _StatBlock(
+                label: 'Tahmini süre',
+                value: _formatMinutes(task!.estimatedMinutes),
+              ),
+              _StatBlock(
+                label: 'İzlenen süre',
+                value: _formatMinutes(task!.trackedMinutes),
+              ),
+              _StatBlock(
+                label: 'Bağımlılık',
+                value: '${task!.blockedByCount}',
+              ),
+              _StatBlock(
+                label: 'Alt iş',
+                value: '${task!.subtaskCount}',
+              ),
+            ],
           ),
           const SizedBox(height: 18),
           Wrap(
@@ -589,6 +614,106 @@ class _TaskDetailPanel extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 18),
+          if (task!.dependencies.isNotEmpty) ...[
+            const Text(
+              'Bağımlılıklar',
+              style: TextStyle(
+                color: AppPalette.text,
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 12),
+            for (final dependency in task!.dependencies)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppPalette.background,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.link_rounded, color: AppPalette.primary),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          dependency.title,
+                          style: const TextStyle(
+                            color: AppPalette.text,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        dependency.statusLabel,
+                        style: const TextStyle(
+                          color: AppPalette.muted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 18),
+          ],
+          if (task!.timeEntries.isNotEmpty) ...[
+            const Text(
+              'Zaman Kayıtları',
+              style: TextStyle(
+                color: AppPalette.text,
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 12),
+            for (final entry in task!.timeEntries)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppPalette.background,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              entry.userName,
+                              style: const TextStyle(
+                                color: AppPalette.text,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              entry.startedAtLabel,
+                              style: const TextStyle(color: AppPalette.muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        entry.durationLabel,
+                        style: const TextStyle(
+                          color: AppPalette.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 18),
+          ],
           TextField(
             controller: commentController,
             minLines: 2,
@@ -738,6 +863,48 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
+class _StatBlock extends StatelessWidget {
+  const _StatBlock({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 148,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppPalette.surfaceMuted,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppPalette.muted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppPalette.text,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _InfoRow extends StatelessWidget {
   const _InfoRow({required this.label, required this.value});
 
@@ -813,6 +980,15 @@ Color _priorityColor(TaskPriority priority) => switch (priority) {
   TaskPriority.medium => AppPalette.warning,
   TaskPriority.high => AppPalette.danger,
 };
+
+String _formatMinutes(int minutes) {
+  final hours = minutes ~/ 60;
+  final remainingMinutes = minutes % 60;
+  if (hours == 0) {
+    return '$remainingMinutes dk';
+  }
+  return '${hours}s ${remainingMinutes}dk';
+}
 
 String _formatDate(DateTime value) {
   const months = [

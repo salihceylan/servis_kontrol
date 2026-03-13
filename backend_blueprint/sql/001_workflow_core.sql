@@ -728,4 +728,159 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 CREATE INDEX IF NOT EXISTS login_attempts_email_idx
   ON login_attempts(email, attempted_at DESC);
 
+CREATE TABLE IF NOT EXISTS task_dependencies (
+  id BIGSERIAL PRIMARY KEY,
+  company_id BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  predecessor_task_id BIGINT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  successor_task_id BIGINT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  dependency_type VARCHAR(30) NOT NULL DEFAULT 'finish_to_start',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (predecessor_task_id, successor_task_id, dependency_type)
+);
+
+CREATE INDEX IF NOT EXISTS task_dependencies_company_idx
+  ON task_dependencies(company_id, successor_task_id, predecessor_task_id);
+
+CREATE TABLE IF NOT EXISTS activity_events (
+  id BIGSERIAL PRIMARY KEY,
+  company_id BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  entity_type VARCHAR(80) NOT NULL,
+  entity_id VARCHAR(80) NOT NULL,
+  event_type VARCHAR(80) NOT NULL,
+  title VARCHAR(180) NOT NULL,
+  detail TEXT,
+  metadata_json JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS activity_events_company_idx
+  ON activity_events(company_id, entity_type, entity_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS request_forms (
+  id BIGSERIAL PRIMARY KEY,
+  company_id BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  team_id BIGINT REFERENCES teams(id) ON DELETE SET NULL,
+  name VARCHAR(160) NOT NULL,
+  slug VARCHAR(160) NOT NULL,
+  description TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (company_id, slug)
+);
+
+DROP TRIGGER IF EXISTS trg_request_forms_touch_updated_at ON request_forms;
+CREATE TRIGGER trg_request_forms_touch_updated_at
+BEFORE UPDATE ON request_forms
+FOR EACH ROW
+EXECUTE FUNCTION wf_touch_updated_at();
+
+CREATE TABLE IF NOT EXISTS request_form_fields (
+  id BIGSERIAL PRIMARY KEY,
+  request_form_id BIGINT NOT NULL REFERENCES request_forms(id) ON DELETE CASCADE,
+  label VARCHAR(180) NOT NULL,
+  field_key VARCHAR(120) NOT NULL,
+  field_type VARCHAR(40) NOT NULL,
+  is_required BOOLEAN NOT NULL DEFAULT FALSE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  options_json JSONB,
+  UNIQUE (request_form_id, field_key)
+);
+
+CREATE TABLE IF NOT EXISTS request_submissions (
+  id BIGSERIAL PRIMARY KEY,
+  request_form_id BIGINT NOT NULL REFERENCES request_forms(id) ON DELETE CASCADE,
+  company_id BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  task_id BIGINT REFERENCES tasks(id) ON DELETE SET NULL,
+  submitted_by_email VARCHAR(255),
+  payload_json JSONB NOT NULL DEFAULT '{}'::JSONB,
+  status VARCHAR(30) NOT NULL DEFAULT 'new',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS request_submissions_company_idx
+  ON request_submissions(company_id, request_form_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS automation_rules (
+  id BIGSERIAL PRIMARY KEY,
+  company_id BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name VARCHAR(180) NOT NULL,
+  trigger_type VARCHAR(80) NOT NULL,
+  scope_type VARCHAR(80) NOT NULL DEFAULT 'company',
+  scope_id BIGINT,
+  conditions_json JSONB NOT NULL DEFAULT '{}'::JSONB,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+DROP TRIGGER IF EXISTS trg_automation_rules_touch_updated_at ON automation_rules;
+CREATE TRIGGER trg_automation_rules_touch_updated_at
+BEFORE UPDATE ON automation_rules
+FOR EACH ROW
+EXECUTE FUNCTION wf_touch_updated_at();
+
+CREATE TABLE IF NOT EXISTS automation_rule_actions (
+  id BIGSERIAL PRIMARY KEY,
+  automation_rule_id BIGINT NOT NULL REFERENCES automation_rules(id) ON DELETE CASCADE,
+  action_type VARCHAR(80) NOT NULL,
+  action_config_json JSONB NOT NULL DEFAULT '{}'::JSONB,
+  sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS automation_runs (
+  id BIGSERIAL PRIMARY KEY,
+  automation_rule_id BIGINT NOT NULL REFERENCES automation_rules(id) ON DELETE CASCADE,
+  company_id BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  entity_type VARCHAR(80),
+  entity_id VARCHAR(80),
+  status VARCHAR(30) NOT NULL DEFAULT 'queued',
+  result_message TEXT,
+  executed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS automation_runs_company_idx
+  ON automation_runs(company_id, automation_rule_id, executed_at DESC);
+
+CREATE TABLE IF NOT EXISTS integration_connections (
+  id BIGSERIAL PRIMARY KEY,
+  company_id BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  provider VARCHAR(80) NOT NULL,
+  connection_name VARCHAR(160) NOT NULL,
+  status VARCHAR(30) NOT NULL DEFAULT 'disconnected',
+  config_json JSONB NOT NULL DEFAULT '{}'::JSONB,
+  last_synced_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+DROP TRIGGER IF EXISTS trg_integration_connections_touch_updated_at
+  ON integration_connections;
+CREATE TRIGGER trg_integration_connections_touch_updated_at
+BEFORE UPDATE ON integration_connections
+FOR EACH ROW
+EXECUTE FUNCTION wf_touch_updated_at();
+
+CREATE TABLE IF NOT EXISTS user_capacity_profiles (
+  id BIGSERIAL PRIMARY KEY,
+  company_id BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  daily_capacity_minutes INTEGER NOT NULL DEFAULT 480,
+  weekly_capacity_minutes INTEGER NOT NULL DEFAULT 2400,
+  effective_from DATE NOT NULL DEFAULT CURRENT_DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (company_id, user_id, effective_from)
+);
+
+DROP TRIGGER IF EXISTS trg_user_capacity_profiles_touch_updated_at
+  ON user_capacity_profiles;
+CREATE TRIGGER trg_user_capacity_profiles_touch_updated_at
+BEFORE UPDATE ON user_capacity_profiles
+FOR EACH ROW
+EXECUTE FUNCTION wf_touch_updated_at();
+
 COMMIT;

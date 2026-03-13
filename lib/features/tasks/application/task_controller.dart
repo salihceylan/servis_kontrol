@@ -137,8 +137,13 @@ class TaskController extends ChangeNotifier {
     final highPriorityCount = _allTasks.where((task) {
       return task.priority == TaskPriority.high;
     }).length;
+    final blockedCount = _allTasks.where((task) => task.blockedByCount > 0).length;
+    final trackedMinutes = _allTasks.fold<int>(
+      0,
+      (total, task) => total + task.trackedMinutes,
+    );
 
-    return [
+    final metrics = [
       TaskSummaryMetric(
         label: 'Toplam Görev',
         value: '${_allTasks.length}',
@@ -160,6 +165,19 @@ class TaskController extends ChangeNotifier {
         caption: 'Yakın takip gerektiren işler',
       ),
     ];
+    metrics.addAll([
+      TaskSummaryMetric(
+        label: 'Bağımlı İş',
+        value: '$blockedCount',
+        caption: 'Başka kaydı bekleyen görevler',
+      ),
+      TaskSummaryMetric(
+        label: 'Zaman Takibi',
+        value: '${trackedMinutes ~/ 60}s ${trackedMinutes % 60}dk',
+        caption: 'Toplam izlenen çalışma süresi',
+      ),
+    ]);
+    return metrics;
   }
 
   Future<void> load() async {

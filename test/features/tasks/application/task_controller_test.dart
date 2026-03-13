@@ -54,6 +54,20 @@ class _FakeTaskRepository implements TaskRepository {
       description: 'Kontrol kaydi',
       checklistCompleted: 1,
       checklistTotal: 3,
+      estimatedMinutes: 180,
+      trackedMinutes: 95,
+      blockedByCount: 1,
+      subtaskCount: 2,
+      dependencies: const [
+        TaskDependency(title: 'Malzeme onayı', statusLabel: 'Bekleniyor'),
+      ],
+      timeEntries: const [
+        TaskTimeEntry(
+          userName: 'Merve',
+          durationLabel: '1s 35dk',
+          startedAtLabel: '12.03.2026 09:00',
+        ),
+      ],
       timeline: [
         TaskTimelineEntry(
           title: 'Gorev olusturuldu',
@@ -62,6 +76,7 @@ class _FakeTaskRepository implements TaskRepository {
           timestamp: DateTime(2026, 3, 12, 9),
         ),
       ],
+      requestSource: 'Saha Talep Formu',
     ),
   };
 

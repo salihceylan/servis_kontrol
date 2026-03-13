@@ -13,6 +13,10 @@ class DashboardSnapshot {
     required this.notifications,
     required this.focusItems,
     required this.projects,
+    required this.activityFeed,
+    required this.automations,
+    required this.workloadRows,
+    required this.requestForms,
   });
 
   final String title;
@@ -25,6 +29,10 @@ class DashboardSnapshot {
   final List<DashboardNotification> notifications;
   final List<DashboardFocusItem> focusItems;
   final List<DashboardProject> projects;
+  final List<DashboardActivityItem> activityFeed;
+  final List<DashboardAutomation> automations;
+  final List<DashboardWorkloadRow> workloadRows;
+  final List<DashboardRequestForm> requestForms;
 
   factory DashboardSnapshot.fromJson(Map<String, dynamic> json) {
     List<T> readList<T>(
@@ -48,6 +56,10 @@ class DashboardSnapshot {
       notifications: readList('notifications', DashboardNotification.fromJson),
       focusItems: readList('focus_items', DashboardFocusItem.fromJson),
       projects: readList('projects', DashboardProject.fromJson),
+      activityFeed: readList('activity_feed', DashboardActivityItem.fromJson),
+      automations: readList('automations', DashboardAutomation.fromJson),
+      workloadRows: readList('workload_rows', DashboardWorkloadRow.fromJson),
+      requestForms: readList('request_forms', DashboardRequestForm.fromJson),
     );
   }
 }
@@ -139,6 +151,101 @@ class DashboardProject {
       name: json['name'] as String? ?? '',
       type: json['type'] as String? ?? '',
       progress: (json['progress'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
+class DashboardActivityItem {
+  const DashboardActivityItem({
+    required this.title,
+    required this.detail,
+    required this.actor,
+    required this.ageLabel,
+  });
+
+  final String title;
+  final String detail;
+  final String actor;
+  final String ageLabel;
+
+  factory DashboardActivityItem.fromJson(Map<String, dynamic> json) {
+    return DashboardActivityItem(
+      title: json['title'] as String? ?? '',
+      detail: json['detail'] as String? ?? '',
+      actor: json['actor'] as String? ?? '',
+      ageLabel: json['age_label'] as String? ?? '',
+    );
+  }
+}
+
+class DashboardAutomation {
+  const DashboardAutomation({
+    required this.name,
+    required this.summary,
+    required this.statusLabel,
+    required this.lastRunLabel,
+  });
+
+  final String name;
+  final String summary;
+  final String statusLabel;
+  final String lastRunLabel;
+
+  factory DashboardAutomation.fromJson(Map<String, dynamic> json) {
+    return DashboardAutomation(
+      name: json['name'] as String? ?? '',
+      summary: json['summary'] as String? ?? '',
+      statusLabel: json['status_label'] as String? ?? '',
+      lastRunLabel: json['last_run_label'] as String? ?? '',
+    );
+  }
+}
+
+class DashboardWorkloadRow {
+  const DashboardWorkloadRow({
+    required this.name,
+    required this.assignedCount,
+    required this.trackedHoursLabel,
+    required this.capacityPercent,
+    required this.statusLabel,
+  });
+
+  final String name;
+  final int assignedCount;
+  final String trackedHoursLabel;
+  final double capacityPercent;
+  final String statusLabel;
+
+  factory DashboardWorkloadRow.fromJson(Map<String, dynamic> json) {
+    return DashboardWorkloadRow(
+      name: json['name'] as String? ?? '',
+      assignedCount: json['assigned_count'] as int? ?? 0,
+      trackedHoursLabel: json['tracked_hours_label'] as String? ?? '',
+      capacityPercent: (json['capacity_percent'] as num?)?.toDouble() ?? 0,
+      statusLabel: json['status_label'] as String? ?? '',
+    );
+  }
+}
+
+class DashboardRequestForm {
+  const DashboardRequestForm({
+    required this.title,
+    required this.targetTeam,
+    required this.submissionsToday,
+    required this.ctaLabel,
+  });
+
+  final String title;
+  final String targetTeam;
+  final int submissionsToday;
+  final String ctaLabel;
+
+  factory DashboardRequestForm.fromJson(Map<String, dynamic> json) {
+    return DashboardRequestForm(
+      title: json['title'] as String? ?? '',
+      targetTeam: json['target_team'] as String? ?? '',
+      submissionsToday: json['submissions_today'] as int? ?? 0,
+      ctaLabel: json['cta_label'] as String? ?? '',
     );
   }
 }

@@ -378,6 +378,25 @@ class _MembersPanel extends StatelessWidget {
                             _BadgeChip(label: member.riskLevel.label, color: _riskColor(member.riskLevel)),
                           ],
                         ),
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(999),
+                          child: LinearProgressIndicator(
+                            value: (member.capacityPercent / 100).clamp(0, 1),
+                            minHeight: 8,
+                            backgroundColor: Colors.white,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              member.capacityPercent >= 100
+                                  ? AppPalette.danger
+                                  : AppPalette.success,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${member.trackedHoursLabel} · ${member.workloadStatusLabel}',
+                          style: const TextStyle(color: AppPalette.muted),
+                        ),
                       ],
                     ),
                   ),
@@ -450,7 +469,31 @@ class _DetailPanel extends StatelessWidget {
               _MiniStat(label: 'Aktif Görev', value: '${member.activeTasks}'),
               _MiniStat(label: 'Tamamlanan', value: '${member.completedTasks}'),
               _MiniStat(label: 'Performans', value: '${member.performanceScore}/100'),
+              _MiniStat(label: 'Kapasite', value: '${member.capacityPercent.toStringAsFixed(0)}%'),
+              _MiniStat(label: 'İzlenen', value: member.trackedHoursLabel),
             ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            member.workloadStatusLabel,
+            style: const TextStyle(
+              color: AppPalette.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: (member.capacityPercent / 100).clamp(0, 1),
+              minHeight: 10,
+              backgroundColor: AppPalette.primarySoft,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                member.capacityPercent >= 100
+                    ? AppPalette.danger
+                    : AppPalette.success,
+              ),
+            ),
           ),
           const SizedBox(height: 18),
           Text(
@@ -575,6 +618,73 @@ class _QueuesPanel extends StatelessWidget {
             ],
           ),
         );
+        final workload = _SectionCard(
+          title: 'İş Yükü Dengeleme',
+          subtitle: 'Monday benzeri workload görünümü',
+          child: Column(
+            children: [
+              if (controller.members.isEmpty)
+                const Text('İş yükü kaydı görünmüyor.')
+              else
+                for (final member in controller.members)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppPalette.surfaceMuted,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  member.name,
+                                  style: const TextStyle(
+                                    color: AppPalette.text,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '${member.capacityPercent.toStringAsFixed(0)}%',
+                                style: const TextStyle(
+                                  color: AppPalette.primary,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '${member.activeTasks} aktif iş · ${member.trackedHoursLabel}',
+                            style: const TextStyle(color: AppPalette.muted),
+                          ),
+                          const SizedBox(height: 10),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: LinearProgressIndicator(
+                              value: (member.capacityPercent / 100).clamp(0, 1),
+                              minHeight: 8,
+                              backgroundColor: Colors.white,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                member.capacityPercent >= 100
+                                    ? AppPalette.danger
+                                    : AppPalette.success,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+            ],
+          ),
+        );
 
         if (!wide) {
           return Column(
@@ -582,16 +692,24 @@ class _QueuesPanel extends StatelessWidget {
               corrections,
               const SizedBox(height: 16),
               alerts,
+              const SizedBox(height: 16),
+              workload,
             ],
           );
         }
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        return Column(
           children: [
-            Expanded(child: corrections),
-            const SizedBox(width: 16),
-            Expanded(child: alerts),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: corrections),
+                const SizedBox(width: 16),
+                Expanded(child: alerts),
+              ],
+            ),
+            const SizedBox(height: 16),
+            workload,
           ],
         );
       },

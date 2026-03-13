@@ -31,6 +31,9 @@ class TeamMember {
     required this.performanceScore,
     required this.focusNote,
     required this.riskLevel,
+    required this.capacityPercent,
+    required this.trackedHoursLabel,
+    required this.workloadStatusLabel,
     this.lastManagerNote,
   });
 
@@ -43,6 +46,9 @@ class TeamMember {
   final int performanceScore;
   final String focusNote;
   final MemberRiskLevel riskLevel;
+  final double capacityPercent;
+  final String trackedHoursLabel;
+  final String workloadStatusLabel;
   final String? lastManagerNote;
 
   factory TeamMember.fromJson(Map<String, dynamic> json) {
@@ -56,6 +62,9 @@ class TeamMember {
       performanceScore: json['performance_score'] as int? ?? 0,
       focusNote: json['focus_note'] as String? ?? '',
       riskLevel: memberRiskLevelFromApi(json['risk_level'] as String?),
+      capacityPercent: (json['capacity_percent'] as num?)?.toDouble() ?? 0,
+      trackedHoursLabel: json['tracked_hours_label'] as String? ?? '',
+      workloadStatusLabel: json['workload_status_label'] as String? ?? '',
       lastManagerNote: json['last_manager_note'] as String?,
     );
   }
@@ -70,6 +79,9 @@ class TeamMember {
     int? performanceScore,
     String? focusNote,
     MemberRiskLevel? riskLevel,
+    double? capacityPercent,
+    String? trackedHoursLabel,
+    String? workloadStatusLabel,
     String? lastManagerNote,
     bool clearManagerNote = false,
   }) {
@@ -83,6 +95,9 @@ class TeamMember {
       performanceScore: performanceScore ?? this.performanceScore,
       focusNote: focusNote ?? this.focusNote,
       riskLevel: riskLevel ?? this.riskLevel,
+      capacityPercent: capacityPercent ?? this.capacityPercent,
+      trackedHoursLabel: trackedHoursLabel ?? this.trackedHoursLabel,
+      workloadStatusLabel: workloadStatusLabel ?? this.workloadStatusLabel,
       lastManagerNote: clearManagerNote
           ? null
           : (lastManagerNote ?? this.lastManagerNote),

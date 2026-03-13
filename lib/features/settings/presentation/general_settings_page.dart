@@ -171,6 +171,88 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
                 );
               },
             ),
+            const SizedBox(height: 16),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 980;
+                final modules = _SettingsCard(
+                  title: 'Platform Modülleri',
+                  subtitle: 'Form, otomasyon ve zaman takibi varsayılanları',
+                  child: Column(
+                    children: [
+                      _ToggleRow(
+                        label: 'Otomasyon merkezi',
+                        value: settings.automationCenterEnabled,
+                      ),
+                      _ToggleRow(
+                        label: 'İstek formları',
+                        value: settings.workFormsEnabled,
+                      ),
+                      _ToggleRow(
+                        label: 'Zaman takibi',
+                        value: settings.timeTrackingEnabled,
+                      ),
+                    ],
+                  ),
+                );
+                final integrations = _SettingsCard(
+                  title: 'Entegrasyonlar',
+                  subtitle: 'Harici servis bağlantıları ve durumları',
+                  child: settings.integrations.isEmpty
+                      ? const Text(
+                          'Henüz entegrasyon bağlantısı görünmüyor.',
+                          style: TextStyle(color: AppPalette.muted),
+                        )
+                      : Column(
+                          children: [
+                            for (final integration in settings.integrations)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _IntegrationTile(integration: integration),
+                              ),
+                          ],
+                        ),
+                );
+
+                if (!wide) {
+                  return Column(
+                    children: [
+                      modules,
+                      const SizedBox(height: 16),
+                      integrations,
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: modules),
+                    const SizedBox(width: 16),
+                    Expanded(child: integrations),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            _SettingsCard(
+              title: 'İzin Profilleri',
+              subtitle: 'Tahta, görev ve rapor erişim profilleri',
+              child: settings.permissionProfiles.isEmpty
+                  ? const Text(
+                      'Henüz izin profili görünmüyor.',
+                      style: TextStyle(color: AppPalette.muted),
+                    )
+                  : Column(
+                      children: [
+                        for (final profile in settings.permissionProfiles)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _PermissionTile(profile: profile),
+                          ),
+                      ],
+                    ),
+            ),
             const SizedBox(height: 18),
             Align(
               alignment: Alignment.centerRight,
@@ -353,6 +435,89 @@ class _ToggleRow extends StatelessWidget {
           Icon(
             value ? Icons.check_circle_rounded : Icons.remove_circle_outline,
             color: value ? AppPalette.success : AppPalette.muted,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IntegrationTile extends StatelessWidget {
+  const _IntegrationTile({required this.integration});
+
+  final IntegrationSetting integration;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppPalette.surfaceMuted,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  integration.name,
+                  style: const TextStyle(
+                    color: AppPalette.text,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  integration.statusLabel,
+                  style: const TextStyle(color: AppPalette.muted),
+                ),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: integration.connected,
+            onChanged: null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PermissionTile extends StatelessWidget {
+  const _PermissionTile({required this.profile});
+
+  final PermissionProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppPalette.surfaceMuted,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            profile.title,
+            style: const TextStyle(
+              color: AppPalette.text,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            profile.summary,
+            style: const TextStyle(
+              color: AppPalette.muted,
+              height: 1.5,
+            ),
           ),
         ],
       ),
