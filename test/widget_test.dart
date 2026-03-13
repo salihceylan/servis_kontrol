@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:servis_kontrol/app.dart';
+import 'package:servis_kontrol/features/auth/data/auth_session_storage.dart';
 import 'package:servis_kontrol/features/auth/presentation/login_page.dart';
 
 void main() {
@@ -8,7 +9,9 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1440, 1600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    await tester.pumpWidget(const ServisKontrolApp());
+    await tester.pumpWidget(
+      ServisKontrolApp(sessionStorage: InMemoryAuthSessionStorage()),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byType(LoginPage), findsOneWidget);

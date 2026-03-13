@@ -132,6 +132,29 @@ class AppUser {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_code': userCode,
+      'company_id': companyId,
+      'company_code': companyCode,
+      'name': name,
+      'email': email,
+      'role': userRoleToApi(role),
+      'department': department,
+      'job_title': jobTitle,
+      'work_preference': workPreference,
+      'notification_channels': notificationChannels
+          .map((channel) => channel.apiValue)
+          .toList(growable: false),
+      'is_first_login': isFirstLogin,
+      'wants_quick_tour': wantsQuickTour,
+      'position_name': positionName,
+      'team_name': teamName,
+      'permissions': permissions.toList(growable: false),
+    };
+  }
+
   String get firstName => name.split(' ').first;
 
   String get initials {

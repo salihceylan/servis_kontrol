@@ -15,4 +15,11 @@ class AuthSession {
       user: AppUser.fromJson(json['user'] as Map<String, dynamic>? ?? const {}),
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'token': token,
+      'user': user.toJson(),
+    };
+  }
 }

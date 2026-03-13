@@ -36,3 +36,5 @@ UserRole userRoleFromApi(String? value) => switch (value) {
   'manager' => UserRole.manager,
   _ => UserRole.employee,
 };
+
+String userRoleToApi(UserRole role) => role.apiValue;
