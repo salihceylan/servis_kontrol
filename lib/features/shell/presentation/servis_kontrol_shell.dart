@@ -70,6 +70,14 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
       (AppSection.performance, 'Performans', Icons.insights_rounded),
       (AppSection.reports, 'Raporlar', Icons.insert_chart_outlined_rounded),
     ],
+    UserRole.superAdmin || UserRole.sales || UserRole.support => [
+      (AppSection.panel, 'Panel', Icons.grid_view_rounded),
+      (AppSection.tasks, 'Görevler', Icons.task_alt_rounded),
+      (AppSection.revisions, 'Revizyonlar', Icons.autorenew_rounded),
+      (AppSection.team, 'Ekip', Icons.groups_2_outlined),
+      (AppSection.performance, 'Performans', Icons.insights_rounded),
+      (AppSection.reports, 'Raporlar', Icons.insert_chart_outlined_rounded),
+    ],
   };
 
   List<(AppSection, String)> get _topNavItems => switch (_role) {
@@ -91,6 +99,12 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
       (AppSection.tasks, 'Görevler'),
       (AppSection.reports, 'Raporlar'),
     ],
+    UserRole.superAdmin || UserRole.sales || UserRole.support => [
+      (AppSection.panel, 'Panel'),
+      (AppSection.team, 'Çalışanlar'),
+      (AppSection.tasks, 'Görevler'),
+      (AppSection.reports, 'Raporlar'),
+    ],
   };
 
   (String, IconData, AppSection) get _primaryAction => switch (_role) {
@@ -105,6 +119,9 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
       AppSection.revisions,
     ),
     UserRole.manager => ('Görev Ata', Icons.add_rounded, AppSection.team),
+    UserRole.superAdmin ||
+    UserRole.sales ||
+    UserRole.support => ('Görev Ata', Icons.add_rounded, AppSection.team),
   };
 
   @override
@@ -321,9 +338,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: AppPalette.border),
-        ),
+        border: Border(bottom: BorderSide(color: AppPalette.border)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -413,7 +428,8 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
           user: _user,
           apiClient: widget.apiClient,
           onOpenTasks: () => setState(() => _selected = AppSection.tasks),
-          onOpenRevisions: () => setState(() => _selected = AppSection.revisions),
+          onOpenRevisions: () =>
+              setState(() => _selected = AppSection.revisions),
         );
       case AppSection.performance:
         return PerformancePage(apiClient: widget.apiClient);
@@ -449,9 +465,7 @@ class _SidebarTile extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
       horizontalTitleGap: 8,
       minLeadingWidth: 16,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       tileColor: selected ? AppPalette.primary : Colors.transparent,
       leading: Icon(icon, color: Colors.white, size: 18),
       title: Text(
@@ -469,10 +483,7 @@ class _SidebarTile extends StatelessWidget {
 }
 
 class _RoundAction extends StatelessWidget {
-  const _RoundAction({
-    required this.icon,
-    required this.onTap,
-  });
+  const _RoundAction({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback onTap;

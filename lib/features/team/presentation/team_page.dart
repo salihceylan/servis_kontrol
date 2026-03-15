@@ -33,7 +33,10 @@ class _TeamPageState extends State<TeamPage> {
   @override
   void initState() {
     super.initState();
-    _controller = TeamController(user: widget.user, apiClient: widget.apiClient);
+    _controller = TeamController(
+      user: widget.user,
+      apiClient: widget.apiClient,
+    );
     _searchController.addListener(() {
       _controller.updateQuery(_searchController.text);
     });
@@ -55,7 +58,8 @@ class _TeamPageState extends State<TeamPage> {
         if (_controller.isLoading) {
           return const StatePanel.loading(
             title: 'Ekip verileri yükleniyor',
-            message: 'Çalışan kartları, risk sinyalleri ve düzeltme kuyrukları alınıyor.',
+            message:
+                'Çalışan kartları, risk sinyalleri ve düzeltme kuyrukları alınıyor.',
           );
         }
         if (_controller.errorMessage != null && !_controller.hasData) {
@@ -99,9 +103,7 @@ class _TeamPageState extends State<TeamPage> {
             LayoutBuilder(
               builder: (context, constraints) {
                 final wide = constraints.maxWidth >= 1140;
-                final members = _MembersPanel(
-                  controller: _controller,
-                );
+                final members = _MembersPanel(controller: _controller);
                 final detail = _DetailPanel(
                   controller: _controller,
                   role: widget.user.role,
@@ -132,11 +134,7 @@ class _TeamPageState extends State<TeamPage> {
                     Expanded(
                       flex: 5,
                       child: Column(
-                        children: [
-                          detail,
-                          const SizedBox(height: 16),
-                          queues,
-                        ],
+                        children: [detail, const SizedBox(height: 16), queues],
                       ),
                     ),
                   ],
@@ -169,9 +167,9 @@ class _TeamPageState extends State<TeamPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -203,6 +201,10 @@ class _Header extends StatelessWidget {
         'Yönetici Modu',
         'Görev dağıtımı, revizyon onayı ve alarm takibi tek panelde.',
       ),
+      UserRole.superAdmin || UserRole.sales || UserRole.support => (
+        'Yönetici Modu',
+        'Görev dağıtımı, revizyon onayı ve alarm takibi tek panelde.',
+      ),
     };
 
     return Row(
@@ -228,10 +230,7 @@ class _Header extends StatelessWidget {
           ),
         ),
         if (canToggleManagerMode)
-          Switch.adaptive(
-            value: managerMode,
-            onChanged: onManagerModeChanged,
-          ),
+          Switch.adaptive(value: managerMode, onChanged: onManagerModeChanged),
       ],
     );
   }
@@ -279,10 +278,7 @@ class _MetricCard extends StatelessWidget {
 }
 
 class _FilterBar extends StatelessWidget {
-  const _FilterBar({
-    required this.controller,
-    required this.searchController,
-  });
+  const _FilterBar({required this.controller, required this.searchController});
 
   final TeamController controller;
   final TextEditingController searchController;
@@ -374,8 +370,14 @@ class _MembersPanel extends StatelessWidget {
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            _BadgeChip(label: member.status, color: _statusColor(member.status)),
-                            _BadgeChip(label: member.riskLevel.label, color: _riskColor(member.riskLevel)),
+                            _BadgeChip(
+                              label: member.status,
+                              color: _statusColor(member.status),
+                            ),
+                            _BadgeChip(
+                              label: member.riskLevel.label,
+                              color: _riskColor(member.riskLevel),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -457,8 +459,14 @@ class _DetailPanel extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _BadgeChip(label: member.status, color: _statusColor(member.status)),
-              _BadgeChip(label: member.riskLevel.label, color: _riskColor(member.riskLevel)),
+              _BadgeChip(
+                label: member.status,
+                color: _statusColor(member.status),
+              ),
+              _BadgeChip(
+                label: member.riskLevel.label,
+                color: _riskColor(member.riskLevel),
+              ),
             ],
           ),
           const SizedBox(height: 18),
@@ -468,8 +476,14 @@ class _DetailPanel extends StatelessWidget {
             children: [
               _MiniStat(label: 'Aktif Görev', value: '${member.activeTasks}'),
               _MiniStat(label: 'Tamamlanan', value: '${member.completedTasks}'),
-              _MiniStat(label: 'Performans', value: '${member.performanceScore}/100'),
-              _MiniStat(label: 'Kapasite', value: '${member.capacityPercent.toStringAsFixed(0)}%'),
+              _MiniStat(
+                label: 'Performans',
+                value: '${member.performanceScore}/100',
+              ),
+              _MiniStat(
+                label: 'Kapasite',
+                value: '${member.capacityPercent.toStringAsFixed(0)}%',
+              ),
               _MiniStat(label: 'İzlenen', value: member.trackedHoursLabel),
             ],
           ),
@@ -523,7 +537,9 @@ class _DetailPanel extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onOpenTasks,
                 icon: const Icon(Icons.assignment_turned_in_rounded),
-                label: Text(role == UserRole.manager ? 'Görev Ata' : 'Görevlere Git'),
+                label: Text(
+                  role == UserRole.manager ? 'Görev Ata' : 'Görevlere Git',
+                ),
               ),
               OutlinedButton.icon(
                 onPressed: onOpenRevisions,
@@ -840,10 +856,7 @@ class _QueueTile extends StatelessWidget {
               Container(
                 width: 10,
                 height: 10,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
             ],
           ),

@@ -15,6 +15,10 @@ use Throwable;
 
 class WorkflowApiService
 {
+    private const OWNER_EMAILS = [
+        'salihceylan@gmail.com',
+    ];
+
     public function attemptLogin(string $email, string $password, ?string $ipAddress = null): ?array
     {
         /** @var User|null $user */
@@ -183,6 +187,10 @@ class WorkflowApiService
 
     public function currentUserPayload(User $user): array
     {
+        if ($this->isOwnerUser($user)) {
+            return $this->ownerUserPayload($user);
+        }
+
         $context = $this->context($user);
         $preferences = DB::table('notification_preferences')
             ->where('user_id', $user->id)
@@ -455,6 +463,38 @@ class WorkflowApiService
             'projects' => $this->taskProjectOptions($context),
             'assignees' => $this->taskAssigneeOptions($context),
             'tag_suggestions' => $this->taskTagSuggestions($context['company_id']),
+        ];
+    }
+
+    public function isOwnerUser(User $user): bool
+    {
+        return in_array(trim(Str::lower((string) $user->email)), self::OWNER_EMAILS, true);
+    }
+
+    public function ownerUserPayload(User $user): array
+    {
+        return [
+            'id' => (string) $user->id,
+            'user_code' => $this->trimCode($user->user_code),
+            'company_id' => null,
+            'company_code' => 'OWNER',
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => 'super_admin',
+            'department' => 'Owner Portal',
+            'job_title' => 'Platform Owner',
+            'position_name' => 'Platform Owner',
+            'team_name' => 'Workflow Control Tower',
+            'work_preference' => 'Owner control center',
+            'notification_channels' => ['system', 'email'],
+            'permissions' => [
+                'owner.dashboard.view',
+                'owner.companies.manage',
+                'owner.subscriptions.manage',
+                'owner.support.manage',
+            ],
+            'is_first_login' => false,
+            'wants_quick_tour' => false,
         ];
     }
 

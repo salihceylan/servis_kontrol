@@ -5,8 +5,10 @@ import 'package:servis_kontrol/core/theme/app_theme.dart';
 import 'package:servis_kontrol/features/auth/application/auth_controller.dart';
 import 'package:servis_kontrol/features/auth/data/auth_session_storage.dart';
 import 'package:servis_kontrol/features/auth/domain/auth_result.dart';
+import 'package:servis_kontrol/features/auth/domain/user_role.dart';
 import 'package:servis_kontrol/features/auth/presentation/login_page.dart';
 import 'package:servis_kontrol/features/auth/presentation/onboarding_page.dart';
+import 'package:servis_kontrol/features/owner/presentation/owner_portal_shell.dart';
 import 'package:servis_kontrol/features/shell/presentation/servis_kontrol_shell.dart';
 
 class ServisKontrolApp extends StatefulWidget {
@@ -34,9 +36,11 @@ class _ServisKontrolAppState extends State<ServisKontrolApp> {
   @override
   void initState() {
     super.initState();
-    _apiClient = widget.apiClient ?? ApiClient(baseUrl: RuntimeConfig.apiBaseUrl);
+    _apiClient =
+        widget.apiClient ?? ApiClient(baseUrl: RuntimeConfig.apiBaseUrl);
     _ownsController = widget.authController == null;
-    _authController = widget.authController ?? AuthController(apiClient: _apiClient);
+    _authController =
+        widget.authController ?? AuthController(apiClient: _apiClient);
     _bootstrapFuture = _bootstrap();
   }
 
@@ -74,8 +78,16 @@ class _ServisKontrolAppState extends State<ServisKontrolApp> {
                     onLogout: _authController.logout,
                   );
                 case AuthStage.authenticated:
+                  final user = _authController.currentUser!;
+                  if (user.role.isOwnerPortalRole) {
+                    return OwnerPortalShell(
+                      user: user,
+                      apiClient: _authController.apiClient,
+                      onLogout: _authController.logout,
+                    );
+                  }
                   return ServisKontrolShell(
-                    user: _authController.currentUser!,
+                    user: user,
                     apiClient: _authController.apiClient,
                     onLogout: _authController.logout,
                   );
@@ -108,10 +120,6 @@ class _BootstrapPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }

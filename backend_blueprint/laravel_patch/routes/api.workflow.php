@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Workflow\AuthController;
+use App\Http\Controllers\Api\Workflow\OwnerController;
 use App\Http\Controllers\Api\Workflow\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
@@ -11,6 +12,18 @@ Route::prefix('auth')->group(function (): void {
 });
 
 Route::middleware('auth:sanctum')->group(function (): void {
+    Route::prefix('owner')->group(function (): void {
+        Route::get('/dashboard', [OwnerController::class, 'dashboard']);
+        Route::get('/companies', [OwnerController::class, 'companies']);
+        Route::post('/companies', [OwnerController::class, 'createCompany']);
+        Route::get('/companies/{companyId}', [OwnerController::class, 'companyDetail']);
+        Route::put('/companies/{companyId}', [OwnerController::class, 'updateCompany']);
+        Route::put('/companies/{companyId}/subscription', [OwnerController::class, 'updateSubscription']);
+        Route::post('/companies/{companyId}/support-access', [OwnerController::class, 'registerSupportAccess']);
+        Route::get('/support', [OwnerController::class, 'support']);
+        Route::get('/requests', [OwnerController::class, 'requests']);
+    });
+
     Route::prefix('auth')->group(function (): void {
         Route::put('/onboarding', [AuthController::class, 'onboarding']);
         Route::post('/logout', [AuthController::class, 'logout']);
