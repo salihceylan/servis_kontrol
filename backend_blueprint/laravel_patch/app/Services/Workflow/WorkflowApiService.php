@@ -4,6 +4,7 @@ namespace App\Services\Workflow;
 
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -391,6 +392,84 @@ class WorkflowApiService
             ->map(fn ($task) => $this->taskPayload((int) $task->id))
             ->values()
             ->all();
+    }
+
+    public function taskMeta(User $user): array
+    {
+        $context = $this->context($user);
+        $this->ensureTaskAssignmentAllowed($user);
+
+        return [
+            'projects' => $this->taskProjectOptions($context),
+            'assignees' => $this->taskAssigneeOptions($context),
+            'tag_suggestions' => $this->taskTagSuggestions($context['company_id']),
+        ];
+    }
+
+    public function createTask(User $user, array $payload): array
+    {
+        $context = $this->context($user);
+        $this->ensureTaskAssignmentAllowed($user);
+
+        $project = $this->taskProjectQuery($context)
+            ->where('p.id', (int) $payload['project_id'])
+            ->select(['p.id'])
+            ->firstOrFail();
+
+        $assignee = $this->taskAssigneeQuery($context)
+            ->where('u.id', (int) $payload['assignee_id'])
+            ->select(['u.id'])
+            ->firstOrFail();
+
+        $statusId = $this->statusId($context['company_id'], 'pending');
+        if ($statusId === null) {
+            throw new RuntimeException('Task status tanimi bulunamadi.');
+        }
+
+        $taskId = DB::transaction(function () use ($context, $payload, $user, $project, $assignee, $statusId): int {
+            $taskId = (int) DB::table('tasks')->insertGetId([
+                'company_id' => $context['company_id'],
+                'project_id' => $project->id,
+                'task_no' => $this->nextTaskNo($context['company_id']),
+                'title' => trim((string) $payload['title']),
+                'description' => trim((string) ($payload['description'] ?? '')),
+                'status_id' => $statusId,
+                'priority' => $payload['priority'],
+                'primary_assignee_id' => $assignee->id,
+                'created_by' => $user->id,
+                'due_at' => Carbon::parse($payload['due_at']),
+                'estimated_minutes' => $payload['estimated_minutes'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('task_assignments')->upsert([
+                [
+                    'task_id' => $taskId,
+                    'user_id' => $assignee->id,
+                    'assignment_type' => 'primary',
+                    'assigned_by' => $user->id,
+                    'assigned_at' => now(),
+                ],
+            ], ['task_id', 'user_id', 'assignment_type'], ['assigned_by', 'assigned_at']);
+
+            $tag = trim((string) ($payload['tag'] ?? ''));
+            if ($tag !== '') {
+                $labelId = $this->findOrCreateTaskLabel($context['company_id'], $tag);
+                DB::table('task_label_links')->insertOrIgnore([
+                    [
+                        'task_id' => $taskId,
+                        'label_id' => $labelId,
+                    ],
+                ]);
+            }
+
+            $this->recordTaskStatusHistory($taskId, null, $statusId, (int) $user->id, 'Gorev kaydi olusturuldu.');
+
+            return $taskId;
+        });
+
+        return $this->taskPayload($taskId);
     }
 
     public function startTask(User $user, string $taskId): array
@@ -1004,6 +1083,126 @@ class WorkflowApiService
         return $query;
     }
 
+    protected function taskProjectQuery(array $context)
+    {
+        $query = DB::table('projects as p')
+            ->where('p.company_id', $context['company_id'])
+            ->where('p.status', 'active');
+
+        if ($context['role'] === 'team_lead') {
+            if ($context['team_id'] === null) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where('p.team_id', $context['team_id']);
+            }
+        } elseif ($context['role'] === 'employee') {
+            $query->whereRaw('1 = 0');
+        }
+
+        return $query;
+    }
+
+    protected function taskAssigneeQuery(array $context)
+    {
+        $query = DB::table('users as u')
+            ->where('u.company_id', $context['company_id'])
+            ->where('u.status', 'active');
+
+        if ($context['role'] === 'team_lead') {
+            if ($context['team_id'] === null) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where('u.team_id', $context['team_id']);
+            }
+        } elseif ($context['role'] === 'employee') {
+            $query->whereRaw('1 = 0');
+        }
+
+        return $query;
+    }
+
+    protected function taskProjectOptions(array $context): array
+    {
+        return $this->taskProjectQuery($context)
+            ->orderBy('p.name')
+            ->get(['p.id', 'p.name'])
+            ->map(fn ($project) => [
+                'id' => (string) $project->id,
+                'label' => $project->name,
+            ])
+            ->values()
+            ->all();
+    }
+
+    protected function taskAssigneeOptions(array $context): array
+    {
+        return $this->taskAssigneeQuery($context)
+            ->orderBy('u.name')
+            ->get(['u.id', 'u.name'])
+            ->map(fn ($assignee) => [
+                'id' => (string) $assignee->id,
+                'label' => $assignee->name,
+            ])
+            ->values()
+            ->all();
+    }
+
+    protected function taskTagSuggestions(int $companyId): array
+    {
+        return DB::table('task_labels as tl')
+            ->leftJoin('task_label_links as tll', 'tll.label_id', '=', 'tl.id')
+            ->where('tl.company_id', $companyId)
+            ->groupBy('tl.id', 'tl.name')
+            ->orderByRaw('COUNT(tll.id) DESC')
+            ->orderBy('tl.name')
+            ->limit(12)
+            ->pluck('tl.name')
+            ->values()
+            ->all();
+    }
+
+    protected function ensureTaskAssignmentAllowed(User $user): void
+    {
+        if (!$this->userHasPermission((int) $user->id, 'tasks.assign')) {
+            throw new AuthorizationException('Bu kullanicinin gorev olusturma yetkisi yok.');
+        }
+    }
+
+    protected function userHasPermission(int $userId, string $code): bool
+    {
+        return in_array($code, $this->permissions($userId), true);
+    }
+
+    protected function nextTaskNo(int $companyId): string
+    {
+        $max = 0;
+        foreach (DB::table('tasks')->where('company_id', $companyId)->lockForUpdate()->pluck('task_no') as $taskNo) {
+            if (preg_match('/(\d+)$/', (string) $taskNo, $matches) === 1) {
+                $max = max($max, (int) $matches[1]);
+            }
+        }
+
+        return 'T-' . str_pad((string) ($max + 1), 4, '0', STR_PAD_LEFT);
+    }
+
+    protected function findOrCreateTaskLabel(int $companyId, string $name): int
+    {
+        $labelId = DB::table('task_labels')
+            ->where('company_id', $companyId)
+            ->whereRaw('LOWER(name) = ?', [Str::lower($name)])
+            ->value('id');
+
+        if ($labelId !== null) {
+            return (int) $labelId;
+        }
+
+        return (int) DB::table('task_labels')->insertGetId([
+            'company_id' => $companyId,
+            'name' => $name,
+            'created_at' => now(),
+        ]);
+    }
+
     protected function taskRow(string $taskId, int $companyId): object
     {
         return DB::table('tasks')
@@ -1036,6 +1235,8 @@ class WorkflowApiService
                 't.priority',
                 't.due_at',
                 't.updated_at',
+                't.estimated_minutes',
+                't.actual_minutes',
                 'p.name as project_name',
                 'assignee.name as assignee_name',
                 'ts.code as status_code',
@@ -1054,6 +1255,50 @@ class WorkflowApiService
             ->orderByDesc('created_at')
             ->value('body');
 
+        $trackedMinutes = DB::table('task_time_logs')
+            ->where('task_id', $taskId)
+            ->sum('duration_minutes');
+
+        $dependencies = DB::table('task_dependencies as td')
+            ->join('tasks as predecessor', 'predecessor.id', '=', 'td.predecessor_task_id')
+            ->leftJoin('task_statuses as pts', 'pts.id', '=', 'predecessor.status_id')
+            ->where('td.successor_task_id', $taskId)
+            ->orderBy('predecessor.title')
+            ->get([
+                'predecessor.title',
+                'pts.name as status_name',
+            ])
+            ->map(fn ($item) => [
+                'title' => $item->title,
+                'status_label' => $item->status_name ?? 'Belirsiz',
+            ])
+            ->values()
+            ->all();
+
+        $timeEntries = DB::table('task_time_logs as ttl')
+            ->leftJoin('users as u', 'u.id', '=', 'ttl.user_id')
+            ->where('ttl.task_id', $taskId)
+            ->orderByDesc('ttl.started_at')
+            ->limit(5)
+            ->get([
+                'u.name',
+                'ttl.duration_minutes',
+                'ttl.started_at',
+            ])
+            ->map(fn ($item) => [
+                'user_name' => $item->name ?? 'Sistem',
+                'duration_label' => $this->durationLabel($item->duration_minutes, null),
+                'started_at_label' => $this->ageLabel(Carbon::parse($item->started_at)) . ' once',
+            ])
+            ->values()
+            ->all();
+
+        $requestSource = DB::table('request_submissions as rs')
+            ->leftJoin('request_forms as rf', 'rf.id', '=', 'rs.request_form_id')
+            ->where('rs.task_id', $taskId)
+            ->orderByDesc('rs.created_at')
+            ->value('rf.name');
+
         return [
             'id' => (string) $task->id,
             'title' => $task->title,
@@ -1067,7 +1312,14 @@ class WorkflowApiService
             'description' => $task->description ?? '',
             'checklist_completed' => DB::table('task_checklists')->where('task_id', $taskId)->where('is_completed', true)->count(),
             'checklist_total' => DB::table('task_checklists')->where('task_id', $taskId)->count(),
+            'estimated_minutes' => (int) ($task->estimated_minutes ?? 0),
+            'tracked_minutes' => (int) ($trackedMinutes ?: ($task->actual_minutes ?? 0)),
+            'blocked_by_count' => DB::table('task_dependencies')->where('successor_task_id', $taskId)->count(),
+            'subtask_count' => DB::table('tasks')->where('parent_task_id', $taskId)->count(),
+            'dependencies' => $dependencies,
+            'time_entries' => $timeEntries,
             'meeting_link' => $meetingLink,
+            'request_source' => $requestSource,
             'timeline' => $this->taskTimeline($taskId),
         ];
     }

@@ -2,8 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:servis_kontrol/core/network/api_client.dart';
 import 'package:servis_kontrol/core/network/api_exception.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
+import 'package:servis_kontrol/features/auth/domain/user_role.dart';
 import 'package:servis_kontrol/features/tasks/data/api_task_repository.dart';
 import 'package:servis_kontrol/features/tasks/data/task_repository.dart';
+import 'package:servis_kontrol/features/tasks/domain/task_composer.dart';
 import 'package:servis_kontrol/features/tasks/domain/task_item.dart';
 
 class TaskSummaryMetric {
@@ -23,13 +25,16 @@ class TaskController extends ChangeNotifier {
     required AppUser user,
     required ApiClient apiClient,
     TaskRepository? repository,
-  }) : _repository = repository ?? ApiTaskRepository(apiClient) {
+  }) : _user = user,
+       _repository = repository ?? ApiTaskRepository(apiClient) {
     load();
   }
 
+  final AppUser _user;
   final TaskRepository _repository;
 
   List<TaskItem> _allTasks = const [];
+  TaskComposerSnapshot? _composer;
   String _query = '';
   TaskStatus? _statusFilter;
   TaskPriority? _priorityFilter;
@@ -39,7 +44,9 @@ class TaskController extends ChangeNotifier {
   String? _selectedTaskId;
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isPreparingComposer = false;
   String? _errorMessage;
+  String? _composerErrorMessage;
 
   String get query => _query;
   TaskStatus? get statusFilter => _statusFilter;
@@ -49,18 +56,25 @@ class TaskController extends ChangeNotifier {
   String? get tagFilter => _tagFilter;
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
+  bool get isPreparingComposer => _isPreparingComposer;
   String? get errorMessage => _errorMessage;
+  String? get composerErrorMessage => _composerErrorMessage;
   bool get hasData => _allTasks.isNotEmpty;
+  bool get canCreateTask {
+    if (_user.permissions.isNotEmpty) {
+      return _user.permissions.contains('tasks.assign') ||
+          _user.permissions.contains('tasks.create');
+    }
+    return _user.role != UserRole.employee;
+  }
 
-  List<String> get assignees => {
-    for (final task in _allTasks) task.assignee,
-  }.toList()
-    ..sort();
+  TaskComposerSnapshot? get composer => _composer;
 
-  List<String> get tags => {
-    for (final task in _allTasks) task.tag,
-  }.toList()
-    ..sort();
+  List<String> get assignees =>
+      {for (final task in _allTasks) task.assignee}.toList()..sort();
+
+  List<String> get tags =>
+      {for (final task in _allTasks) task.tag}.toList()..sort();
 
   List<TaskItem> get filteredTasks {
     final normalizedQuery = _query.trim().toLowerCase();
@@ -104,8 +118,7 @@ class TaskController extends ChangeNotifier {
           assigneeMatches &&
           tagMatches &&
           dateMatches;
-    }).toList()
-      ..sort((a, b) => a.dueAt.compareTo(b.dueAt));
+    }).toList()..sort((a, b) => a.dueAt.compareTo(b.dueAt));
 
     return tasks;
   }
@@ -137,7 +150,9 @@ class TaskController extends ChangeNotifier {
     final highPriorityCount = _allTasks.where((task) {
       return task.priority == TaskPriority.high;
     }).length;
-    final blockedCount = _allTasks.where((task) => task.blockedByCount > 0).length;
+    final blockedCount = _allTasks
+        .where((task) => task.blockedByCount > 0)
+        .length;
     final trackedMinutes = _allTasks.fold<int>(
       0,
       (total, task) => total + task.trackedMinutes,
@@ -178,6 +193,33 @@ class TaskController extends ChangeNotifier {
       ),
     ]);
     return metrics;
+  }
+
+  Future<bool> prepareComposer() async {
+    if (!canCreateTask) {
+      return false;
+    }
+    if (_composer != null) {
+      _composerErrorMessage = null;
+      return true;
+    }
+
+    _isPreparingComposer = true;
+    _composerErrorMessage = null;
+    notifyListeners();
+    try {
+      _composer = await _repository.loadComposer();
+      return true;
+    } on ApiException catch (error) {
+      _composerErrorMessage = error.message;
+      return false;
+    } catch (_) {
+      _composerErrorMessage = 'Gorev olusturma verileri alinamadi.';
+      return false;
+    } finally {
+      _isPreparingComposer = false;
+      notifyListeners();
+    }
   }
 
   Future<void> load() async {
@@ -260,6 +302,43 @@ class TaskController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> createTask(TaskDraft draft) async {
+    if (!canCreateTask) {
+      return false;
+    }
+
+    _isSaving = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final createdTask = await _repository.createTask(draft);
+      _allTasks = [
+        createdTask,
+        for (final task in _allTasks)
+          if (task.id != createdTask.id) task,
+      ];
+      _query = '';
+      _statusFilter = null;
+      _priorityFilter = null;
+      _dateFilter = TaskDateFilter.all;
+      _assigneeFilter = null;
+      _tagFilter = null;
+      _selectedTaskId = createdTask.id;
+      _mergeComposerTag(createdTask.tag);
+      _ensureSelection();
+      return true;
+    } on ApiException catch (error) {
+      _errorMessage = error.message;
+      return false;
+    } catch (_) {
+      _errorMessage = 'Gorev kaydi olusturulamadi.';
+      return false;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> startSelectedTask() async {
     final task = selectedTask;
     if (task == null) {
@@ -336,5 +415,22 @@ class TaskController extends ChangeNotifier {
     if (!exists) {
       _selectedTaskId = visibleTasks.first.id;
     }
+  }
+
+  void _mergeComposerTag(String tag) {
+    final snapshot = _composer;
+    final normalizedTag = tag.trim();
+    if (snapshot == null || normalizedTag.isEmpty) {
+      return;
+    }
+
+    final tags = [
+      ...snapshot.tagSuggestions.where(
+        (item) => item.toLowerCase() != normalizedTag.toLowerCase(),
+      ),
+      normalizedTag,
+    ]..sort();
+
+    _composer = snapshot.copyWith(tagSuggestions: tags);
   }
 }

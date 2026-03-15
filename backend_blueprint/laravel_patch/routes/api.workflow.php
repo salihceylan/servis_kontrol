@@ -18,6 +18,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/dashboard', [WorkspaceController::class, 'dashboard']);
 
     Route::get('/tasks', [WorkspaceController::class, 'tasks']);
+    Route::get('/tasks/meta', [WorkspaceController::class, 'taskMeta']);
+    Route::post('/tasks', [WorkspaceController::class, 'createTask']);
     Route::post('/tasks/{taskId}/start', [WorkspaceController::class, 'startTask']);
     Route::post('/tasks/{taskId}/comment', [WorkspaceController::class, 'commentTask']);
     Route::post('/tasks/{taskId}/meeting', [WorkspaceController::class, 'scheduleTaskMeeting']);

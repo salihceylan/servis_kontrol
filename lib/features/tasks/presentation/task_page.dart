@@ -5,13 +5,10 @@ import 'package:servis_kontrol/core/theme/app_palette.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/tasks/application/task_controller.dart';
 import 'package:servis_kontrol/features/tasks/domain/task_item.dart';
+import 'package:servis_kontrol/features/tasks/presentation/task_create_dialog.dart';
 
 class TaskPage extends StatefulWidget {
-  const TaskPage({
-    super.key,
-    required this.user,
-    required this.apiClient,
-  });
+  const TaskPage({super.key, required this.user, required this.apiClient});
 
   final AppUser user;
   final ApiClient apiClient;
@@ -28,7 +25,10 @@ class _TaskPageState extends State<TaskPage> {
   @override
   void initState() {
     super.initState();
-    _controller = TaskController(user: widget.user, apiClient: widget.apiClient);
+    _controller = TaskController(
+      user: widget.user,
+      apiClient: widget.apiClient,
+    );
     _searchController.addListener(() {
       _controller.updateQuery(_searchController.text);
     });
@@ -49,8 +49,8 @@ class _TaskPageState extends State<TaskPage> {
       builder: (context, _) {
         if (_controller.isLoading) {
           return const StatePanel.loading(
-            title: 'Görevler yükleniyor',
-            message: 'Şirket görev kayıtları ve detayları sunucudan alınıyor.',
+            title: 'Gorevler yukleniyor',
+            message: 'Sirket gorev kayitlari ve detaylari sunucudan aliniyor.',
           );
         }
         if (_controller.errorMessage != null && !_controller.hasData) {
@@ -59,49 +59,63 @@ class _TaskPageState extends State<TaskPage> {
             onRetry: _controller.load,
           );
         }
+
+        final action = _controller.canCreateTask
+            ? FilledButton.icon(
+                onPressed:
+                    (_controller.isSaving || _controller.isPreparingComposer)
+                    ? null
+                    : _createTask,
+                icon: const Icon(Icons.add_task_rounded),
+                label: Text(
+                  _controller.isPreparingComposer
+                      ? 'Hazirlaniyor...'
+                      : 'Yeni Gorev',
+                ),
+              )
+            : null;
+
         if (!_controller.hasData) {
-          return StatePanel.empty(
-            title: 'Görev kaydı bulunamadı',
-            message:
-                'Veritabanında bu kullanıcı için henüz görev görünmüyor.',
-            onRetry: _controller.load,
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _PageHeader(action: action),
+              const SizedBox(height: 18),
+              StatePanel.empty(
+                title: 'Gorev kaydi bulunamadi',
+                message:
+                    'Veritabaninda bu kullanici icin henuz gorunen bir gorev yok.',
+                onRetry: _controller.load,
+              ),
+            ],
           );
         }
-
-        final selectedTask = _controller.selectedTask;
-        final tasks = _controller.filteredTasks;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _Header(
-              title: 'Görevler',
-              subtitle:
-                  'Gerçek görev kayıtlarını filtrele, detay aç ve aksiyonları doğrudan veritabanına işle.',
-            ),
+            _PageHeader(action: action),
             const SizedBox(height: 18),
             Wrap(
               spacing: 16,
               runSpacing: 16,
               children: [
                 for (final metric in _controller.summaryMetrics)
-                  SizedBox(
-                    width: 250,
-                    child: _MetricCard(metric: metric),
-                  ),
+                  SizedBox(width: 240, child: _MetricCard(metric: metric)),
               ],
             ),
             const SizedBox(height: 18),
-            _FiltersCard(
-              searchController: _searchController,
+            _FilterCard(
               controller: _controller,
+              searchController: _searchController,
+              onCreate: _controller.canCreateTask ? _createTask : null,
             ),
             const SizedBox(height: 18),
             LayoutBuilder(
               builder: (context, constraints) {
-                final wide = constraints.maxWidth >= 1140;
+                final selectedTask = _controller.selectedTask;
                 final listPanel = _TaskListPanel(
-                  tasks: tasks,
+                  tasks: _controller.filteredTasks,
                   selectedTaskId: selectedTask?.id,
                   onSelect: _controller.selectTask,
                 );
@@ -115,7 +129,7 @@ class _TaskPageState extends State<TaskPage> {
                   onSubmit: _submitTask,
                 );
 
-                if (!wide) {
+                if (constraints.maxWidth < 1140) {
                   return Column(
                     children: [
                       listPanel,
@@ -141,12 +155,56 @@ class _TaskPageState extends State<TaskPage> {
     );
   }
 
+  Future<void> _createTask() async {
+    final prepared = await _controller.prepareComposer();
+    if (!mounted) {
+      return;
+    }
+    if (!prepared) {
+      _showFeedback(
+        _controller.composerErrorMessage ??
+            _controller.errorMessage ??
+            'Gorev formu hazirlanamadi.',
+      );
+      return;
+    }
+
+    final composer = _controller.composer;
+    if (composer == null ||
+        composer.projects.isEmpty ||
+        composer.assignees.isEmpty) {
+      _showFeedback(
+        'Gorev acmak icin en az bir aktif proje ve atanabilir kullanici gerekli.',
+      );
+      return;
+    }
+
+    final draft = await showTaskCreateDialog(context, snapshot: composer);
+    if (!mounted || draft == null) {
+      return;
+    }
+
+    final success = await _controller.createTask(draft);
+    if (!mounted) {
+      return;
+    }
+    if (success) {
+      _searchController.clear();
+      _commentController.clear();
+    }
+    _showFeedback(
+      success
+          ? 'Gorev olusturuldu.'
+          : (_controller.errorMessage ?? 'Gorev olusturulamadi.'),
+    );
+  }
+
   Future<void> _startTask() async {
     final success = await _controller.startSelectedTask();
     _showFeedback(
       success
-          ? 'Görev başlatıldı.'
-          : (_controller.errorMessage ?? 'Görev başlatılamadı.'),
+          ? 'Gorev baslatildi.'
+          : (_controller.errorMessage ?? 'Gorev baslatilamadi.'),
     );
   }
 
@@ -161,7 +219,7 @@ class _TaskPageState extends State<TaskPage> {
     }
     _showFeedback(
       success
-          ? 'Yorum göreve eklendi.'
+          ? 'Yorum goreve eklendi.'
           : (_controller.errorMessage ?? 'Yorum kaydedilemedi.'),
     );
   }
@@ -170,8 +228,8 @@ class _TaskPageState extends State<TaskPage> {
     final success = await _controller.scheduleMeeting();
     _showFeedback(
       success
-          ? 'Toplantı bağlantısı oluşturuldu.'
-          : (_controller.errorMessage ?? 'Toplantı bağlantısı oluşturulamadı.'),
+          ? 'Toplanti baglantisi olusturuldu.'
+          : (_controller.errorMessage ?? 'Toplanti baglantisi olusturulamadi.'),
     );
   }
 
@@ -179,8 +237,8 @@ class _TaskPageState extends State<TaskPage> {
     final success = await _controller.submitSelectedTask();
     _showFeedback(
       success
-          ? 'Görev incelemeye gönderildi.'
-          : (_controller.errorMessage ?? 'Görev teslim edilemedi.'),
+          ? 'Gorev incelemeye gonderildi.'
+          : (_controller.errorMessage ?? 'Gorev teslim edilemedi.'),
     );
   }
 
@@ -188,36 +246,36 @@ class _TaskPageState extends State<TaskPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.title, required this.subtitle});
+class _PageHeader extends StatelessWidget {
+  const _PageHeader({this.action});
 
-  final String title;
-  final String subtitle;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
+        const Text(
+          'Gorevler',
+          style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
             color: AppPalette.text,
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          subtitle,
-          style: const TextStyle(color: AppPalette.muted, height: 1.5),
+        const Text(
+          'Gercek gorev kayitlarini filtrele, detay ac ve aksiyonlari dogrudan veritabanina isle.',
+          style: TextStyle(color: AppPalette.muted, height: 1.5),
         ),
+        if (action != null) ...[const SizedBox(height: 14), action!],
       ],
     );
   }
@@ -254,34 +312,33 @@ class _MetricCard extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Text(
             metric.value,
             style: const TextStyle(
               color: AppPalette.text,
-              fontSize: 34,
+              fontSize: 32,
               fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            metric.caption,
-            style: const TextStyle(color: AppPalette.muted),
-          ),
+          Text(metric.caption, style: const TextStyle(color: AppPalette.muted)),
         ],
       ),
     );
   }
 }
 
-class _FiltersCard extends StatelessWidget {
-  const _FiltersCard({
-    required this.searchController,
+class _FilterCard extends StatelessWidget {
+  const _FilterCard({
     required this.controller,
+    required this.searchController,
+    this.onCreate,
   });
 
-  final TextEditingController searchController;
   final TaskController controller;
+  final TextEditingController searchController;
+  final Future<void> Function()? onCreate;
 
   @override
   Widget build(BuildContext context) {
@@ -301,44 +358,44 @@ class _FiltersCard extends StatelessWidget {
             child: TextField(
               controller: searchController,
               decoration: const InputDecoration(
-                hintText: 'Görev, proje veya etiket ara...',
+                hintText: 'Gorev, proje veya etiket ara...',
                 prefixIcon: Icon(Icons.search_rounded),
               ),
             ),
           ),
-          _Dropdown<TaskStatus?>(
+          _FilterDropdown<TaskStatus?>(
             label: 'Durum',
             value: controller.statusFilter,
             items: const [null, ...TaskStatus.values],
-            itemLabel: (value) => value?.label ?? 'Tümü',
+            itemLabel: (value) => value?.label ?? 'Tumu',
             onChanged: controller.updateStatusFilter,
           ),
-          _Dropdown<TaskPriority?>(
-            label: 'Öncelik',
+          _FilterDropdown<TaskPriority?>(
+            label: 'Oncelik',
             value: controller.priorityFilter,
             items: const [null, ...TaskPriority.values],
-            itemLabel: (value) => value?.label ?? 'Tümü',
+            itemLabel: (value) => value?.label ?? 'Tumu',
             onChanged: controller.updatePriorityFilter,
           ),
-          _Dropdown<TaskDateFilter>(
+          _FilterDropdown<TaskDateFilter>(
             label: 'Tarih',
             value: controller.dateFilter,
             items: TaskDateFilter.values,
             itemLabel: (value) => value.label,
             onChanged: (value) => controller.updateDateFilter(value!),
           ),
-          _Dropdown<String?>(
-            label: 'Kişi',
+          _FilterDropdown<String?>(
+            label: 'Kisi',
             value: controller.assigneeFilter,
             items: [null, ...controller.assignees],
-            itemLabel: (value) => value ?? 'Tümü',
+            itemLabel: (value) => value ?? 'Tumu',
             onChanged: controller.updateAssigneeFilter,
           ),
-          _Dropdown<String?>(
+          _FilterDropdown<String?>(
             label: 'Etiket',
             value: controller.tagFilter,
             items: [null, ...controller.tags],
-            itemLabel: (value) => value ?? 'Tümü',
+            itemLabel: (value) => value ?? 'Tumu',
             onChanged: controller.updateTagFilter,
           ),
           OutlinedButton.icon(
@@ -347,16 +404,28 @@ class _FiltersCard extends StatelessWidget {
               controller.clearFilters();
             },
             icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Filtreleri Sıfırla'),
+            label: const Text('Filtreleri Sifirla'),
           ),
+          if (onCreate != null)
+            FilledButton.icon(
+              onPressed: (controller.isSaving || controller.isPreparingComposer)
+                  ? null
+                  : () => onCreate!.call(),
+              icon: const Icon(Icons.add_task_rounded),
+              label: Text(
+                controller.isPreparingComposer
+                    ? 'Hazirlaniyor...'
+                    : 'Yeni Gorev',
+              ),
+            ),
         ],
       ),
     );
   }
 }
 
-class _Dropdown<T> extends StatelessWidget {
-  const _Dropdown({
+class _FilterDropdown<T> extends StatelessWidget {
+  const _FilterDropdown({
     required this.label,
     required this.value,
     required this.items,
@@ -378,10 +447,7 @@ class _Dropdown<T> extends StatelessWidget {
         initialValue: value,
         items: [
           for (final item in items)
-            DropdownMenuItem<T>(
-              value: item,
-              child: Text(itemLabel(item)),
-            ),
+            DropdownMenuItem<T>(value: item, child: Text(itemLabel(item))),
         ],
         onChanged: onChanged,
         decoration: InputDecoration(labelText: label),
@@ -403,67 +469,85 @@ class _TaskListPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _SectionCard(
-      title: 'Görev Listesi',
-      subtitle: 'Seçilen kayıt sağdaki detay kartında açılır.',
-      child: Column(
-        children: [
-          for (final task in tasks)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Material(
-                color: task.id == selectedTaskId
-                    ? AppPalette.primarySoft
-                    : AppPalette.background,
-                borderRadius: BorderRadius.circular(18),
-                child: InkWell(
-                  onTap: () => onSelect(task.id),
-                  borderRadius: BorderRadius.circular(18),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          task.title,
-                          style: const TextStyle(
-                            color: AppPalette.text,
-                            fontWeight: FontWeight.w800,
+    return _Card(
+      title: 'Gorev Listesi',
+      subtitle: 'Secilen kayit sagdaki detay kartinda acilir.',
+      child: tasks.isEmpty
+          ? const StatePanel.empty(
+              title: 'Filtreye uygun gorev yok',
+              message:
+                  'Arama veya filtreler mevcut kayitlarla eslesmiyor. Filtreleri sifirlayip tekrar dene.',
+            )
+          : Column(
+              children: [
+                for (final task in tasks)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Material(
+                      color: task.id == selectedTaskId
+                          ? AppPalette.primarySoft
+                          : AppPalette.background,
+                      borderRadius: BorderRadius.circular(18),
+                      child: InkWell(
+                        onTap: () => onSelect(task.id),
+                        borderRadius: BorderRadius.circular(18),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                task.title,
+                                style: const TextStyle(
+                                  color: AppPalette.text,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${task.project} • ${task.assignee}',
+                                style: const TextStyle(color: AppPalette.muted),
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _BadgeChip(
+                                    label: task.status.label,
+                                    color: _statusColor(task.status),
+                                  ),
+                                  _BadgeChip(
+                                    label: task.priority.label,
+                                    color: _priorityColor(task.priority),
+                                  ),
+                                  _BadgeChip(
+                                    label: task.tag,
+                                    color: const Color(0xFF7A7AE6),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(999),
+                                child: LinearProgressIndicator(
+                                  value: task.progress,
+                                  minHeight: 8,
+                                  backgroundColor: Colors.white,
+                                  valueColor:
+                                      const AlwaysStoppedAnimation<Color>(
+                                        AppPalette.primary,
+                                      ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${task.project} • ${task.assignee}',
-                          style: const TextStyle(color: AppPalette.muted),
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _BadgeChip(label: task.status.label, color: _statusColor(task.status)),
-                            _BadgeChip(label: task.priority.label, color: _priorityColor(task.priority)),
-                            _BadgeChip(label: task.tag, color: const Color(0xFF7A7AE6)),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: LinearProgressIndicator(
-                            value: task.progress,
-                            minHeight: 8,
-                            backgroundColor: Colors.white,
-                            valueColor: const AlwaysStoppedAnimation<Color>(AppPalette.primary),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ),
+              ],
             ),
-        ],
-      ),
     );
   }
 }
@@ -491,14 +575,14 @@ class _TaskDetailPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     if (task == null) {
       return const StatePanel.empty(
-        title: 'Görev detayı yok',
-        message: 'Listeden bir görev seçildiğinde detay burada açılır.',
+        title: 'Gorev detayi yok',
+        message: 'Listeden bir gorev secildiginde detay burada acilir.',
       );
     }
 
-    return _SectionCard(
-      title: 'Görev Detayı',
-      subtitle: 'Başlat, yorum ekle, toplantı planla ve teslim et.',
+    return _Card(
+      title: 'Gorev Detayi',
+      subtitle: 'Baslat, yorum ekle, toplanti planla ve teslim et.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -515,62 +599,52 @@ class _TaskDetailPanel extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _BadgeChip(label: task!.status.label, color: _statusColor(task!.status)),
-              _BadgeChip(label: task!.priority.label, color: _priorityColor(task!.priority)),
+              _BadgeChip(
+                label: task!.status.label,
+                color: _statusColor(task!.status),
+              ),
+              _BadgeChip(
+                label: task!.priority.label,
+                color: _priorityColor(task!.priority),
+              ),
               _BadgeChip(label: task!.tag, color: const Color(0xFF7A7AE6)),
             ],
           ),
           const SizedBox(height: 18),
           Text(
-            task!.description,
+            task!.description.isEmpty
+                ? 'Aciklama girilmemis.'
+                : task!.description,
             style: const TextStyle(color: AppPalette.muted, height: 1.6),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           _InfoRow(label: 'Proje', value: task!.project),
           _InfoRow(label: 'Atanan', value: task!.assignee),
           _InfoRow(label: 'Son teslim', value: _formatDate(task!.dueAt)),
-          _InfoRow(label: 'Güncelleme', value: _formatDateTime(task!.updatedAt)),
+          _InfoRow(
+            label: 'Guncelleme',
+            value: _formatDateTime(task!.updatedAt),
+          ),
           if (task!.requestSource != null && task!.requestSource!.isNotEmpty)
-            _InfoRow(label: 'Talep kaynağı', value: task!.requestSource!),
-          const SizedBox(height: 14),
-          Text(
-            'Kontrol ilerlemesi ${task!.checklistCompleted}/${task!.checklistTotal}',
-            style: const TextStyle(
-              color: AppPalette.text,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: task!.progress,
-              minHeight: 10,
-              backgroundColor: AppPalette.primarySoft,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppPalette.primary),
-            ),
-          ),
-          const SizedBox(height: 18),
+            _InfoRow(label: 'Talep kaynagi', value: task!.requestSource!),
+          const SizedBox(height: 16),
           Wrap(
             spacing: 12,
             runSpacing: 12,
             children: [
-              _StatBlock(
-                label: 'Tahmini süre',
+              _MiniStat(
+                label: 'Kontrol',
+                value: '${task!.checklistCompleted}/${task!.checklistTotal}',
+              ),
+              _MiniStat(
+                label: 'Tahmini',
                 value: _formatMinutes(task!.estimatedMinutes),
               ),
-              _StatBlock(
-                label: 'İzlenen süre',
+              _MiniStat(
+                label: 'Izlenen',
                 value: _formatMinutes(task!.trackedMinutes),
               ),
-              _StatBlock(
-                label: 'Bağımlılık',
-                value: '${task!.blockedByCount}',
-              ),
-              _StatBlock(
-                label: 'Alt iş',
-                value: '${task!.subtaskCount}',
-              ),
+              _MiniStat(label: 'Alt is', value: '${task!.subtaskCount}'),
             ],
           ),
           const SizedBox(height: 18),
@@ -581,12 +655,12 @@ class _TaskDetailPanel extends StatelessWidget {
               FilledButton.icon(
                 onPressed: controller.isSaving ? null : onStart,
                 icon: const Icon(Icons.play_arrow_rounded),
-                label: const Text('Başlat'),
+                label: const Text('Baslat'),
               ),
               OutlinedButton.icon(
                 onPressed: controller.isSaving ? null : onMeeting,
                 icon: const Icon(Icons.video_call_rounded),
-                label: const Text('Toplantı Oluştur'),
+                label: const Text('Toplanti Olustur'),
               ),
               OutlinedButton.icon(
                 onPressed: controller.isSaving ? null : onSubmit,
@@ -614,113 +688,13 @@ class _TaskDetailPanel extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 18),
-          if (task!.dependencies.isNotEmpty) ...[
-            const Text(
-              'Bağımlılıklar',
-              style: TextStyle(
-                color: AppPalette.text,
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 12),
-            for (final dependency in task!.dependencies)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppPalette.background,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.link_rounded, color: AppPalette.primary),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          dependency.title,
-                          style: const TextStyle(
-                            color: AppPalette.text,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        dependency.statusLabel,
-                        style: const TextStyle(
-                          color: AppPalette.muted,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            const SizedBox(height: 18),
-          ],
-          if (task!.timeEntries.isNotEmpty) ...[
-            const Text(
-              'Zaman Kayıtları',
-              style: TextStyle(
-                color: AppPalette.text,
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 12),
-            for (final entry in task!.timeEntries)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppPalette.background,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              entry.userName,
-                              style: const TextStyle(
-                                color: AppPalette.text,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              entry.startedAtLabel,
-                              style: const TextStyle(color: AppPalette.muted),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        entry.durationLabel,
-                        style: const TextStyle(
-                          color: AppPalette.primary,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            const SizedBox(height: 18),
-          ],
           TextField(
             controller: commentController,
             minLines: 2,
             maxLines: 4,
             decoration: const InputDecoration(
               labelText: 'Yorum ekle',
-              hintText: 'Göreve not bırak ve kaydet.',
+              hintText: 'Goreve not birak ve kaydet.',
             ),
           ),
           const SizedBox(height: 10),
@@ -751,10 +725,10 @@ class _TaskDetailPanel extends StatelessWidget {
               fontSize: 18,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           for (final entry in task!.timeline)
             Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 10),
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
@@ -811,8 +785,8 @@ class _TaskDetailPanel extends StatelessWidget {
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({
+class _Card extends StatelessWidget {
+  const _Card({
     required this.title,
     required this.subtitle,
     required this.child,
@@ -863,11 +837,8 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-class _StatBlock extends StatelessWidget {
-  const _StatBlock({
-    required this.label,
-    required this.value,
-  });
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -875,7 +846,7 @@ class _StatBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 148,
+      width: 150,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppPalette.surfaceMuted,
@@ -958,10 +929,7 @@ class _BadgeChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w700,
-        ),
+        style: TextStyle(color: color, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -982,6 +950,9 @@ Color _priorityColor(TaskPriority priority) => switch (priority) {
 };
 
 String _formatMinutes(int minutes) {
+  if (minutes <= 0) {
+    return 'Kayit yok';
+  }
   final hours = minutes ~/ 60;
   final remainingMinutes = minutes % 60;
   if (hours == 0) {
@@ -993,13 +964,13 @@ String _formatMinutes(int minutes) {
 String _formatDate(DateTime value) {
   const months = [
     'Oca',
-    'Şub',
+    'Sub',
     'Mar',
     'Nis',
     'May',
     'Haz',
     'Tem',
-    'Ağu',
+    'Agu',
     'Eyl',
     'Eki',
     'Kas',

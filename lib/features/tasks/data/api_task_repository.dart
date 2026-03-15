@@ -1,5 +1,6 @@
 import 'package:servis_kontrol/core/network/api_client.dart';
 import 'package:servis_kontrol/features/tasks/data/task_repository.dart';
+import 'package:servis_kontrol/features/tasks/domain/task_composer.dart';
 import 'package:servis_kontrol/features/tasks/domain/task_item.dart';
 
 class ApiTaskRepository implements TaskRepository {
@@ -33,9 +34,25 @@ class ApiTaskRepository implements TaskRepository {
   }
 
   @override
+  Future<TaskComposerSnapshot> loadComposer() async {
+    final payload = await _client.getMap('tasks/meta');
+    return TaskComposerSnapshot.fromJson(payload);
+  }
+
+  @override
+  Future<TaskItem> createTask(TaskDraft draft) async {
+    final payload = await _client.postMap('tasks', body: draft.toJson());
+    return TaskItem.fromJson(
+      payload['task'] as Map<String, dynamic>? ?? payload,
+    );
+  }
+
+  @override
   Future<TaskItem> start(String taskId) async {
     final payload = await _client.postMap('tasks/$taskId/start');
-    return TaskItem.fromJson(payload['task'] as Map<String, dynamic>? ?? payload);
+    return TaskItem.fromJson(
+      payload['task'] as Map<String, dynamic>? ?? payload,
+    );
   }
 
   @override
@@ -47,18 +64,24 @@ class ApiTaskRepository implements TaskRepository {
       'tasks/$taskId/comment',
       body: {'message': message},
     );
-    return TaskItem.fromJson(payload['task'] as Map<String, dynamic>? ?? payload);
+    return TaskItem.fromJson(
+      payload['task'] as Map<String, dynamic>? ?? payload,
+    );
   }
 
   @override
   Future<TaskItem> scheduleMeeting(String taskId) async {
     final payload = await _client.postMap('tasks/$taskId/meeting');
-    return TaskItem.fromJson(payload['task'] as Map<String, dynamic>? ?? payload);
+    return TaskItem.fromJson(
+      payload['task'] as Map<String, dynamic>? ?? payload,
+    );
   }
 
   @override
   Future<TaskItem> submit(String taskId) async {
     final payload = await _client.postMap('tasks/$taskId/submit');
-    return TaskItem.fromJson(payload['task'] as Map<String, dynamic>? ?? payload);
+    return TaskItem.fromJson(
+      payload['task'] as Map<String, dynamic>? ?? payload,
+    );
   }
 }

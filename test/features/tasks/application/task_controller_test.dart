@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:servis_kontrol/features/auth/domain/user_role.dart';
 import 'package:servis_kontrol/features/tasks/application/task_controller.dart';
 import 'package:servis_kontrol/features/tasks/data/task_repository.dart';
+import 'package:servis_kontrol/features/tasks/domain/task_composer.dart';
 import 'package:servis_kontrol/features/tasks/domain/task_item.dart';
 
 import '../../../support/test_support.dart';
@@ -18,7 +20,9 @@ void main() {
 
     controller.updateStatusFilter(TaskStatus.pending);
     expect(
-      controller.filteredTasks.every((task) => task.status == TaskStatus.pending),
+      controller.filteredTasks.every(
+        (task) => task.status == TaskStatus.pending,
+      ),
       isTrue,
     );
 
@@ -37,9 +41,69 @@ void main() {
     await controller.submitSelectedTask();
     expect(controller.selectedTask!.status, TaskStatus.inReview);
   });
+
+  test('yonetici gorev olusturma verisini yukler ve gorev olusturur', () async {
+    final controller = TaskController(
+      user: managerUser,
+      apiClient: createTestApiClient(),
+      repository: _FakeTaskRepository(),
+    );
+
+    expect(controller.canCreateTask, isTrue);
+    expect(await controller.prepareComposer(), isTrue);
+    expect(controller.composer!.projects, isNotEmpty);
+
+    controller.updateStatusFilter(TaskStatus.delivered);
+    final success = await controller.createTask(
+      TaskDraft(
+        title: 'Yeni saha kontrolu',
+        description: 'Detayli kontrol listesi acildi.',
+        projectId: 'project-1',
+        assigneeId: 'user-1',
+        priority: TaskPriority.medium,
+        dueAt: DateTime(2026, 3, 15, 18),
+        estimatedMinutes: 120,
+        tag: 'Saha',
+      ),
+    );
+
+    expect(success, isTrue);
+    expect(controller.statusFilter, isNull);
+    expect(controller.selectedTask!.title, 'Yeni saha kontrolu');
+    expect(controller.filteredTasks.any((task) => task.id == '2'), isTrue);
+    expect(controller.composer!.tagSuggestions, contains('Saha'));
+  });
+
+  test('employee kullanici varsayilan durumda gorev olusturamaz', () async {
+    final controller = TaskController(
+      user: managerUser.copyWith(
+        role: UserRole.employee,
+        permissions: const {},
+      ),
+      apiClient: createTestApiClient(),
+      repository: _FakeTaskRepository(),
+    );
+
+    expect(controller.canCreateTask, isFalse);
+    expect(await controller.prepareComposer(), isFalse);
+    expect(
+      await controller.createTask(
+        TaskDraft(
+          title: 'Yetkisiz is',
+          description: '',
+          projectId: 'project-1',
+          assigneeId: 'user-1',
+          priority: TaskPriority.low,
+          dueAt: DateTime(2026, 3, 15, 18),
+        ),
+      ),
+      isFalse,
+    );
+  });
 }
 
 class _FakeTaskRepository implements TaskRepository {
+  int _nextId = 2;
   final Map<String, TaskItem> _items = {
     '1': TaskItem(
       id: '1',
@@ -79,6 +143,50 @@ class _FakeTaskRepository implements TaskRepository {
       requestSource: 'Saha Talep Formu',
     ),
   };
+
+  @override
+  Future<TaskComposerSnapshot> loadComposer() async {
+    return const TaskComposerSnapshot(
+      projects: [TaskFormOption(id: 'project-1', label: 'Merkez Plaza')],
+      assignees: [TaskFormOption(id: 'user-1', label: 'Merve')],
+      tagSuggestions: ['Kontrol'],
+    );
+  }
+
+  @override
+  Future<TaskItem> createTask(TaskDraft draft) async {
+    final id = '${_nextId++}';
+    final item = TaskItem(
+      id: id,
+      title: draft.title,
+      project: 'Merkez Plaza',
+      assignee: 'Merve',
+      status: TaskStatus.pending,
+      priority: draft.priority,
+      dueAt: draft.dueAt,
+      updatedAt: draft.dueAt,
+      tag: draft.tag?.trim().isNotEmpty == true ? draft.tag!.trim() : 'Genel',
+      description: draft.description,
+      checklistCompleted: 0,
+      checklistTotal: 0,
+      estimatedMinutes: draft.estimatedMinutes ?? 0,
+      trackedMinutes: 0,
+      blockedByCount: 0,
+      subtaskCount: 0,
+      dependencies: const [],
+      timeEntries: const [],
+      timeline: [
+        TaskTimelineEntry(
+          title: 'Gorev olusturuldu',
+          detail: draft.description,
+          actor: 'Merve',
+          timestamp: draft.dueAt,
+        ),
+      ],
+    );
+    _items[id] = item;
+    return item;
+  }
 
   @override
   Future<List<TaskItem>> load({

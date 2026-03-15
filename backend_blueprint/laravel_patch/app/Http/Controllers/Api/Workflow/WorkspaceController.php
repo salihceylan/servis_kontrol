@@ -24,6 +24,29 @@ class WorkspaceController extends Controller
         return response()->json($this->workflow->tasks($request->user(), $request->query()));
     }
 
+    public function taskMeta(Request $request): JsonResponse
+    {
+        return response()->json($this->workflow->taskMeta($request->user()));
+    }
+
+    public function createTask(Request $request): JsonResponse
+    {
+        $payload = $request->validate([
+            'title' => ['required', 'string', 'max:180'],
+            'description' => ['nullable', 'string', 'max:10000'],
+            'project_id' => ['required', 'integer'],
+            'assignee_id' => ['required', 'integer'],
+            'priority' => ['required', 'string', 'in:low,medium,high'],
+            'due_at' => ['required', 'date'],
+            'estimated_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'],
+            'tag' => ['nullable', 'string', 'max:80'],
+        ]);
+
+        return response()->json([
+            'task' => $this->workflow->createTask($request->user(), $payload),
+        ]);
+    }
+
     public function startTask(Request $request, string $taskId): JsonResponse
     {
         return response()->json([
