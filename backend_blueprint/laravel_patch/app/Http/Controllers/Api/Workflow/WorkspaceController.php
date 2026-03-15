@@ -165,7 +165,7 @@ class WorkspaceController extends Controller
     {
         $payload = $request->validate([
             'company_name' => ['required', 'string', 'max:160'],
-            'company_code' => ['nullable', 'string', 'size:6'],
+            'company_code' => ['nullable', 'string', 'size:5'],
             'default_language' => ['required', 'string', 'max:12'],
             'timezone' => ['required', 'string', 'max:64'],
             'week_starts_on' => ['required', 'string', 'max:20'],

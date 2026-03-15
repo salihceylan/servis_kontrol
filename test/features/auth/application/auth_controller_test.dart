@@ -14,9 +14,9 @@ void main() {
     final storage = InMemoryAuthSessionStorage();
     const user = AppUser(
       id: '12',
-      userCode: '12345678901',
+      userCode: '1234567890',
       companyId: '4',
-      companyCode: '654321',
+      companyCode: '65432',
       name: 'Merve Aydin',
       email: 'yonetici@workflow.local',
       role: UserRole.manager,
@@ -47,9 +47,9 @@ void main() {
     final storage = InMemoryAuthSessionStorage();
     const user = AppUser(
       id: '22',
-      userCode: '10987654321',
+      userCode: '1098765432',
       companyId: '8',
-      companyCode: '102938',
+      companyCode: '10293',
       name: 'Selin Yilmaz',
       email: 'lider@workflow.local',
       role: UserRole.teamLead,
@@ -83,9 +83,9 @@ void main() {
     final storage = InMemoryAuthSessionStorage();
     const user = AppUser(
       id: '34',
-      userCode: '55555555555',
+      userCode: '5555555555',
       companyId: '9',
-      companyCode: '555999',
+      companyCode: '55599',
       name: 'Ayse Demir',
       email: 'ayse@workflow.local',
       role: UserRole.manager,

@@ -26,9 +26,31 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION wf_random_chars(target_len integer, alphabet text)
+RETURNS text
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  result text := '';
+  alphabet_len integer := length(alphabet);
+  candidate_idx integer;
+BEGIN
+  IF target_len <= 0 OR alphabet_len <= 0 THEN
+    RETURN '';
+  END IF;
+
+  WHILE length(result) < target_len LOOP
+    candidate_idx := floor(random() * alphabet_len)::integer + 1;
+    result := result || substr(alphabet, candidate_idx, 1);
+  END LOOP;
+
+  RETURN left(result, target_len);
+END;
+$$;
+
 CREATE TABLE IF NOT EXISTS companies (
   id BIGSERIAL PRIMARY KEY,
-  company_code CHAR(6),
+  company_code CHAR(5),
   name VARCHAR(160) NOT NULL,
   status VARCHAR(30) NOT NULL DEFAULT 'active',
   owner_user_id BIGINT,
@@ -46,14 +68,14 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 DECLARE
-  candidate CHAR(6);
+  candidate CHAR(5);
 BEGIN
   IF NEW.company_code IS NOT NULL AND btrim(NEW.company_code) <> '' THEN
     RETURN NEW;
   END IF;
 
   LOOP
-    candidate := wf_random_digits(6)::CHAR(6);
+    candidate := wf_random_digits(5)::CHAR(5);
     EXIT WHEN NOT EXISTS (
       SELECT 1
       FROM companies
@@ -155,7 +177,7 @@ EXECUTE FUNCTION wf_touch_updated_at();
 
 ALTER TABLE users
   ADD COLUMN IF NOT EXISTS company_id BIGINT,
-  ADD COLUMN IF NOT EXISTS user_code CHAR(11),
+  ADD COLUMN IF NOT EXISTS user_code CHAR(10),
   ADD COLUMN IF NOT EXISTS phone VARCHAR(32),
   ADD COLUMN IF NOT EXISTS department_id BIGINT,
   ADD COLUMN IF NOT EXISTS position_id BIGINT,
@@ -176,14 +198,14 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 DECLARE
-  candidate CHAR(11);
+  candidate CHAR(10);
 BEGIN
   IF NEW.user_code IS NOT NULL AND btrim(NEW.user_code) <> '' THEN
     RETURN NEW;
   END IF;
 
   LOOP
-    candidate := wf_random_digits(11)::CHAR(11);
+    candidate := wf_random_digits(10)::CHAR(10);
     EXIT WHEN NOT EXISTS (
       SELECT 1
       FROM users
@@ -427,12 +449,51 @@ CREATE TABLE IF NOT EXISTS tasks (
   UNIQUE (company_id, task_no)
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS tasks_task_no_unique
+  ON tasks(task_no);
+
+CREATE OR REPLACE FUNCTION wf_assign_task_code()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  candidate VARCHAR(10);
+BEGIN
+  IF NEW.task_no IS NOT NULL AND btrim(NEW.task_no) <> '' THEN
+    RETURN NEW;
+  END IF;
+
+  LOOP
+    candidate :=
+      wf_random_chars(1, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') ||
+      wf_random_digits(5) ||
+      wf_random_chars(2, 'abcdefghijklmnopqrstuvwxyz') ||
+      wf_random_digits(2);
+
+    EXIT WHEN NOT EXISTS (
+      SELECT 1
+      FROM tasks
+      WHERE task_no = candidate
+    );
+  END LOOP;
+
+  NEW.task_no := candidate;
+  RETURN NEW;
+END;
+$$;
+
 CREATE INDEX IF NOT EXISTS tasks_company_due_idx
   ON tasks(company_id, due_at);
 CREATE INDEX IF NOT EXISTS tasks_status_idx
   ON tasks(status_id);
 CREATE INDEX IF NOT EXISTS tasks_primary_assignee_idx
   ON tasks(primary_assignee_id);
+
+DROP TRIGGER IF EXISTS trg_tasks_assign_code ON tasks;
+CREATE TRIGGER trg_tasks_assign_code
+BEFORE INSERT ON tasks
+FOR EACH ROW
+EXECUTE FUNCTION wf_assign_task_code();
 
 DROP TRIGGER IF EXISTS trg_tasks_touch_updated_at ON tasks;
 CREATE TRIGGER trg_tasks_touch_updated_at

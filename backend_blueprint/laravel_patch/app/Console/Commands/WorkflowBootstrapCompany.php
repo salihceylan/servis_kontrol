@@ -196,7 +196,6 @@ class WorkflowBootstrapCompany extends Command
         $taskA = DB::table('tasks')->insertGetId([
             'company_id' => $companyId,
             'project_id' => $projectId,
-            'task_no' => 'T-1001',
             'title' => 'Saha kontrol listesi tamamla',
             'description' => 'Merkez Plaza sahasında haftalık kontrol turu yapılacak.',
             'status_id' => $inProgressStatusId,
@@ -216,7 +215,6 @@ class WorkflowBootstrapCompany extends Command
         $taskB = DB::table('tasks')->insertGetId([
             'company_id' => $companyId,
             'project_id' => $projectId,
-            'task_no' => 'T-1002',
             'title' => 'Kamera revizyon geri donusu',
             'description' => 'Kamera montaj raporundaki eksik fotograflar tamamlanacak.',
             'status_id' => $reviewStatusId,

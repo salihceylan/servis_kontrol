@@ -11,6 +11,7 @@ echo "Applying workflow schema to container=${CONTAINER_NAME} db=${DB_NAME} user
 
 docker exec -i "${CONTAINER_NAME}" psql -U "${DB_USER}" -d "${DB_NAME}" < "${ROOT_DIR}/sql/001_workflow_core.sql"
 docker exec -i "${CONTAINER_NAME}" psql -U "${DB_USER}" -d "${DB_NAME}" < "${ROOT_DIR}/sql/002_workflow_seed.sql"
+docker exec -i "${CONTAINER_NAME}" psql -U "${DB_USER}" -d "${DB_NAME}" < "${ROOT_DIR}/sql/003_workflow_identifier_codes.sql"
 docker exec -i "${CONTAINER_NAME}" psql -U "${DB_USER}" -d "${DB_NAME}" <<SQL
 DO \$\$
 BEGIN
@@ -25,4 +26,4 @@ END
 \$\$;
 SQL
 
-echo "Workflow schema, seed and DB grants applied successfully."
+echo "Workflow schema, seed, identifier patch and DB grants applied successfully."

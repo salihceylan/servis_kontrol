@@ -26,13 +26,18 @@ Sistem içi `id` ile kullanıcıya gösterilen iş kodları farklı olmalı.
 - Her ana tabloda sistem içi `id`
   - öneri: `uuid` veya `bigint`
 - Şirket için dış kimlik:
-  - `company_code CHAR(6) UNIQUE`
+  - `company_code CHAR(5) UNIQUE`
   - yalnızca rakam
   - rastgele üretilmiş
 - Kullanıcı için dış kimlik:
-  - `user_code CHAR(11) UNIQUE`
+  - `user_code CHAR(10) UNIQUE`
   - yalnızca rakam
   - benzersiz
+- Gorev icin dis kimlik:
+  - `task_no VARCHAR(40) UNIQUE`
+  - ornek desen: `A12354kk16`
+  - 1 buyuk harf + 5 rakam + 2 kucuk harf + 2 rakam
+  - benzersiz ve sirali olmayan
 
 Özet:
 

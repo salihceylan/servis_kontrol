@@ -522,7 +522,7 @@ class WorkflowApiService
             $taskId = (int) DB::table('tasks')->insertGetId([
                 'company_id' => $context['company_id'],
                 'project_id' => $project->id,
-                'task_no' => $this->nextTaskNo($context['company_id']),
+                'task_no' => $this->generateTaskCode(),
                 'title' => trim((string) $payload['title']),
                 'description' => trim((string) ($payload['description'] ?? '')),
                 'status_id' => $statusId,
@@ -1265,16 +1265,18 @@ class WorkflowApiService
         return in_array($code, $this->permissions($userId), true);
     }
 
-    protected function nextTaskNo(int $companyId): string
+    protected function generateTaskCode(): string
     {
-        $max = 0;
-        foreach (DB::table('tasks')->where('company_id', $companyId)->lockForUpdate()->pluck('task_no') as $taskNo) {
-            if (preg_match('/(\d+)$/', (string) $taskNo, $matches) === 1) {
-                $max = max($max, (int) $matches[1]);
-            }
-        }
+        do {
+            $candidate =
+                chr(random_int(65, 90)) .
+                str_pad((string) random_int(0, 99999), 5, '0', STR_PAD_LEFT) .
+                chr(random_int(97, 122)) .
+                chr(random_int(97, 122)) .
+                str_pad((string) random_int(0, 99), 2, '0', STR_PAD_LEFT);
+        } while (DB::table('tasks')->where('task_no', $candidate)->exists());
 
-        return 'T-' . str_pad((string) ($max + 1), 4, '0', STR_PAD_LEFT);
+        return $candidate;
     }
 
     protected function findOrCreateTaskLabel(int $companyId, string $name): int
@@ -1322,6 +1324,7 @@ class WorkflowApiService
             ->where('t.id', $taskId)
             ->select([
                 't.id',
+                't.task_no',
                 't.title',
                 't.description',
                 't.priority',
@@ -1393,6 +1396,7 @@ class WorkflowApiService
 
         return [
             'id' => (string) $task->id,
+            'task_no' => (string) $task->task_no,
             'title' => $task->title,
             'project' => $task->project_name ?? 'Proje Yok',
             'assignee' => $task->assignee_name ?? 'Atanmamış',

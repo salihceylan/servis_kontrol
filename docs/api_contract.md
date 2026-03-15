@@ -63,9 +63,9 @@ Yanıt:
   "token": "plain_text_token",
   "user": {
     "id": "uuid-or-bigint",
-    "user_code": "12345678901",
+    "user_code": "1234567890",
     "company_id": "uuid-or-bigint",
-    "company_code": "482193",
+    "company_code": "48219",
     "name": "Merve Aydin",
     "email": "yonetici@firma.com",
     "role": "manager",
@@ -201,6 +201,7 @@ Yanıt:
 [
   {
     "id": "task-1",
+    "task_no": "A12354kk16",
     "title": "Saha kontrolü",
     "project": "Merkez Plaza",
     "assignee": "Onur Kaya",
@@ -486,7 +487,7 @@ Yanıt:
 ```json
 {
   "company_name": "Gude Teknoloji",
-  "company_code": "482193",
+  "company_code": "48219",
   "default_language": "tr",
   "timezone": "Europe/Istanbul",
   "week_starts_on": "monday",
@@ -504,7 +505,7 @@ Yanıt:
 ```json
 {
   "company_name": "Gude Teknoloji",
-  "company_code": "482193",
+  "company_code": "48219",
   "default_language": "tr",
   "timezone": "Europe/Istanbul",
   "week_starts_on": "monday",
@@ -666,6 +667,7 @@ Bu alanlar Monday.com’daki otomasyon, WorkForms, workload, item updates ve ent
 
 - `company_code` üretimi backend tarafında benzersiz doğrulanmalı
 - `user_code` üretimi backend tarafında benzersiz doğrulanmalı
+- `task_no` üretimi backend ve veritabanı tarafında benzersiz doğrulanmalı
 - Rol ve izin kontrolü yalnızca Flutter'da değil, sunucuda zorlanmalı
 - Görev, revizyon ve rapor action endpoint'leri audit log üretmeli
 - Uygulama artık mock veri göstermediği için bu endpoint'ler boş dönerse ekranda `loading / empty / error` durumları görünür

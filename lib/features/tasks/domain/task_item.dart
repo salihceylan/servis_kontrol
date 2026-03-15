@@ -84,17 +84,15 @@ class TaskTimelineEntry {
       title: json['title'] as String? ?? '',
       detail: json['detail'] as String? ?? '',
       actor: json['actor'] as String? ?? '',
-      timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+      timestamp:
+          DateTime.tryParse(json['timestamp'] as String? ?? '') ??
           DateTime.now(),
     );
   }
 }
 
 class TaskDependency {
-  const TaskDependency({
-    required this.title,
-    required this.statusLabel,
-  });
+  const TaskDependency({required this.title, required this.statusLabel});
 
   final String title;
   final String statusLabel;
@@ -148,11 +146,13 @@ class TaskItem {
     required this.subtaskCount,
     required this.dependencies,
     required this.timeEntries,
+    this.taskNo = '',
     this.meetingLink,
     this.requestSource,
   });
 
   final String id;
+  final String taskNo;
   final String title;
   final String project;
   final String assignee;
@@ -187,14 +187,17 @@ class TaskItem {
 
     return TaskItem(
       id: json['id']?.toString() ?? '',
+      taskNo: json['task_no'] as String? ?? '',
       title: json['title'] as String? ?? '',
       project: json['project'] as String? ?? '',
       assignee: json['assignee'] as String? ?? '',
       status: taskStatusFromApi(json['status'] as String?),
       priority: taskPriorityFromApi(json['priority'] as String?),
-      dueAt: DateTime.tryParse(json['due_at'] as String? ?? '') ?? DateTime.now(),
+      dueAt:
+          DateTime.tryParse(json['due_at'] as String? ?? '') ?? DateTime.now(),
       updatedAt:
-          DateTime.tryParse(json['updated_at'] as String? ?? '') ?? DateTime.now(),
+          DateTime.tryParse(json['updated_at'] as String? ?? '') ??
+          DateTime.now(),
       tag: json['tag'] as String? ?? '',
       description: json['description'] as String? ?? '',
       checklistCompleted: json['checklist_completed'] as int? ?? 0,
@@ -216,6 +219,7 @@ class TaskItem {
 
   TaskItem copyWith({
     String? id,
+    String? taskNo,
     String? title,
     String? project,
     String? assignee,
@@ -240,6 +244,7 @@ class TaskItem {
   }) {
     return TaskItem(
       id: id ?? this.id,
+      taskNo: taskNo ?? this.taskNo,
       title: title ?? this.title,
       project: project ?? this.project,
       assignee: assignee ?? this.assignee,
