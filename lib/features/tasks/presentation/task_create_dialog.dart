@@ -159,13 +159,18 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
+                        isExpanded: true,
                         initialValue: _projectId,
                         decoration: const InputDecoration(labelText: 'Proje'),
                         items: [
                           for (final project in widget.snapshot.projects)
                             DropdownMenuItem<String>(
                               value: project.id,
-                              child: Text(project.label),
+                              child: Text(
+                                project.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                         ],
                         onChanged: (value) {
@@ -181,6 +186,7 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
+                        isExpanded: true,
                         initialValue: _assigneeId,
                         decoration: const InputDecoration(
                           labelText: 'Atanan kisi',
@@ -189,7 +195,11 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
                           for (final assignee in widget.snapshot.assignees)
                             DropdownMenuItem<String>(
                               value: assignee.id,
-                              child: Text(assignee.label),
+                              child: Text(
+                                assignee.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                         ],
                         onChanged: (value) {
@@ -209,13 +219,18 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<TaskPriority>(
+                        isExpanded: true,
                         initialValue: _priority,
                         decoration: const InputDecoration(labelText: 'Oncelik'),
                         items: [
                           for (final priority in TaskPriority.values)
                             DropdownMenuItem<TaskPriority>(
                               value: priority,
-                              child: Text(priority.label),
+                              child: Text(
+                                priority.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                         ],
                         onChanged: (value) {

@@ -7,11 +7,7 @@ import 'package:servis_kontrol/features/reports/application/report_controller.da
 import 'package:servis_kontrol/features/reports/domain/report_snapshot.dart';
 
 class ReportsPage extends StatefulWidget {
-  const ReportsPage({
-    super.key,
-    required this.user,
-    required this.apiClient,
-  });
+  const ReportsPage({super.key, required this.user, required this.apiClient});
 
   final AppUser user;
   final ApiClient apiClient;
@@ -46,7 +42,8 @@ class _ReportsPageState extends State<ReportsPage> {
         if (_controller.isLoading) {
           return const StatePanel.loading(
             title: 'Raporlar yükleniyor',
-            message: 'Durum dağılımı, rapor çalıştırmaları ve son aktiviteler alınıyor.',
+            message:
+                'Durum dağılımı, rapor çalıştırmaları ve son aktiviteler alınıyor.',
           );
         }
         if (_controller.errorMessage != null && !_controller.hasData) {
@@ -212,14 +209,18 @@ class _ReportsPageState extends State<ReportsPage> {
                                   const SizedBox(height: 4),
                                   Text(
                                     '${run.scope} • ${run.createdAtLabel}',
-                                    style: const TextStyle(color: AppPalette.muted),
+                                    style: const TextStyle(
+                                      color: AppPalette.muted,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
                             OutlinedButton.icon(
                               onPressed: run.status == ReportRunStatus.ready
-                                  ? () => _feedback('Rapor indirme akışı backend dosya servisine bağlanacak.')
+                                  ? () => _feedback(
+                                      'Rapor indirme akışı backend dosya servisine bağlanacak.',
+                                    )
                                   : null,
                               icon: const Icon(Icons.file_download_outlined),
                               label: const Text('İndir'),
@@ -238,8 +239,11 @@ class _ReportsPageState extends State<ReportsPage> {
   }
 
   Future<void> _createReport() async {
-    final scope = _controller.teamFilter ??
-        (_controller.teamOptions.isEmpty ? 'Genel' : _controller.teamOptions.first);
+    final scope =
+        _controller.teamFilter ??
+        (_controller.teamOptions.isEmpty
+            ? 'Genel'
+            : _controller.teamOptions.first);
     final success = await _controller.createReport(
       scope: scope,
       format: ReportFormat.pdf,
@@ -255,9 +259,9 @@ class _ReportsPageState extends State<ReportsPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -291,10 +295,7 @@ class _Header extends StatelessWidget {
 }
 
 class _FilterBar extends StatelessWidget {
-  const _FilterBar({
-    required this.controller,
-    required this.onCreateReport,
-  });
+  const _FilterBar({required this.controller, required this.onCreateReport});
 
   final ReportController controller;
   final Future<void> Function() onCreateReport;
@@ -366,12 +367,17 @@ class _Dropdown<T> extends StatelessWidget {
     return SizedBox(
       width: 180,
       child: DropdownButtonFormField<T>(
+        isExpanded: true,
         initialValue: value,
         items: [
           for (final item in items)
             DropdownMenuItem<T>(
               value: item,
-              child: Text(itemLabel(item)),
+              child: Text(
+                itemLabel(item),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
         ],
         onChanged: onChanged,
@@ -400,7 +406,10 @@ class _MetricCard extends StatelessWidget {
         children: [
           Text(
             metric.label,
-            style: const TextStyle(color: AppPalette.muted, fontWeight: FontWeight.w700),
+            style: const TextStyle(
+              color: AppPalette.muted,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 14),
           Text(
@@ -468,10 +477,7 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _RunBadge extends StatelessWidget {
-  const _RunBadge({
-    required this.status,
-    required this.format,
-  });
+  const _RunBadge({required this.status, required this.format});
 
   final ReportRunStatus status;
   final ReportFormat format;

@@ -444,10 +444,18 @@ class _FilterDropdown<T> extends StatelessWidget {
     return SizedBox(
       width: 170,
       child: DropdownButtonFormField<T>(
+        isExpanded: true,
         initialValue: value,
         items: [
           for (final item in items)
-            DropdownMenuItem<T>(value: item, child: Text(itemLabel(item))),
+            DropdownMenuItem<T>(
+              value: item,
+              child: Text(
+                itemLabel(item),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
         ],
         onChanged: onChanged,
         decoration: InputDecoration(labelText: label),
