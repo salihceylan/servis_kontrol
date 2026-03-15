@@ -113,11 +113,15 @@ class _TaskPageState extends State<TaskPage> {
             const SizedBox(height: 18),
             LayoutBuilder(
               builder: (context, constraints) {
+                final compact = constraints.maxWidth < 1140;
                 final selectedTask = _controller.selectedTask;
                 final listPanel = _TaskListPanel(
                   tasks: _controller.filteredTasks,
                   selectedTaskId: selectedTask?.id,
-                  onSelect: _controller.selectTask,
+                  onSelect: compact
+                      ? _openTaskDetailSheet
+                      : _controller.selectTask,
+                  opensDetailSheet: compact,
                 );
                 final detailPanel = _TaskDetailPanel(
                   controller: _controller,
@@ -129,14 +133,8 @@ class _TaskPageState extends State<TaskPage> {
                   onSubmit: _submitTask,
                 );
 
-                if (constraints.maxWidth < 1140) {
-                  return Column(
-                    children: [
-                      listPanel,
-                      const SizedBox(height: 16),
-                      detailPanel,
-                    ],
-                  );
+                if (compact) {
+                  return listPanel;
                 }
 
                 return Row(
@@ -200,6 +198,70 @@ class _TaskPageState extends State<TaskPage> {
   }
 
   Future<void> _startTask() async {
+    await _startTaskWithFeedback();
+  }
+
+  Future<void> _saveComment() async {
+    await _saveCommentWithFeedback(_commentController);
+  }
+
+  Future<void> _createMeeting() async {
+    await _createMeetingWithFeedback();
+  }
+
+  Future<void> _submitTask() async {
+    await _submitTaskWithFeedback();
+  }
+
+  Future<void> _openTaskDetailSheet(String taskId) async {
+    _controller.selectTask(taskId);
+    final commentController = TextEditingController();
+    try {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        builder: (context) {
+          return AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              return DraggableScrollableSheet(
+                expand: false,
+                initialChildSize: 0.88,
+                minChildSize: 0.55,
+                maxChildSize: 0.94,
+                builder: (context, scrollController) {
+                  return SingleChildScrollView(
+                    controller: scrollController,
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      16,
+                      16,
+                      MediaQuery.viewInsetsOf(context).bottom + 16,
+                    ),
+                    child: _TaskDetailPanel(
+                      controller: _controller,
+                      task: _controller.selectedTask,
+                      commentController: commentController,
+                      onStart: _startTaskWithFeedback,
+                      onComment: () =>
+                          _saveCommentWithFeedback(commentController),
+                      onMeeting: _createMeetingWithFeedback,
+                      onSubmit: _submitTaskWithFeedback,
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        },
+      );
+    } finally {
+      commentController.dispose();
+    }
+  }
+
+  Future<void> _startTaskWithFeedback() async {
     final success = await _controller.startSelectedTask();
     _showFeedback(
       success
@@ -208,14 +270,16 @@ class _TaskPageState extends State<TaskPage> {
     );
   }
 
-  Future<void> _saveComment() async {
-    final comment = _commentController.text.trim();
+  Future<void> _saveCommentWithFeedback(
+    TextEditingController controller,
+  ) async {
+    final comment = controller.text.trim();
     if (comment.isEmpty) {
       return;
     }
     final success = await _controller.addComment(comment);
     if (success) {
-      _commentController.clear();
+      controller.clear();
     }
     _showFeedback(
       success
@@ -224,7 +288,7 @@ class _TaskPageState extends State<TaskPage> {
     );
   }
 
-  Future<void> _createMeeting() async {
+  Future<void> _createMeetingWithFeedback() async {
     final success = await _controller.scheduleMeeting();
     _showFeedback(
       success
@@ -233,7 +297,7 @@ class _TaskPageState extends State<TaskPage> {
     );
   }
 
-  Future<void> _submitTask() async {
+  Future<void> _submitTaskWithFeedback() async {
     final success = await _controller.submitSelectedTask();
     _showFeedback(
       success
@@ -469,17 +533,21 @@ class _TaskListPanel extends StatelessWidget {
     required this.tasks,
     required this.selectedTaskId,
     required this.onSelect,
+    required this.opensDetailSheet,
   });
 
   final List<TaskItem> tasks;
   final String? selectedTaskId;
   final ValueChanged<String> onSelect;
+  final bool opensDetailSheet;
 
   @override
   Widget build(BuildContext context) {
     return _Card(
       title: 'Gorev Listesi',
-      subtitle: 'Secilen kayit sagdaki detay kartinda acilir.',
+      subtitle: opensDetailSheet
+          ? 'Kayda dokununca detay ve aksiyonlar acilir.'
+          : 'Secilen kayit sagdaki detay kartinda acilir.',
       child: tasks.isEmpty
           ? const StatePanel.empty(
               title: 'Filtreye uygun gorev yok',
