@@ -15,10 +15,7 @@ class ApiAuthRepository implements AuthRepository {
   }) async {
     final payload = await _client.postMap(
       'auth/login',
-      body: {
-        'email': email.trim(),
-        'password': password,
-      },
+      body: {'email': email.trim(), 'password': password},
     );
     return AuthSession.fromJson(payload);
   }
@@ -32,12 +29,32 @@ class ApiAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<void> requestSignUp({
+    required String companyName,
+    required String fullName,
+    required String email,
+    String? phone,
+  }) {
+    return _client.postVoid(
+      'auth/sign-up-request',
+      body: {
+        'company_name': companyName.trim(),
+        'full_name': fullName.trim(),
+        'email': email.trim().toLowerCase(),
+        'phone': phone?.trim(),
+      },
+    );
+  }
+
+  @override
   Future<AppUser> completeOnboarding(OnboardingProfile profile) async {
     final payload = await _client.putMap(
       'auth/onboarding',
       body: profile.toJson(),
     );
-    return AppUser.fromJson(payload['user'] as Map<String, dynamic>? ?? payload);
+    return AppUser.fromJson(
+      payload['user'] as Map<String, dynamic>? ?? payload,
+    );
   }
 
   @override

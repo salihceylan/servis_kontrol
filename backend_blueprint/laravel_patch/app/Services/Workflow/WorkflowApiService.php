@@ -77,6 +77,58 @@ class WorkflowApiService
         }
     }
 
+    public function recordSignUpRequest(
+        string $companyName,
+        string $fullName,
+        string $email,
+        ?string $phone = null,
+        ?string $ipAddress = null,
+    ): void {
+        $normalizedCompanyName = trim($companyName);
+        $normalizedFullName = trim($fullName);
+        $normalizedEmail = trim(Str::lower($email));
+        $normalizedPhone = $phone !== null ? trim($phone) : null;
+
+        DB::table('audit_logs')->insert([
+            'company_id' => null,
+            'user_id' => null,
+            'entity_type' => 'auth',
+            'entity_id' => $normalizedEmail,
+            'action' => 'sign_up_requested',
+            'old_values_json' => null,
+            'new_values_json' => json_encode([
+                'company_name' => $normalizedCompanyName,
+                'full_name' => $normalizedFullName,
+                'email' => $normalizedEmail,
+                'phone' => $normalizedPhone,
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'ip_address' => $ipAddress,
+            'created_at' => now(),
+        ]);
+
+        $mailFrom = config('mail.from.address');
+        if (is_string($mailFrom) && $mailFrom !== '') {
+            try {
+                Mail::raw(
+                    implode("\n", [
+                        'Workflow kayit talebiniz alindi.',
+                        'Sirket: ' . $normalizedCompanyName,
+                        'Iletisim kisisi: ' . $normalizedFullName,
+                        'Ekibimiz hesap acilisi icin sizinle iletisime gececek.',
+                        'Destek e-postasi: ' . $mailFrom,
+                    ]),
+                    function ($message) use ($normalizedEmail): void {
+                        $message
+                            ->to($normalizedEmail)
+                            ->subject('Workflow kayit talebi alindi');
+                    },
+                );
+            } catch (Throwable) {
+                // SMTP hatasi audit kaydini bozmasin.
+            }
+        }
+    }
+
     public function completeOnboarding(User $user, array $payload): array
     {
         $context = $this->context($user);

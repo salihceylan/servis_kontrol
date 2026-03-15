@@ -13,9 +13,9 @@ class AuthController extends ChangeNotifier {
     required ApiClient apiClient,
     AuthRepository? repository,
     AuthSessionStorage? sessionStorage,
-  })  : _apiClient = apiClient,
-        _repository = repository ?? ApiAuthRepository(apiClient),
-        _sessionStorage = sessionStorage ?? InMemoryAuthSessionStorage();
+  }) : _apiClient = apiClient,
+       _repository = repository ?? ApiAuthRepository(apiClient),
+       _sessionStorage = sessionStorage ?? InMemoryAuthSessionStorage();
 
   final ApiClient _apiClient;
   final AuthRepository _repository;
@@ -23,11 +23,13 @@ class AuthController extends ChangeNotifier {
   AppUser? _currentUser;
   AuthStage _stage = AuthStage.login;
   bool _busy = false;
+  bool _rememberSession = true;
 
   ApiClient get apiClient => _apiClient;
   AppUser? get currentUser => _currentUser;
   AuthStage get stage => _stage;
   bool get busy => _busy;
+  bool get rememberSession => _rememberSession;
 
   void updateSessionStorage(AuthSessionStorage sessionStorage) {
     _sessionStorage = sessionStorage;
@@ -45,6 +47,7 @@ class AuthController extends ChangeNotifier {
       _stage = session.user.isFirstLogin
           ? AuthStage.onboarding
           : AuthStage.authenticated;
+      _rememberSession = true;
       notifyListeners();
     } catch (_) {
       _apiClient.clearAccessToken();
@@ -58,17 +61,26 @@ class AuthController extends ChangeNotifier {
   Future<AuthResult> signIn({
     required String email,
     required String password,
+    bool rememberSession = true,
   }) async {
+    _rememberSession = rememberSession;
     _busy = true;
     notifyListeners();
     try {
-      final session = await _repository.signIn(email: email, password: password);
+      final session = await _repository.signIn(
+        email: email,
+        password: password,
+      );
       _apiClient.updateAccessToken(session.token);
       _currentUser = session.user;
       _stage = session.user.isFirstLogin
           ? AuthStage.onboarding
           : AuthStage.authenticated;
-      await _sessionStorage.write(session);
+      if (_rememberSession) {
+        await _sessionStorage.write(session);
+      } else {
+        await _sessionStorage.clear();
+      }
       return AuthResult.success('Oturum acildi.');
     } on ApiException catch (error) {
       return AuthResult.failure(error.message);
@@ -103,6 +115,49 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  Future<AuthResult> requestSignUp({
+    required String companyName,
+    required String fullName,
+    required String email,
+    String? phone,
+  }) async {
+    final normalizedCompanyName = companyName.trim();
+    final normalizedFullName = fullName.trim();
+    final normalizedEmail = email.trim().toLowerCase();
+    final normalizedPhone = phone?.trim() ?? '';
+
+    if (normalizedCompanyName.isEmpty) {
+      return AuthResult.failure('Sirket adi gerekli.');
+    }
+    if (normalizedFullName.isEmpty) {
+      return AuthResult.failure('Ad soyad gerekli.');
+    }
+    if (normalizedEmail.isEmpty || !normalizedEmail.contains('@')) {
+      return AuthResult.failure('Gecerli bir e-posta adresi girin.');
+    }
+
+    _busy = true;
+    notifyListeners();
+    try {
+      await _repository.requestSignUp(
+        companyName: normalizedCompanyName,
+        fullName: normalizedFullName,
+        email: normalizedEmail,
+        phone: normalizedPhone.isEmpty ? null : normalizedPhone,
+      );
+      return AuthResult.success(
+        'Kayit talebiniz alindi. Ekibimiz sizinle iletisime gececek.',
+      );
+    } on ApiException catch (error) {
+      return AuthResult.failure(error.message);
+    } catch (_) {
+      return AuthResult.failure('Kayit talebi gonderilemedi.');
+    } finally {
+      _busy = false;
+      notifyListeners();
+    }
+  }
+
   Future<AuthResult> completeOnboarding(OnboardingProfile profile) async {
     if (_currentUser == null) {
       return AuthResult.failure('Aktif kullanici bulunamadi.');
@@ -115,9 +170,13 @@ class AuthController extends ChangeNotifier {
       _stage = AuthStage.authenticated;
       final token = _apiClient.accessToken;
       if (_currentUser != null && token != null && token.isNotEmpty) {
-        await _sessionStorage.write(
-          AuthSession(token: token, user: _currentUser!),
-        );
+        if (_rememberSession) {
+          await _sessionStorage.write(
+            AuthSession(token: token, user: _currentUser!),
+          );
+        } else {
+          await _sessionStorage.clear();
+        }
       }
       return AuthResult.success('Ilk giris kurulumu tamamlandi.');
     } on ApiException catch (error) {

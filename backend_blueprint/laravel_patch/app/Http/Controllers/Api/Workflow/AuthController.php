@@ -54,6 +54,28 @@ class AuthController extends Controller
         ]);
     }
 
+    public function signUpRequest(Request $request): JsonResponse
+    {
+        $payload = $request->validate([
+            'company_name' => ['required', 'string', 'max:160'],
+            'full_name' => ['required', 'string', 'max:160'],
+            'email' => ['required', 'email'],
+            'phone' => ['nullable', 'string', 'max:40'],
+        ]);
+
+        $this->workflow->recordSignUpRequest(
+            companyName: $payload['company_name'],
+            fullName: $payload['full_name'],
+            email: $payload['email'],
+            phone: $payload['phone'] ?? null,
+            ipAddress: $request->ip(),
+        );
+
+        return response()->json([
+            'message' => 'Kayit talebiniz alindi.',
+        ]);
+    }
+
     public function onboarding(Request $request): JsonResponse
     {
         $payload = $request->validate([

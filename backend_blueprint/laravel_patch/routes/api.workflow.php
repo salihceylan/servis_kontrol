@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->group(function (): void {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/sign-up-request', [AuthController::class, 'signUpRequest']);
 });
 
 Route::middleware('auth:sanctum')->group(function (): void {

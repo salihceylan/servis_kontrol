@@ -78,6 +78,40 @@ void main() {
     expect(controller.apiClient.accessToken, isNull);
     expect(controller.stage, AuthStage.login);
   });
+
+  test('does not persist session when remember me is disabled', () async {
+    final storage = InMemoryAuthSessionStorage();
+    const user = AppUser(
+      id: '34',
+      userCode: '55555555555',
+      companyId: '9',
+      companyCode: '555999',
+      name: 'Ayse Demir',
+      email: 'ayse@workflow.local',
+      role: UserRole.manager,
+      department: 'Operasyon',
+      jobTitle: 'Yonetici',
+      workPreference: 'Ofis',
+      notificationChannels: {NotificationChannel.system},
+      isFirstLogin: false,
+      wantsQuickTour: false,
+    );
+    final controller = AuthController(
+      apiClient: createTestApiClient(),
+      repository: _FakeAuthRepository(user),
+      sessionStorage: storage,
+    );
+
+    await controller.signIn(
+      email: user.email,
+      password: 'secret',
+      rememberSession: false,
+    );
+
+    expect(await storage.read(), isNull);
+    expect(controller.stage, AuthStage.authenticated);
+    expect(controller.apiClient.accessToken, 'token-abc');
+  });
 }
 
 class _FakeAuthRepository implements AuthRepository {
@@ -103,6 +137,14 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> requestPasswordReset(String email) async {}
+
+  @override
+  Future<void> requestSignUp({
+    required String companyName,
+    required String fullName,
+    required String email,
+    String? phone,
+  }) async {}
 
   @override
   Future<AuthSession> signIn({

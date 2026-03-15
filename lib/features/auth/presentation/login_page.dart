@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:servis_kontrol/core/theme/app_palette.dart';
 import 'package:servis_kontrol/features/auth/application/auth_controller.dart';
 import 'package:servis_kontrol/features/auth/presentation/forgot_password_dialog.dart';
+import 'package:servis_kontrol/features/auth/presentation/sign_up_dialog.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.controller});
@@ -20,6 +21,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   bool _submitting = false;
   bool _obscureText = true;
+  bool _rememberMe = true;
   String? _message;
   bool _isSuccess = false;
 
@@ -43,6 +45,7 @@ class _LoginPageState extends State<LoginPage> {
     final result = await widget.controller.signIn(
       email: _emailController.text,
       password: _passwordController.text,
+      rememberSession: _rememberMe,
     );
 
     if (!mounted) {
@@ -60,6 +63,16 @@ class _LoginPageState extends State<LoginPage> {
     await showDialog<void>(
       context: context,
       builder: (context) => ForgotPasswordDialog(
+        controller: widget.controller,
+        initialEmail: _emailController.text,
+      ),
+    );
+  }
+
+  Future<void> _openSignUp() async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => SignUpDialog(
         controller: widget.controller,
         initialEmail: _emailController.text,
       ),
@@ -104,13 +117,18 @@ class _LoginPageState extends State<LoginPage> {
                     emailController: _emailController,
                     passwordController: _passwordController,
                     obscureText: _obscureText,
+                    rememberMe: _rememberMe,
                     submitting: _submitting,
                     message: _message,
                     isSuccess: _isSuccess,
+                    onToggleRememberMe: (value) {
+                      setState(() => _rememberMe = value ?? false);
+                    },
                     onToggleObscure: () {
                       setState(() => _obscureText = !_obscureText);
                     },
                     onForgotPassword: _openForgotPassword,
+                    onSignUp: _openSignUp,
                     onSubmit: _submit,
                   );
 
@@ -302,10 +320,7 @@ class _CompactBrandHeader extends StatelessWidget {
           SizedBox(height: 12),
           Text(
             'Gerçek görev, revizyon ve ekip kayıtlarıyla çalış.',
-            style: TextStyle(
-              color: AppPalette.muted,
-              height: 1.5,
-            ),
+            style: TextStyle(color: AppPalette.muted, height: 1.5),
           ),
         ],
       ),
@@ -370,11 +385,14 @@ class _LoginCard extends StatelessWidget {
     required this.emailController,
     required this.passwordController,
     required this.obscureText,
+    required this.rememberMe,
     required this.submitting,
     required this.message,
     required this.isSuccess,
+    required this.onToggleRememberMe,
     required this.onToggleObscure,
     required this.onForgotPassword,
+    required this.onSignUp,
     required this.onSubmit,
   });
 
@@ -382,11 +400,14 @@ class _LoginCard extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController passwordController;
   final bool obscureText;
+  final bool rememberMe;
   final bool submitting;
   final String? message;
   final bool isSuccess;
+  final ValueChanged<bool?> onToggleRememberMe;
   final VoidCallback onToggleObscure;
   final VoidCallback onForgotPassword;
+  final VoidCallback onSignUp;
   final VoidCallback onSubmit;
 
   @override
@@ -469,11 +490,41 @@ class _LoginCard extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: onForgotPassword,
-                    child: const Text('Parolamı unuttum'),
+                Row(
+                  children: [
+                    Checkbox.adaptive(
+                      value: rememberMe,
+                      onChanged: submitting ? null : onToggleRememberMe,
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Beni hatirla',
+                        style: TextStyle(
+                          color: AppPalette.muted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                SizedBox(
+                  width: double.infinity,
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      TextButton(
+                        onPressed: submitting ? null : onForgotPassword,
+                        child: const Text('Sifremi unuttum'),
+                      ),
+                      OutlinedButton(
+                        onPressed: submitting ? null : onSignUp,
+                        child: const Text('Kaydol'),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -545,11 +596,7 @@ class _CardHeader extends StatelessWidget {
         SizedBox(height: 16),
         Text(
           'Hesabına giriş yap ve operasyon paneline kaldığın yerden devam et.',
-          style: TextStyle(
-            color: AppPalette.muted,
-            height: 1.55,
-            fontSize: 14,
-          ),
+          style: TextStyle(color: AppPalette.muted, height: 1.55, fontSize: 14),
         ),
       ],
     );
@@ -557,10 +604,7 @@ class _CardHeader extends StatelessWidget {
 }
 
 class _BackdropGlow extends StatelessWidget {
-  const _BackdropGlow({
-    required this.size,
-    required this.colors,
-  });
+  const _BackdropGlow({required this.size, required this.colors});
 
   final double size;
   final List<Color> colors;
