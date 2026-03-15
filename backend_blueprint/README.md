@@ -85,6 +85,22 @@ Bir şirket kaydı açtıktan sonra default rol ve ayarları üret:
 SELECT wf_seed_company_defaults(<company_id>);
 ```
 
+## Tek Satir DB Patch
+
+Mevcut veritabanindaki sirket, kullanici ve gorev dis kodlarini yeni kurala tek komutla gecirmek icin:
+
+```bash
+bash backend_blueprint/scripts/apply_workflow_identifier_codes.sh
+```
+
+Bu script:
+
+- `sql/003_workflow_identifier_codes.sql` dosyasini uygular
+- company code formatini 5 haneli rastgele sayiya cevirir
+- user code formatini 10 haneli rastgele sayiya cevirir
+- task code formatini `A12354kk16` tipinde benzersiz yapar
+- islem sonunda format dogrulama sorgularini calistirir
+
 ## Not
 
 Bu blueprint yalnızca veritabanı tarafını kurar. Endpoint implementasyonu için ayrıca:
