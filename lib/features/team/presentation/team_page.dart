@@ -3,6 +3,7 @@ import 'package:servis_kontrol/core/network/api_client.dart';
 import 'package:servis_kontrol/core/presentation/state_panel.dart';
 import 'package:servis_kontrol/core/theme/app_palette.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
+import 'package:servis_kontrol/features/auth/domain/user_role.dart';
 import 'package:servis_kontrol/features/team/application/team_controller.dart';
 import 'package:servis_kontrol/features/team/domain/team_member.dart';
 import 'package:servis_kontrol/features/team/presentation/team_group_dialog.dart';
@@ -32,6 +33,37 @@ class _TeamPageState extends State<TeamPage> {
   final _noteController = TextEditingController();
   String? _noteMemberId;
 
+  UserRole get _role => widget.user.role;
+  bool get _isTeamLeadView => _role == UserRole.teamLead;
+
+  String get _loadingMessage => _isTeamLeadView
+      ? 'Takım üyeleri, görev yükü ve risk sinyalleri sunucudan alınıyor.'
+      : 'Çalışanlar, takımlar ve yetki kayıtları sunucudan alınıyor.';
+
+  String get _heroTitle => _isTeamLeadView
+      ? 'Takım görünümü ve iş dağılımı'
+      : 'Çalışan, takım ve izin yönetimi';
+
+  String get _heroSubtitle => _isTeamLeadView
+      ? 'Sorumlu olduğun takımın iş yükünü izle, görev akışını yönet ve revizyon risklerini yakından takip et.'
+      : 'Manager kullanıcısı ekip kurabilir, çalışan ekleyebilir, şifre belirleyebilir, takım ataması yapabilir ve personel detaylarını görebilir.';
+
+  String get _memberListSubtitle => _isTeamLeadView
+      ? 'Takımındaki çalışanlar kullanıcı adı, rol, aktif görev ve risk bilgileriyle listelenir.'
+      : 'Tüm personel kullanıcı adı, takım, rol ve aktif görev bilgileriyle listelenir.';
+
+  String get _detailSubtitle => _isTeamLeadView
+      ? 'Takım üyesi bilgileri, rol yetkileri ve iş yükü özeti.'
+      : 'Kullanıcı bilgileri, izinler, takım ve yönetici notu.';
+
+  String get _teamCardSubtitle => _isTeamLeadView
+      ? 'Sorumlu olduğun takımın üye yapısını, aktif görev yükünü ve görev dağılımını izle.'
+      : 'Manager birden fazla takım oluşturabilir, takım sorumlusu atayabilir ve personeli takımlara dağıtabilir.';
+
+  String get _emptyMembersMessage => _isTeamLeadView
+      ? 'Bu takım için görünen çalışan veya görev kaydı yok.'
+      : 'Bu şirket için görünen çalışan veya takım kaydı yok.';
+
   @override
   void initState() {
     super.initState();
@@ -59,10 +91,9 @@ class _TeamPageState extends State<TeamPage> {
       animation: _controller,
       builder: (context, _) {
         if (_controller.isLoading) {
-          return const StatePanel.loading(
+          return StatePanel.loading(
             title: 'Ekip verileri yükleniyor',
-            message:
-                'Çalışanlar, takımlar ve yetki kayıtları sunucudan alınıyor.',
+            message: _loadingMessage,
           );
         }
         if (_controller.errorMessage != null && !_controller.hasData) {
@@ -255,8 +286,8 @@ class _TeamPageState extends State<TeamPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Çalışan, takım ve izin yönetimi',
+          Text(
+            _heroTitle,
             style: TextStyle(
               color: Colors.white,
               fontSize: 26,
@@ -264,8 +295,8 @@ class _TeamPageState extends State<TeamPage> {
             ),
           ),
           const SizedBox(height: 10),
-          const Text(
-            'Manager kullanıcısı ekip kurabilir, çalışan ekleyebilir, şifre belirleyebilir, takım ataması yapabilir ve personel detaylarını görebilir.',
+          Text(
+            _heroSubtitle,
             style: TextStyle(color: Color(0xD0FFFFFF), height: 1.5),
           ),
           if (_controller.canManageWorkspace) ...[
@@ -298,16 +329,15 @@ class _TeamPageState extends State<TeamPage> {
   Widget _membersCard() {
     final members = _controller.members;
     if (members.isEmpty) {
-      return const StatePanel.empty(
+      return StatePanel.empty(
         title: 'Çalışan kaydı bulunamadı',
-        message: 'Bu şirket için görünen çalışan veya takım kaydı yok.',
+        message: _emptyMembersMessage,
       );
     }
     final palette = context.rolePalette;
     return _card(
       title: 'Çalışanlar',
-      subtitle:
-          'Tüm personel kullanıcı adı, takım, rol ve aktif görev bilgileriyle listelenir.',
+      subtitle: _memberListSubtitle,
       child: Column(
         children: [
           for (final member in members)
@@ -362,7 +392,8 @@ class _TeamPageState extends State<TeamPage> {
                                 ],
                               ),
                             ),
-                            if (member.canEdit)
+                            if (_controller.canManageWorkspace &&
+                                member.canEdit)
                               IconButton(
                                 onPressed: () => _openEditMember(member),
                                 icon: const Icon(Icons.edit_outlined),
@@ -442,8 +473,8 @@ class _TeamPageState extends State<TeamPage> {
     final palette = context.rolePalette;
     return _card(
       title: 'Çalışan Detayı',
-      subtitle: 'Kullanıcı bilgileri, izinler, takım ve yönetici notu.',
-      action: member.canEdit
+      subtitle: _detailSubtitle,
+      action: _controller.canManageWorkspace && member.canEdit
           ? OutlinedButton.icon(
               onPressed: () => _openEditMember(member),
               icon: const Icon(Icons.edit_outlined),
@@ -615,8 +646,7 @@ class _TeamPageState extends State<TeamPage> {
     final palette = context.rolePalette;
     return _card(
       title: 'Takımlar',
-      subtitle:
-          'Manager birden fazla takım oluşturabilir, takım sorumlusu atayabilir ve personeli takımlara dağıtabilir.',
+      subtitle: _teamCardSubtitle,
       action: _controller.canManageWorkspace
           ? OutlinedButton.icon(
               onPressed: _controller.isSaving ? null : _openCreateTeam,

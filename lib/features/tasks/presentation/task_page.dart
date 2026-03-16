@@ -3,6 +3,7 @@ import 'package:servis_kontrol/core/network/api_client.dart';
 import 'package:servis_kontrol/core/presentation/state_panel.dart';
 import 'package:servis_kontrol/core/theme/app_palette.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
+import 'package:servis_kontrol/features/auth/domain/user_role.dart';
 import 'package:servis_kontrol/features/tasks/application/task_controller.dart';
 import 'package:servis_kontrol/features/tasks/domain/task_item.dart';
 import 'package:servis_kontrol/features/tasks/presentation/task_create_dialog.dart';
@@ -21,6 +22,30 @@ class _TaskPageState extends State<TaskPage> {
   late final TaskController _controller;
   final _searchController = TextEditingController();
   final _commentController = TextEditingController();
+
+  UserRole get _role => widget.user.role;
+  String get _pageTitle => switch (_role) {
+    UserRole.employee => 'Görevlerim',
+    UserRole.teamLead => 'Takım Görevleri',
+    _ => 'Görevler',
+  };
+  String get _pageSubtitle => switch (_role) {
+    UserRole.employee =>
+      'Üzerine atanan işleri takip et, not ekle ve teslim sürecini yönet.',
+    UserRole.teamLead =>
+      'Ekibinin görevlerini filtrele, takımına yeni iş ata ve revizyon risklerini izle.',
+    _ =>
+      'Gerçek görev kayıtlarını filtrele, takım bazlı dağıt ve detay aksiyonlarını doğrudan veritabanına işle.',
+  };
+  String get _emptyTaskMessage => switch (_role) {
+    UserRole.employee => 'Veritabanında sana atanmış görünen bir görev yok.',
+    UserRole.teamLead => 'Ekibin için görünen bir görev kaydı yok.',
+    _ => 'Veritabanında bu kullanıcı için henüz görünen bir görev yok.',
+  };
+  String get _createActionLabel => switch (_role) {
+    UserRole.teamLead => 'Takıma Görev Ata',
+    _ => 'Yeni Görev',
+  };
 
   @override
   void initState() {
@@ -48,9 +73,9 @@ class _TaskPageState extends State<TaskPage> {
       animation: _controller,
       builder: (context, _) {
         if (_controller.isLoading) {
-          return const StatePanel.loading(
+          return StatePanel.loading(
             title: 'Görevler yükleniyor',
-            message: 'Şirket görev kayıtları ve detayları sunucudan alınıyor.',
+            message: _pageSubtitle,
           );
         }
         if (_controller.errorMessage != null && !_controller.hasData) {
@@ -70,7 +95,7 @@ class _TaskPageState extends State<TaskPage> {
                 label: Text(
                   _controller.isPreparingComposer
                       ? 'Hazırlanıyor...'
-                      : 'Yeni Görev',
+                      : _createActionLabel,
                 ),
               )
             : null;
@@ -79,12 +104,15 @@ class _TaskPageState extends State<TaskPage> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _PageHeader(action: action),
+              _PageHeader(
+                title: _pageTitle,
+                subtitle: _pageSubtitle,
+                action: action,
+              ),
               const SizedBox(height: 18),
               StatePanel.empty(
                 title: 'Görev kaydı bulunamadı',
-                message:
-                    'Veritabanında bu kullanıcı için henüz görünen bir görev yok.',
+                message: _emptyTaskMessage,
                 onRetry: _controller.load,
               ),
             ],
@@ -94,7 +122,11 @@ class _TaskPageState extends State<TaskPage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _PageHeader(action: action),
+            _PageHeader(
+              title: _pageTitle,
+              subtitle: _pageSubtitle,
+              action: action,
+            ),
             const SizedBox(height: 18),
             Wrap(
               spacing: 16,
@@ -109,6 +141,7 @@ class _TaskPageState extends State<TaskPage> {
               controller: _controller,
               searchController: _searchController,
               onCreate: _controller.canCreateTask ? _createTask : null,
+              createLabel: _createActionLabel,
             ),
             const SizedBox(height: 18),
             LayoutBuilder(
@@ -125,6 +158,7 @@ class _TaskPageState extends State<TaskPage> {
                 );
                 final detailPanel = _TaskDetailPanel(
                   controller: _controller,
+                  role: _role,
                   task: selectedTask,
                   commentController: _commentController,
                   onStart: _startTask,
@@ -227,6 +261,7 @@ class _TaskPageState extends State<TaskPage> {
                     ),
                     child: _TaskDetailPanel(
                       controller: _controller,
+                      role: _role,
                       task: _controller.selectedTask,
                       commentController: commentController,
                       onStart: _startTaskWithFeedback,
@@ -303,8 +338,10 @@ class _TaskPageState extends State<TaskPage> {
 }
 
 class _PageHeader extends StatelessWidget {
-  const _PageHeader({this.action});
+  const _PageHeader({required this.title, required this.subtitle, this.action});
 
+  final String title;
+  final String subtitle;
   final Widget? action;
 
   @override
@@ -312,8 +349,8 @@ class _PageHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Görevler',
+        Text(
+          title,
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
@@ -321,10 +358,7 @@ class _PageHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'Gerçek görev kayıtlarını filtrele, takım bazlı dağıt ve detay aksiyonlarını doğrudan veritabanına işle.',
-          style: TextStyle(color: AppPalette.muted, height: 1.5),
-        ),
+        Text(subtitle, style: TextStyle(color: AppPalette.muted, height: 1.5)),
         if (action != null) ...[const SizedBox(height: 14), action!],
       ],
     );
@@ -384,11 +418,13 @@ class _FilterCard extends StatelessWidget {
     required this.controller,
     required this.searchController,
     this.onCreate,
+    required this.createLabel,
   });
 
   final TaskController controller;
   final TextEditingController searchController;
   final Future<void> Function()? onCreate;
+  final String createLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -472,7 +508,7 @@ class _FilterCard extends StatelessWidget {
               label: Text(
                 controller.isPreparingComposer
                     ? 'Hazırlanıyor...'
-                    : 'Yeni Görev',
+                    : createLabel,
               ),
             ),
         ],
@@ -638,6 +674,7 @@ class _TaskListPanel extends StatelessWidget {
 class _TaskDetailPanel extends StatelessWidget {
   const _TaskDetailPanel({
     required this.controller,
+    required this.role,
     required this.task,
     required this.commentController,
     required this.onStart,
@@ -647,12 +684,21 @@ class _TaskDetailPanel extends StatelessWidget {
   });
 
   final TaskController controller;
+  final UserRole role;
   final TaskItem? task;
   final TextEditingController commentController;
   final Future<void> Function() onStart;
   final Future<void> Function() onComment;
   final Future<void> Function() onMeeting;
   final Future<void> Function() onSubmit;
+
+  bool get _canStartAndSubmit => role == UserRole.employee;
+  bool get _canScheduleMeeting => role != UserRole.employee;
+  String get _subtitle => switch (role) {
+    UserRole.employee => 'Başlat, not ekle ve teslim et.',
+    UserRole.teamLead => 'Görevi incele, ekibe not bırak ve toplantı planla.',
+    _ => 'Görevi incele, yorum ekle ve toplantı planla.',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -665,7 +711,7 @@ class _TaskDetailPanel extends StatelessWidget {
 
     return _Card(
       title: 'Görev Detayı',
-      subtitle: 'Baslat, yorum ekle, toplantı planla ve teslim et.',
+      subtitle: _subtitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -741,21 +787,24 @@ class _TaskDetailPanel extends StatelessWidget {
             spacing: 10,
             runSpacing: 10,
             children: [
-              FilledButton.icon(
-                onPressed: controller.isSaving ? null : onStart,
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: const Text('Baslat'),
-              ),
-              OutlinedButton.icon(
-                onPressed: controller.isSaving ? null : onMeeting,
-                icon: const Icon(Icons.video_call_rounded),
-                label: const Text('Toplantı Oluştur'),
-              ),
-              OutlinedButton.icon(
-                onPressed: controller.isSaving ? null : onSubmit,
-                icon: const Icon(Icons.assignment_turned_in_rounded),
-                label: const Text('Teslim Et'),
-              ),
+              if (_canStartAndSubmit)
+                FilledButton.icon(
+                  onPressed: controller.isSaving ? null : onStart,
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('Başlat'),
+                ),
+              if (_canScheduleMeeting)
+                OutlinedButton.icon(
+                  onPressed: controller.isSaving ? null : onMeeting,
+                  icon: const Icon(Icons.video_call_rounded),
+                  label: const Text('Toplantı Oluştur'),
+                ),
+              if (_canStartAndSubmit)
+                OutlinedButton.icon(
+                  onPressed: controller.isSaving ? null : onSubmit,
+                  icon: const Icon(Icons.assignment_turned_in_rounded),
+                  label: const Text('Teslim Et'),
+                ),
             ],
           ),
           if (task!.meetingLink != null) ...[

@@ -44,26 +44,71 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
 
   AppUser get _user => widget.user;
   UserRole get _role => _user.role;
+  bool get _canAccessSettings => switch (_role) {
+    UserRole.manager ||
+    UserRole.superAdmin ||
+    UserRole.sales ||
+    UserRole.support => true,
+    _ => false,
+  };
+
+  List<AppSection> get _availableSections => switch (_role) {
+    UserRole.employee => const [
+      AppSection.panel,
+      AppSection.tasks,
+      AppSection.revisions,
+      AppSection.performance,
+      AppSection.help,
+    ],
+    UserRole.teamLead => const [
+      AppSection.panel,
+      AppSection.team,
+      AppSection.tasks,
+      AppSection.revisions,
+      AppSection.performance,
+      AppSection.help,
+    ],
+    UserRole.manager ||
+    UserRole.superAdmin ||
+    UserRole.sales ||
+    UserRole.support => const [
+      AppSection.panel,
+      AppSection.team,
+      AppSection.tasks,
+      AppSection.revisions,
+      AppSection.performance,
+      AppSection.reports,
+      AppSection.settings,
+      AppSection.help,
+    ],
+  };
+
+  AppSection get _visibleSelected =>
+      _availableSections.contains(_selected) ? _selected : AppSection.panel;
+
+  (IconData, AppSection) get _quickAction => _canAccessSettings
+      ? (Icons.settings_outlined, AppSection.settings)
+      : (Icons.help_outline_rounded, AppSection.help);
 
   List<(AppSection, String, IconData)> get _sidebarItems => switch (_role) {
     UserRole.employee => [
       (AppSection.panel, 'Panel', Icons.grid_view_rounded),
-      (AppSection.tasks, 'Görevler', Icons.task_alt_rounded),
-      (AppSection.revisions, 'Revizyonlar', Icons.autorenew_rounded),
-      (AppSection.performance, 'Performans', Icons.insights_rounded),
+      (AppSection.tasks, 'Görevlerim', Icons.task_alt_rounded),
+      (AppSection.revisions, 'Revizyonlarım', Icons.autorenew_rounded),
+      (AppSection.performance, 'Performansım', Icons.insights_rounded),
     ],
     UserRole.teamLead => [
       (AppSection.panel, 'Panel', Icons.grid_view_rounded),
+      (AppSection.team, 'Takımım', Icons.groups_2_outlined),
       (AppSection.tasks, 'Görevler', Icons.task_alt_rounded),
       (AppSection.revisions, 'Revizyonlar', Icons.autorenew_rounded),
-      (AppSection.team, 'Ekip', Icons.groups_2_outlined),
       (AppSection.performance, 'Performans', Icons.insights_rounded),
     ],
     UserRole.manager => [
       (AppSection.panel, 'Panel', Icons.grid_view_rounded),
       (AppSection.tasks, 'Görevler', Icons.task_alt_rounded),
       (AppSection.revisions, 'Revizyonlar', Icons.autorenew_rounded),
-      (AppSection.team, 'Ekip', Icons.groups_2_outlined),
+      (AppSection.team, 'Çalışanlar', Icons.groups_2_outlined),
       (AppSection.performance, 'Performans', Icons.insights_rounded),
       (AppSection.reports, 'Raporlar', Icons.insert_chart_outlined_rounded),
     ],
@@ -80,15 +125,16 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
   List<(AppSection, String)> get _topNavItems => switch (_role) {
     UserRole.employee => [
       (AppSection.panel, 'Panel'),
-      (AppSection.tasks, 'Görevler'),
-      (AppSection.revisions, 'Revizyonlar'),
-      (AppSection.performance, 'Performans'),
+      (AppSection.tasks, 'Görevlerim'),
+      (AppSection.revisions, 'Revizyonlarım'),
+      (AppSection.performance, 'Performansım'),
     ],
     UserRole.teamLead => [
       (AppSection.panel, 'Panel'),
-      (AppSection.team, 'Ekip'),
+      (AppSection.team, 'Takımım'),
       (AppSection.tasks, 'Görevler'),
       (AppSection.revisions, 'Revizyonlar'),
+      (AppSection.performance, 'Performans'),
     ],
     UserRole.manager => [
       (AppSection.panel, 'Panel'),
@@ -106,14 +152,14 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
 
   (String, IconData, AppSection) get _primaryAction => switch (_role) {
     UserRole.employee => (
-      'Görevlerim',
+      'Teslim Güncelle',
       Icons.assignment_turned_in_rounded,
       AppSection.tasks,
     ),
     UserRole.teamLead => (
-      'Revizyonları İncele',
-      Icons.rate_review_rounded,
-      AppSection.revisions,
+      'Görev Ata',
+      Icons.add_task_rounded,
+      AppSection.tasks,
     ),
     UserRole.manager => ('Görev Ata', Icons.add_rounded, AppSection.team),
     UserRole.superAdmin ||
@@ -166,6 +212,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
 
   Widget _sidebar() {
     final palette = context.rolePalette;
+    final selected = _visibleSelected;
     return Container(
       color: palette.sidebar,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
@@ -225,33 +272,36 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                     child: _SidebarTile(
                       icon: item.$3,
                       label: item.$2,
-                      selected: _selected == item.$1,
+                      selected: selected == item.$1,
                       onTap: () => setState(() => _selected = item.$1),
                     ),
                   ),
                 const SizedBox(height: 10),
-                const Padding(
-                  padding: EdgeInsets.only(left: 8, bottom: 6),
+                Padding(
+                  padding: const EdgeInsets.only(left: 8, bottom: 6),
                   child: Text(
-                    'Ayarlar',
-                    style: TextStyle(
+                    _canAccessSettings ? 'Ayarlar' : 'Yardım',
+                    style: const TextStyle(
                       color: Color(0x88FFFFFF),
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-                _SidebarTile(
-                  icon: Icons.settings_outlined,
-                  label: 'Genel Ayarlar',
-                  selected: _selected == AppSection.settings,
-                  onTap: () => setState(() => _selected = AppSection.settings),
-                ),
-                const SizedBox(height: 4),
+                if (_canAccessSettings) ...[
+                  _SidebarTile(
+                    icon: Icons.settings_outlined,
+                    label: 'Genel Ayarlar',
+                    selected: selected == AppSection.settings,
+                    onTap: () =>
+                        setState(() => _selected = AppSection.settings),
+                  ),
+                  const SizedBox(height: 4),
+                ],
                 _SidebarTile(
                   icon: Icons.help_outline_rounded,
                   label: 'Yardım Merkezi',
-                  selected: _selected == AppSection.help,
+                  selected: selected == AppSection.help,
                   onTap: () => setState(() => _selected = AppSection.help),
                 ),
               ],
@@ -333,6 +383,8 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
   Widget _topBar(bool wide) {
     final nav = _topNavItems;
     final primaryAction = _primaryAction;
+    final selected = _visibleSelected;
+    final quickAction = _quickAction;
     final palette = context.rolePalette;
 
     return Container(
@@ -378,10 +430,10 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                           child: Text(
                             item.$2,
                             style: TextStyle(
-                              color: _selected == item.$1
+                              color: selected == item.$1
                                   ? palette.text
                                   : palette.muted,
-                              fontWeight: _selected == item.$1
+                              fontWeight: selected == item.$1
                                   ? FontWeight.w800
                                   : FontWeight.w600,
                             ),
@@ -407,8 +459,8 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
           ),
           const SizedBox(width: 10),
           _RoundAction(
-            icon: Icons.settings_outlined,
-            onTap: () => setState(() => _selected = AppSection.settings),
+            icon: quickAction.$1,
+            onTap: () => setState(() => _selected = quickAction.$2),
           ),
         ],
       ),
@@ -416,7 +468,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
   }
 
   Widget _content() {
-    switch (_selected) {
+    switch (_visibleSelected) {
       case AppSection.panel:
         return DashboardPage(apiClient: widget.apiClient);
       case AppSection.tasks:

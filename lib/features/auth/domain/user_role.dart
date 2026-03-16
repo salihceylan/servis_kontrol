@@ -12,9 +12,9 @@ extension UserRoleX on UserRole {
 
   String get dashboardSubtitle => switch (this) {
     UserRole.employee =>
-      'Bugün üzerinde çalıştığın görevler, revizyonlar ve bireysel metrikler burada.',
+      'Bugün üzerindeki görevler, teslimler ve bireysel performansın burada.',
     UserRole.teamLead =>
-      'Ekibinin görev akışı, revizyon kuyruğu ve operasyon öncelikleri burada.',
+      'Ekibinin görev dağılımı, revizyon kuyruğu ve risk sinyalleri burada.',
     UserRole.manager =>
       'Operasyon, ekip kartları, KPI ve erken uyarı özetleri burada.',
     UserRole.superAdmin =>
@@ -26,7 +26,7 @@ extension UserRoleX on UserRole {
 
   String get primaryActionLabel => switch (this) {
     UserRole.employee => 'Teslim Güncelle',
-    UserRole.teamLead => 'Revizyonları İncele',
+    UserRole.teamLead => 'Görev Ata',
     UserRole.manager => 'Görev Ata',
     UserRole.superAdmin => 'Yeni Şirket',
     UserRole.sales => 'Demo Hazırla',
