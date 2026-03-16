@@ -40,9 +40,6 @@ class ServisKontrolShell extends StatefulWidget {
 }
 
 class _ServisKontrolShellState extends State<ServisKontrolShell> {
-  static const _sidebarBase = Color(0xFF0D2545);
-  static const _sidebarPanel = Color(0xFF183659);
-
   AppSection _selected = AppSection.panel;
 
   AppUser get _user => widget.user;
@@ -126,6 +123,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.rolePalette;
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 1100;
@@ -133,7 +131,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
           drawer: wide
               ? null
               : Drawer(
-                  backgroundColor: _sidebarBase,
+                  backgroundColor: palette.sidebar,
                   child: SafeArea(child: _sidebar()),
                 ),
           body: SafeArea(
@@ -167,23 +165,24 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
   }
 
   Widget _sidebar() {
+    final palette = context.rolePalette;
     return Container(
-      color: _sidebarBase,
+      color: palette.sidebar,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: _sidebarPanel,
+              color: palette.sidebarSoft,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
             ),
-            child: const Row(
+            child: Row(
               children: [
                 CircleAvatar(
                   radius: 18,
-                  backgroundColor: AppPalette.primary,
+                  backgroundColor: palette.primary,
                   child: Icon(
                     Icons.dashboard_customize_rounded,
                     color: Colors.white,
@@ -268,11 +267,11 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: AppPalette.primarySoft,
+                  backgroundColor: palette.primarySoft,
                   child: Text(
                     _user.initials,
-                    style: const TextStyle(
-                      color: AppPalette.primary,
+                    style: TextStyle(
+                      color: palette.primary,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -334,11 +333,12 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
   Widget _topBar(bool wide) {
     final nav = _topNavItems;
     final primaryAction = _primaryAction;
+    final palette = context.rolePalette;
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: AppPalette.border)),
+        border: Border(bottom: BorderSide(color: palette.border)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -353,11 +353,11 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
           Expanded(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 320),
-              child: const TextField(
+              child: TextField(
                 decoration: InputDecoration(
                   hintText: 'Ara...',
-                  prefixIcon: Icon(Icons.search_rounded),
-                  fillColor: AppPalette.surfaceMuted,
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  fillColor: palette.surfaceMuted,
                 ),
               ),
             ),
@@ -379,8 +379,8 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                             item.$2,
                             style: TextStyle(
                               color: _selected == item.$1
-                                  ? AppPalette.text
-                                  : AppPalette.muted,
+                                  ? palette.text
+                                  : palette.muted,
                               fontWeight: _selected == item.$1
                                   ? FontWeight.w800
                                   : FontWeight.w600,
@@ -396,7 +396,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
           FilledButton.icon(
             onPressed: () => setState(() => _selected = primaryAction.$3),
             style: FilledButton.styleFrom(
-              backgroundColor: AppPalette.primary,
+              backgroundColor: palette.primary,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),
@@ -458,6 +458,7 @@ class _SidebarTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.rolePalette;
     return ListTile(
       dense: true,
       onTap: onTap,
@@ -466,7 +467,7 @@ class _SidebarTile extends StatelessWidget {
       horizontalTitleGap: 8,
       minLeadingWidth: 16,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      tileColor: selected ? AppPalette.primary : Colors.transparent,
+      tileColor: selected ? palette.primary : Colors.transparent,
       leading: Icon(icon, color: Colors.white, size: 18),
       title: Text(
         label,
@@ -490,6 +491,7 @@ class _RoundAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.rolePalette;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
@@ -497,11 +499,11 @@ class _RoundAction extends StatelessWidget {
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          color: AppPalette.background,
+          color: palette.background,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppPalette.border),
+          border: Border.all(color: palette.border),
         ),
-        child: Icon(icon, color: AppPalette.text, size: 20),
+        child: Icon(icon, color: palette.text, size: 20),
       ),
     );
   }

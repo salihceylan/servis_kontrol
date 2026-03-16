@@ -6,10 +6,7 @@ import 'package:servis_kontrol/features/dashboard/application/dashboard_controll
 import 'package:servis_kontrol/features/dashboard/domain/dashboard_snapshot.dart';
 
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({
-    super.key,
-    required this.apiClient,
-  });
+  const DashboardPage({super.key, required this.apiClient});
 
   final ApiClient apiClient;
 
@@ -89,7 +86,10 @@ class _DashboardPageState extends State<DashboardPage> {
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(flex: 3, child: _KpiPanel(metrics: snapshot.kpiCards)),
+                      Expanded(
+                        flex: 3,
+                        child: _KpiPanel(metrics: snapshot.kpiCards),
+                      ),
                       const SizedBox(width: 16),
                       Expanded(
                         flex: 2,
@@ -202,19 +202,20 @@ class _WorkflowHeroBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.rolePalette;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppPalette.sidebar, AppPalette.sidebarSoft],
+        gradient: LinearGradient(
+          colors: [palette.sidebar, palette.sidebarSoft],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(28),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: AppPalette.shadow,
+            color: palette.shadow,
             blurRadius: 28,
             offset: Offset(0, 16),
           ),
@@ -311,10 +312,7 @@ class _DashboardCard extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.title,
-    required this.subtitle,
-  });
+  const _SectionHeader({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -519,8 +517,9 @@ class _NotificationPanel extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 16,
-                      backgroundColor:
-                          notification.color.withValues(alpha: 0.14),
+                      backgroundColor: notification.color.withValues(
+                        alpha: 0.14,
+                      ),
                       child: Icon(
                         Icons.notifications_active_rounded,
                         size: 18,
@@ -955,10 +954,7 @@ class _RequestFormsPanel extends StatelessWidget {
 }
 
 class _DashboardPill extends StatelessWidget {
-  const _DashboardPill({
-    required this.label,
-    required this.color,
-  });
+  const _DashboardPill({required this.label, required this.color});
 
   final String label;
   final Color color;

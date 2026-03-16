@@ -54,47 +54,45 @@ class _ServisKontrolAppState extends State<ServisKontrolApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'ServisKontrol Pro',
-      theme: AppTheme.light(),
-      home: FutureBuilder<void>(
-        future: _bootstrapFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const _BootstrapPage();
-          }
+    return AnimatedBuilder(
+      animation: _authController,
+      builder: (context, _) => MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'ServisKontrol Pro',
+        theme: AppTheme.light(_authController.currentUser?.role),
+        home: FutureBuilder<void>(
+          future: _bootstrapFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const _BootstrapPage();
+            }
 
-          return AnimatedBuilder(
-            animation: _authController,
-            builder: (context, _) {
-              switch (_authController.stage) {
-                case AuthStage.login:
-                  return LoginPage(controller: _authController);
-                case AuthStage.onboarding:
-                  return OnboardingPage(
-                    user: _authController.currentUser!,
-                    controller: _authController,
-                    onLogout: _authController.logout,
-                  );
-                case AuthStage.authenticated:
-                  final user = _authController.currentUser!;
-                  if (user.role.isOwnerPortalRole) {
-                    return OwnerPortalShell(
-                      user: user,
-                      apiClient: _authController.apiClient,
-                      onLogout: _authController.logout,
-                    );
-                  }
-                  return ServisKontrolShell(
+            switch (_authController.stage) {
+              case AuthStage.login:
+                return LoginPage(controller: _authController);
+              case AuthStage.onboarding:
+                return OnboardingPage(
+                  user: _authController.currentUser!,
+                  controller: _authController,
+                  onLogout: _authController.logout,
+                );
+              case AuthStage.authenticated:
+                final user = _authController.currentUser!;
+                if (user.role.isOwnerPortalRole) {
+                  return OwnerPortalShell(
                     user: user,
                     apiClient: _authController.apiClient,
                     onLogout: _authController.logout,
                   );
-              }
-            },
-          );
-        },
+                }
+                return ServisKontrolShell(
+                  user: user,
+                  apiClient: _authController.apiClient,
+                  onLogout: _authController.logout,
+                );
+            }
+          },
+        ),
       ),
     );
   }

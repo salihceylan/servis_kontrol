@@ -1,22 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:servis_kontrol/core/theme/app_palette.dart';
+import 'package:servis_kontrol/features/auth/domain/user_role.dart';
 
 class AppTheme {
-  static ThemeData light() {
+  static ThemeData light([UserRole? role]) {
+    final palette = AppRolePalette.forRole(role);
     final base = ThemeData(useMaterial3: true);
     final textTheme = base.textTheme.apply(
-      bodyColor: AppPalette.text,
-      displayColor: AppPalette.text,
+      bodyColor: palette.text,
+      displayColor: palette.text,
     );
+    final colorScheme =
+        ColorScheme.fromSeed(
+          seedColor: palette.primary,
+          surface: Colors.white,
+        ).copyWith(
+          primary: palette.primary,
+          secondary: palette.sidebarSoft,
+          surfaceContainerHighest: palette.surfaceMuted,
+          outline: palette.border,
+          error: palette.danger,
+        );
 
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: AppPalette.background,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppPalette.primary,
-        surface: Colors.white,
-      ),
+      scaffoldBackgroundColor: palette.background,
+      colorScheme: colorScheme,
       textTheme: textTheme,
+      extensions: [palette],
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
@@ -25,106 +36,81 @@ class AppTheme {
           horizontal: 18,
           vertical: 18,
         ),
-        labelStyle: const TextStyle(
-          color: AppPalette.muted,
+        labelStyle: TextStyle(
+          color: palette.muted,
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
-        hintStyle: const TextStyle(
-          color: Color(0xFF8FA0B6),
-          fontSize: 14,
-        ),
+        hintStyle: const TextStyle(color: Color(0xFF8FA0B6), fontSize: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: AppPalette.border),
+          borderSide: BorderSide(color: palette.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: AppPalette.border),
+          borderSide: BorderSide(color: palette.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(
-            color: AppPalette.primary,
-            width: 1.4,
-          ),
+          borderSide: BorderSide(color: palette.primary, width: 1.4),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(
-            color: AppPalette.danger,
-            width: 1.1,
-          ),
+          borderSide: BorderSide(color: palette.danger, width: 1.1),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(
-            color: AppPalette.danger,
-            width: 1.4,
-          ),
+          borderSide: BorderSide(color: palette.danger, width: 1.4),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: AppPalette.primary,
+          backgroundColor: palette.primary,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-          ),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppPalette.text,
+          foregroundColor: palette.text,
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-          side: const BorderSide(color: AppPalette.border),
+          side: BorderSide(color: palette.border),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-          ),
+          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppPalette.primary,
-          textStyle: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-          ),
+          foregroundColor: palette.primary,
+          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
         ),
       ),
       chipTheme: base.chipTheme.copyWith(
-        backgroundColor: AppPalette.surfaceMuted,
-        selectedColor: AppPalette.primarySoft,
-        side: const BorderSide(color: AppPalette.border),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        labelStyle: const TextStyle(
-          color: AppPalette.text,
+        backgroundColor: palette.surfaceMuted,
+        selectedColor: palette.primarySoft,
+        side: BorderSide(color: palette.border),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        labelStyle: TextStyle(
+          color: palette.text,
           fontSize: 13,
           fontWeight: FontWeight.w600,
         ),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: AppPalette.sidebar,
+        backgroundColor: palette.sidebar,
         contentTextStyle: const TextStyle(
           color: Colors.white,
           fontSize: 13,
           fontWeight: FontWeight.w600,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
     );
   }
