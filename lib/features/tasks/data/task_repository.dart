@@ -16,14 +16,15 @@ abstract class TaskRepository {
 
   Future<TaskItem> createTask(TaskDraft draft);
 
-  Future<TaskItem> start(String taskId);
+  Future<TaskItem> start(String taskId, {TaskStartDraft? draft});
 
   Future<TaskItem> addComment({
     required String taskId,
     required String message,
+    required TaskCommentKind kind,
   });
 
   Future<TaskItem> scheduleMeeting(String taskId);
 
-  Future<TaskItem> submit(String taskId);
+  Future<TaskItem> submit(String taskId, TaskSubmissionDraft draft);
 }

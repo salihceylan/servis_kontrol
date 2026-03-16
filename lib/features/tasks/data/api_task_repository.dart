@@ -50,8 +50,11 @@ class ApiTaskRepository implements TaskRepository {
   }
 
   @override
-  Future<TaskItem> start(String taskId) async {
-    final payload = await _client.postMap('tasks/$taskId/start');
+  Future<TaskItem> start(String taskId, {TaskStartDraft? draft}) async {
+    final payload = await _client.postMap(
+      'tasks/$taskId/start',
+      body: draft?.toJson(),
+    );
     return TaskItem.fromJson(
       payload['task'] as Map<String, dynamic>? ?? payload,
     );
@@ -61,10 +64,11 @@ class ApiTaskRepository implements TaskRepository {
   Future<TaskItem> addComment({
     required String taskId,
     required String message,
+    required TaskCommentKind kind,
   }) async {
     final payload = await _client.postMap(
       'tasks/$taskId/comment',
-      body: {'message': message},
+      body: {'message': message, 'comment_type': kind.apiValue},
     );
     return TaskItem.fromJson(
       payload['task'] as Map<String, dynamic>? ?? payload,
@@ -80,8 +84,11 @@ class ApiTaskRepository implements TaskRepository {
   }
 
   @override
-  Future<TaskItem> submit(String taskId) async {
-    final payload = await _client.postMap('tasks/$taskId/submit');
+  Future<TaskItem> submit(String taskId, TaskSubmissionDraft draft) async {
+    final payload = await _client.postMap(
+      'tasks/$taskId/submit',
+      body: draft.toJson(),
+    );
     return TaskItem.fromJson(
       payload['task'] as Map<String, dynamic>? ?? payload,
     );

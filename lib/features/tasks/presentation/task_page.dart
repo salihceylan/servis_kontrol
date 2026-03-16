@@ -5,8 +5,11 @@ import 'package:servis_kontrol/core/theme/app_palette.dart';
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/auth/domain/user_role.dart';
 import 'package:servis_kontrol/features/tasks/application/task_controller.dart';
+import 'package:servis_kontrol/features/tasks/domain/task_composer.dart';
 import 'package:servis_kontrol/features/tasks/domain/task_item.dart';
+import 'package:servis_kontrol/features/tasks/presentation/task_action_dialogs.dart';
 import 'package:servis_kontrol/features/tasks/presentation/task_create_dialog.dart';
+import 'package:servis_kontrol/features/tasks/presentation/task_detail_panel.dart';
 
 class TaskPage extends StatefulWidget {
   const TaskPage({super.key, required this.user, required this.apiClient});
@@ -24,27 +27,45 @@ class _TaskPageState extends State<TaskPage> {
   final _commentController = TextEditingController();
 
   UserRole get _role => widget.user.role;
+
   String get _pageTitle => switch (_role) {
     UserRole.employee => 'Görevlerim',
     UserRole.teamLead => 'Takım Görevleri',
     _ => 'Görevler',
   };
+
   String get _pageSubtitle => switch (_role) {
     UserRole.employee =>
-      'Üzerine atanan işleri takip et, not ekle ve teslim sürecini yönet.',
+      'Üzerine atanan işleri takip et, sahadaki ilerlemeyi kaydet ve teslim sürecini yönet.',
     UserRole.teamLead =>
-      'Ekibinin görevlerini filtrele, takımına yeni iş ata ve revizyon risklerini izle.',
+      'Ekibinin görevlerini filtrele, operasyon planını yönlendir ve saha akışını kontrol et.',
     _ =>
-      'Gerçek görev kayıtlarını filtrele, takım bazlı dağıt ve detay aksiyonlarını doğrudan veritabanına işle.',
+      'Gerçek görev kayıtlarını filtrele, kapsamı netleştir ve ekipler arası dağıtımı doğrudan veritabanına işle.',
   };
+
   String get _emptyTaskMessage => switch (_role) {
     UserRole.employee => 'Veritabanında sana atanmış görünen bir görev yok.',
     UserRole.teamLead => 'Ekibin için görünen bir görev kaydı yok.',
     _ => 'Veritabanında bu kullanıcı için henüz görünen bir görev yok.',
   };
+
   String get _createActionLabel => switch (_role) {
     UserRole.teamLead => 'Takıma Görev Ata',
     _ => 'Yeni Görev',
+  };
+
+  TaskCommentKind get _commentKind => switch (_role) {
+    UserRole.manager => TaskCommentKind.managerNote,
+    UserRole.teamLead => TaskCommentKind.coordination,
+    UserRole.employee => TaskCommentKind.fieldUpdate,
+    _ => TaskCommentKind.comment,
+  };
+
+  String get _commentSuccessMessage => switch (_role) {
+    UserRole.manager => 'Yönetici notu kaydedildi.',
+    UserRole.teamLead => 'Takım lideri koordinasyon notu kaydedildi.',
+    UserRole.employee => 'Saha güncellemesi kaydedildi.',
+    _ => 'Yorum göreve eklendi.',
   };
 
   @override
@@ -156,7 +177,7 @@ class _TaskPageState extends State<TaskPage> {
                       : _controller.selectTask,
                   opensDetailSheet: compact,
                 );
-                final detailPanel = _TaskDetailPanel(
+                final detailPanel = TaskDetailPanel(
                   controller: _controller,
                   role: _role,
                   task: selectedTask,
@@ -189,9 +210,7 @@ class _TaskPageState extends State<TaskPage> {
 
   Future<void> _createTask() async {
     final prepared = await _controller.prepareComposer();
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
     if (!prepared) {
       _showFeedback(
         _controller.composerErrorMessage ??
@@ -207,15 +226,15 @@ class _TaskPageState extends State<TaskPage> {
       return;
     }
 
-    final draft = await showTaskCreateDialog(context, snapshot: composer);
-    if (!mounted || draft == null) {
-      return;
-    }
+    final draft = await showTaskCreateDialog(
+      context,
+      snapshot: composer,
+      role: _role,
+    );
+    if (!mounted || draft == null) return;
 
     final success = await _controller.createTask(draft);
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
     if (success) {
       _searchController.clear();
       _commentController.clear();
@@ -227,11 +246,53 @@ class _TaskPageState extends State<TaskPage> {
     );
   }
 
-  Future<void> _startTask() async => _startTaskWithFeedback();
+  Future<void> _startTask() async {
+    final draft = await showTaskStartDialog(context);
+    if (!mounted || draft == null) return;
+    final success = await _controller.startSelectedTask(draft);
+    _showFeedback(
+      success
+          ? 'Görev başlatıldı.'
+          : (_controller.errorMessage ?? 'Görev başlatılamadı.'),
+    );
+  }
+
   Future<void> _saveComment() async =>
       _saveCommentWithFeedback(_commentController);
-  Future<void> _createMeeting() async => _createMeetingWithFeedback();
-  Future<void> _submitTask() async => _submitTaskWithFeedback();
+
+  Future<void> _saveCommentWithFeedback(
+    TextEditingController controller,
+  ) async {
+    final comment = controller.text.trim();
+    if (comment.isEmpty) return;
+    final success = await _controller.addComment(comment, kind: _commentKind);
+    if (success) controller.clear();
+    _showFeedback(
+      success
+          ? _commentSuccessMessage
+          : (_controller.errorMessage ?? 'Not kaydedilemedi.'),
+    );
+  }
+
+  Future<void> _createMeeting() async {
+    final success = await _controller.scheduleMeeting();
+    _showFeedback(
+      success
+          ? 'Toplantı bağlantısı oluşturuldu.'
+          : (_controller.errorMessage ?? 'Toplantı bağlantısı oluşturulamadı.'),
+    );
+  }
+
+  Future<void> _submitTask() async {
+    final draft = await showTaskSubmitDialog(context);
+    if (!mounted || draft == null) return;
+    final success = await _controller.submitSelectedTask(draft);
+    _showFeedback(
+      success
+          ? 'Görev incelemeye gönderildi.'
+          : (_controller.errorMessage ?? 'Görev teslim edilemedi.'),
+    );
+  }
 
   Future<void> _openTaskDetailSheet(String taskId) async {
     _controller.selectTask(taskId);
@@ -241,96 +302,42 @@ class _TaskPageState extends State<TaskPage> {
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
-        builder: (context) {
-          return AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) {
-              return DraggableScrollableSheet(
-                expand: false,
-                initialChildSize: 0.88,
-                minChildSize: 0.55,
-                maxChildSize: 0.94,
-                builder: (context, scrollController) {
-                  return SingleChildScrollView(
-                    controller: scrollController,
-                    padding: EdgeInsets.fromLTRB(
-                      16,
-                      16,
-                      16,
-                      MediaQuery.viewInsetsOf(context).bottom + 16,
-                    ),
-                    child: _TaskDetailPanel(
-                      controller: _controller,
-                      role: _role,
-                      task: _controller.selectedTask,
-                      commentController: commentController,
-                      onStart: _startTaskWithFeedback,
-                      onComment: () =>
-                          _saveCommentWithFeedback(commentController),
-                      onMeeting: _createMeetingWithFeedback,
-                      onSubmit: _submitTaskWithFeedback,
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
+        builder: (context) => AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) => DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.88,
+            minChildSize: 0.55,
+            maxChildSize: 0.94,
+            builder: (context, scrollController) => SingleChildScrollView(
+              controller: scrollController,
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                MediaQuery.viewInsetsOf(context).bottom + 16,
+              ),
+              child: TaskDetailPanel(
+                controller: _controller,
+                role: _role,
+                task: _controller.selectedTask,
+                commentController: commentController,
+                onStart: _startTask,
+                onComment: () => _saveCommentWithFeedback(commentController),
+                onMeeting: _createMeeting,
+                onSubmit: _submitTask,
+              ),
+            ),
+          ),
+        ),
       );
     } finally {
       commentController.dispose();
     }
   }
 
-  Future<void> _startTaskWithFeedback() async {
-    final success = await _controller.startSelectedTask();
-    _showFeedback(
-      success
-          ? 'Görev başlatıldı.'
-          : (_controller.errorMessage ?? 'Görev başlatılamadı.'),
-    );
-  }
-
-  Future<void> _saveCommentWithFeedback(
-    TextEditingController controller,
-  ) async {
-    final comment = controller.text.trim();
-    if (comment.isEmpty) {
-      return;
-    }
-    final success = await _controller.addComment(comment);
-    if (success) {
-      controller.clear();
-    }
-    _showFeedback(
-      success
-          ? 'Yorum göreve eklendi.'
-          : (_controller.errorMessage ?? 'Yorum kaydedilemedi.'),
-    );
-  }
-
-  Future<void> _createMeetingWithFeedback() async {
-    final success = await _controller.scheduleMeeting();
-    _showFeedback(
-      success
-          ? 'Toplantı bağlantısı oluşturuldu.'
-          : (_controller.errorMessage ?? 'Toplantı bağlantısı oluşturulamadı.'),
-    );
-  }
-
-  Future<void> _submitTaskWithFeedback() async {
-    final success = await _controller.submitSelectedTask();
-    _showFeedback(
-      success
-          ? 'Görev incelemeye gönderildi.'
-          : (_controller.errorMessage ?? 'Görev teslim edilemedi.'),
-    );
-  }
-
   void _showFeedback(String message) {
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -339,7 +346,6 @@ class _TaskPageState extends State<TaskPage> {
 
 class _PageHeader extends StatelessWidget {
   const _PageHeader({required this.title, required this.subtitle, this.action});
-
   final String title;
   final String subtitle;
   final Widget? action;
@@ -351,14 +357,17 @@ class _PageHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
             color: AppPalette.text,
           ),
         ),
         const SizedBox(height: 8),
-        Text(subtitle, style: TextStyle(color: AppPalette.muted, height: 1.5)),
+        Text(
+          subtitle,
+          style: const TextStyle(color: AppPalette.muted, height: 1.5),
+        ),
         if (action != null) ...[const SizedBox(height: 14), action!],
       ],
     );
@@ -367,7 +376,6 @@ class _PageHeader extends StatelessWidget {
 
 class _MetricCard extends StatelessWidget {
   const _MetricCard({required this.metric});
-
   final TaskSummaryMetric metric;
 
   @override
@@ -378,13 +386,6 @@ class _MetricCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: AppPalette.border),
-        boxShadow: const [
-          BoxShadow(
-            color: AppPalette.shadow,
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -453,14 +454,14 @@ class _FilterCard extends StatelessWidget {
             label: 'Durum',
             value: controller.statusFilter,
             items: const [null, ...TaskStatus.values],
-            itemLabel: (value) => value?.label ?? 'Tümu',
+            itemLabel: (value) => value?.label ?? 'Tümü',
             onChanged: controller.updateStatusFilter,
           ),
           _FilterDropdown<TaskPriority?>(
             label: 'Öncelik',
             value: controller.priorityFilter,
             items: const [null, ...TaskPriority.values],
-            itemLabel: (value) => value?.label ?? 'Tümu',
+            itemLabel: (value) => value?.label ?? 'Tümü',
             onChanged: controller.updatePriorityFilter,
           ),
           _FilterDropdown<TaskDateFilter>(
@@ -474,21 +475,21 @@ class _FilterCard extends StatelessWidget {
             label: 'Takım',
             value: controller.teamFilter,
             items: [null, ...controller.teams],
-            itemLabel: (value) => value ?? 'Tümu',
+            itemLabel: (value) => value ?? 'Tümü',
             onChanged: controller.updateTeamFilter,
           ),
           _FilterDropdown<String?>(
-            label: 'Kisi',
+            label: 'Kişi',
             value: controller.assigneeFilter,
             items: [null, ...controller.assignees],
-            itemLabel: (value) => value ?? 'Tümu',
+            itemLabel: (value) => value ?? 'Tümü',
             onChanged: controller.updateAssigneeFilter,
           ),
           _FilterDropdown<String?>(
             label: 'Etiket',
             value: controller.tagFilter,
             items: [null, ...controller.tags],
-            itemLabel: (value) => value ?? 'Tümu',
+            itemLabel: (value) => value ?? 'Tümü',
             onChanged: controller.updateTagFilter,
           ),
           OutlinedButton.icon(
@@ -572,7 +573,7 @@ class _TaskListPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Card(
+    return TaskPanelCard(
       title: 'Görev Listesi',
       subtitle: opensDetailSheet
           ? 'Kayda dokununca detay ve aksiyonlar açılır.'
@@ -581,7 +582,7 @@ class _TaskListPanel extends StatelessWidget {
           ? const StatePanel.empty(
               title: 'Filtreye uygun görev yok',
               message:
-                  'Arama veya filtreler mevcut kayıtlarla eşleşmiyor. Filtreleri sıfırlayip tekrar dene.',
+                  'Arama veya filtreler mevcut kayıtlarla eşleşmiyor. Filtreleri sıfırlayıp tekrar dene.',
             )
           : Column(
               children: [
@@ -613,25 +614,35 @@ class _TaskListPanel extends StatelessWidget {
                                 _taskSubline(task),
                                 style: const TextStyle(color: AppPalette.muted),
                               ),
+                              if (hasValue(task.serviceLocation)) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  task.serviceLocation!,
+                                  style: const TextStyle(
+                                    color: AppPalette.text,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 12),
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
                                 children: [
-                                  _BadgeChip(
+                                  TaskBadgeChip(
                                     label: task.status.label,
-                                    color: _statusColor(task.status),
+                                    color: statusColor(task.status),
                                   ),
-                                  _BadgeChip(
+                                  TaskBadgeChip(
                                     label: task.priority.label,
-                                    color: _priorityColor(task.priority),
+                                    color: priorityColor(task.priority),
                                   ),
                                   if (task.team.isNotEmpty)
-                                    _BadgeChip(
+                                    TaskBadgeChip(
                                       label: task.team,
                                       color: const Color(0xFF0A7F5A),
                                     ),
-                                  _BadgeChip(
+                                  TaskBadgeChip(
                                     label: task.tag,
                                     color: const Color(0xFF7A7AE6),
                                   ),
@@ -669,458 +680,4 @@ class _TaskListPanel extends StatelessWidget {
     ];
     return parts.join(' - ');
   }
-}
-
-class _TaskDetailPanel extends StatelessWidget {
-  const _TaskDetailPanel({
-    required this.controller,
-    required this.role,
-    required this.task,
-    required this.commentController,
-    required this.onStart,
-    required this.onComment,
-    required this.onMeeting,
-    required this.onSubmit,
-  });
-
-  final TaskController controller;
-  final UserRole role;
-  final TaskItem? task;
-  final TextEditingController commentController;
-  final Future<void> Function() onStart;
-  final Future<void> Function() onComment;
-  final Future<void> Function() onMeeting;
-  final Future<void> Function() onSubmit;
-
-  bool get _canStartAndSubmit => role == UserRole.employee;
-  bool get _canScheduleMeeting => role != UserRole.employee;
-  String get _subtitle => switch (role) {
-    UserRole.employee => 'Başlat, not ekle ve teslim et.',
-    UserRole.teamLead => 'Görevi incele, ekibe not bırak ve toplantı planla.',
-    _ => 'Görevi incele, yorum ekle ve toplantı planla.',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    if (task == null) {
-      return const StatePanel.empty(
-        title: 'Görev detayı yok',
-        message: 'Listeden bir görev seçildiğinde detay burada açılır.',
-      );
-    }
-
-    return _Card(
-      title: 'Görev Detayı',
-      subtitle: _subtitle,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            task!.title,
-            style: const TextStyle(
-              color: AppPalette.text,
-              fontWeight: FontWeight.w900,
-              fontSize: 20,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _BadgeChip(
-                label: task!.status.label,
-                color: _statusColor(task!.status),
-              ),
-              _BadgeChip(
-                label: task!.priority.label,
-                color: _priorityColor(task!.priority),
-              ),
-              if (task!.team.isNotEmpty)
-                _BadgeChip(label: task!.team, color: const Color(0xFF0A7F5A)),
-              _BadgeChip(label: task!.tag, color: const Color(0xFF7A7AE6)),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Text(
-            task!.description.isEmpty
-                ? 'Açıklama girilmemiş.'
-                : task!.description,
-            style: const TextStyle(color: AppPalette.muted, height: 1.6),
-          ),
-          const SizedBox(height: 16),
-          _InfoRow(label: 'Proje', value: task!.project),
-          _InfoRow(
-            label: 'Takım',
-            value: task!.team.isEmpty ? 'Takım bağlanmadı' : task!.team,
-          ),
-          _InfoRow(label: 'Atanan', value: task!.assignee),
-          _InfoRow(label: 'Son teslim', value: _formatDate(task!.dueAt)),
-          _InfoRow(
-            label: 'Güncelleme',
-            value: _formatDateTime(task!.updatedAt),
-          ),
-          if (task!.requestSource != null && task!.requestSource!.isNotEmpty)
-            _InfoRow(label: 'Talep kaynagi', value: task!.requestSource!),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              _MiniStat(
-                label: 'Kontrol',
-                value: '${task!.checklistCompleted}/${task!.checklistTotal}',
-              ),
-              _MiniStat(
-                label: 'Tahmini',
-                value: _formatMinutes(task!.estimatedMinutes),
-              ),
-              _MiniStat(
-                label: 'Izlenen',
-                value: _formatMinutes(task!.trackedMinutes),
-              ),
-              _MiniStat(label: 'Alt is', value: '${task!.subtaskCount}'),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              if (_canStartAndSubmit)
-                FilledButton.icon(
-                  onPressed: controller.isSaving ? null : onStart,
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Başlat'),
-                ),
-              if (_canScheduleMeeting)
-                OutlinedButton.icon(
-                  onPressed: controller.isSaving ? null : onMeeting,
-                  icon: const Icon(Icons.video_call_rounded),
-                  label: const Text('Toplantı Oluştur'),
-                ),
-              if (_canStartAndSubmit)
-                OutlinedButton.icon(
-                  onPressed: controller.isSaving ? null : onSubmit,
-                  icon: const Icon(Icons.assignment_turned_in_rounded),
-                  label: const Text('Teslim Et'),
-                ),
-            ],
-          ),
-          if (task!.meetingLink != null) ...[
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppPalette.background,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                task!.meetingLink!,
-                style: const TextStyle(
-                  color: AppPalette.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 18),
-          TextField(
-            controller: commentController,
-            minLines: 2,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: 'Yorum ekle',
-              hintText: 'Göreve not bırak ve kaydet.',
-            ),
-          ),
-          const SizedBox(height: 10),
-          Align(
-            alignment: Alignment.centerRight,
-            child: OutlinedButton.icon(
-              onPressed: controller.isSaving ? null : onComment,
-              icon: const Icon(Icons.add_comment_outlined),
-              label: const Text('Yorum Kaydet'),
-            ),
-          ),
-          if (controller.errorMessage != null) ...[
-            const SizedBox(height: 14),
-            Text(
-              controller.errorMessage!,
-              style: const TextStyle(
-                color: AppPalette.danger,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-          const SizedBox(height: 18),
-          const Text(
-            'Son Hareketler',
-            style: TextStyle(
-              color: AppPalette.text,
-              fontWeight: FontWeight.w800,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 12),
-          for (final entry in task!.timeline)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppPalette.background,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            entry.title,
-                            style: const TextStyle(
-                              color: AppPalette.text,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          _formatDateTime(entry.timestamp),
-                          style: const TextStyle(
-                            color: AppPalette.muted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      entry.detail,
-                      style: const TextStyle(
-                        color: AppPalette.muted,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      entry.actor,
-                      style: const TextStyle(
-                        color: AppPalette.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Card extends StatelessWidget {
-  const _Card({
-    required this.title,
-    required this.subtitle,
-    required this.child,
-  });
-
-  final String title;
-  final String subtitle;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppPalette.border),
-        boxShadow: const [
-          BoxShadow(
-            color: AppPalette.shadow,
-            blurRadius: 20,
-            offset: Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppPalette.text,
-              fontWeight: FontWeight.w800,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            style: const TextStyle(color: AppPalette.muted, height: 1.5),
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniStat extends StatelessWidget {
-  const _MiniStat({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 150,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppPalette.surfaceMuted,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppPalette.muted,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              color: AppPalette.text,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 110,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: AppPalette.muted,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                color: AppPalette.text,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BadgeChip extends StatelessWidget {
-  const _BadgeChip({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(color: color, fontWeight: FontWeight.w700),
-      ),
-    );
-  }
-}
-
-Color _statusColor(TaskStatus status) => switch (status) {
-  TaskStatus.pending => AppPalette.warning,
-  TaskStatus.inProgress => AppPalette.primary,
-  TaskStatus.inReview => const Color(0xFF7A7AE6),
-  TaskStatus.revision => AppPalette.danger,
-  TaskStatus.delivered => AppPalette.success,
-};
-
-Color _priorityColor(TaskPriority priority) => switch (priority) {
-  TaskPriority.low => AppPalette.success,
-  TaskPriority.medium => AppPalette.warning,
-  TaskPriority.high => AppPalette.danger,
-};
-
-String _formatMinutes(int minutes) {
-  if (minutes <= 0) {
-    return 'Kayıt yok';
-  }
-  final hours = minutes ~/ 60;
-  final remainingMinutes = minutes % 60;
-  if (hours == 0) {
-    return '$remainingMinutes dk';
-  }
-  return '${hours}s ${remainingMinutes}dk';
-}
-
-String _formatDate(DateTime? value) {
-  if (value == null) {
-    return 'Planlanmadı';
-  }
-
-  const months = [
-    'Oca',
-    'Sub',
-    'Mar',
-    'Nis',
-    'May',
-    'Haz',
-    'Tem',
-    'Agu',
-    'Eyl',
-    'Eki',
-    'Kas',
-    'Ara',
-  ];
-  return '${value.day.toString().padLeft(2, '0')} ${months[value.month - 1]} ${value.year}';
-}
-
-String _formatDateTime(DateTime value) {
-  return '${_formatDate(value)} ${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
 }

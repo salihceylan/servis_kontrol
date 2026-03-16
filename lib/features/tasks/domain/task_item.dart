@@ -30,7 +30,7 @@ enum TaskPriority { low, medium, high }
 
 extension TaskPriorityX on TaskPriority {
   String get label => switch (this) {
-    TaskPriority.low => 'Dusuk',
+    TaskPriority.low => 'Düşük',
     TaskPriority.medium => 'Orta',
     TaskPriority.high => 'Yüksek',
   };
@@ -52,8 +52,8 @@ enum TaskDateFilter { all, today, thisWeek, overdue }
 
 extension TaskDateFilterX on TaskDateFilter {
   String get label => switch (this) {
-    TaskDateFilter.all => 'Tümu',
-    TaskDateFilter.today => 'Bugun',
+    TaskDateFilter.all => 'Tümü',
+    TaskDateFilter.today => 'Bugün',
     TaskDateFilter.thisWeek => 'Bu Hafta',
     TaskDateFilter.overdue => 'Geciken',
   };
@@ -148,9 +148,20 @@ class TaskItem {
     this.taskNo = '',
     this.team = '',
     this.teamId,
+    this.plannedStartAt,
     this.dueAt,
     this.meetingLink,
     this.requestSource,
+    this.serviceLocation,
+    this.contactName,
+    this.contactPhone,
+    this.accessNotes,
+    this.expectedOutcome,
+    this.managerBrief,
+    this.leadBrief,
+    this.fieldNotes,
+    this.completionSummary,
+    this.blockerNotes,
   });
 
   final String id;
@@ -159,6 +170,7 @@ class TaskItem {
   final String project;
   final String team;
   final String? teamId;
+  final DateTime? plannedStartAt;
   final String assignee;
   final TaskStatus status;
   final TaskPriority priority;
@@ -177,6 +189,16 @@ class TaskItem {
   final List<TaskTimeEntry> timeEntries;
   final String? meetingLink;
   final String? requestSource;
+  final String? serviceLocation;
+  final String? contactName;
+  final String? contactPhone;
+  final String? accessNotes;
+  final String? expectedOutcome;
+  final String? managerBrief;
+  final String? leadBrief;
+  final String? fieldNotes;
+  final String? completionSummary;
+  final String? blockerNotes;
 
   factory TaskItem.fromJson(Map<String, dynamic> json) {
     final timeline = (json['timeline'] as List<dynamic>? ?? const [])
@@ -196,6 +218,9 @@ class TaskItem {
       project: json['project'] as String? ?? '',
       team: json['team'] as String? ?? '',
       teamId: json['team_id']?.toString(),
+      plannedStartAt: DateTime.tryParse(
+        json['planned_start_at'] as String? ?? '',
+      ),
       assignee: json['assignee'] as String? ?? '',
       status: taskStatusFromApi(json['status'] as String?),
       priority: taskPriorityFromApi(json['priority'] as String?),
@@ -216,6 +241,16 @@ class TaskItem {
       timeEntries: timeEntries,
       meetingLink: json['meeting_link'] as String?,
       requestSource: json['request_source'] as String?,
+      serviceLocation: json['service_location'] as String?,
+      contactName: json['contact_name'] as String?,
+      contactPhone: json['contact_phone'] as String?,
+      accessNotes: json['access_notes'] as String?,
+      expectedOutcome: json['expected_outcome'] as String?,
+      managerBrief: json['manager_brief'] as String?,
+      leadBrief: json['lead_brief'] as String?,
+      fieldNotes: json['field_notes'] as String?,
+      completionSummary: json['completion_summary'] as String?,
+      blockerNotes: json['blocker_notes'] as String?,
     );
   }
 
@@ -229,6 +264,7 @@ class TaskItem {
     String? project,
     String? team,
     String? teamId,
+    DateTime? plannedStartAt,
     String? assignee,
     TaskStatus? status,
     TaskPriority? priority,
@@ -247,8 +283,19 @@ class TaskItem {
     List<TaskTimeEntry>? timeEntries,
     String? meetingLink,
     String? requestSource,
+    String? serviceLocation,
+    String? contactName,
+    String? contactPhone,
+    String? accessNotes,
+    String? expectedOutcome,
+    String? managerBrief,
+    String? leadBrief,
+    String? fieldNotes,
+    String? completionSummary,
+    String? blockerNotes,
     bool clearMeetingLink = false,
     bool clearDueAt = false,
+    bool clearPlannedStartAt = false,
   }) {
     return TaskItem(
       id: id ?? this.id,
@@ -257,6 +304,9 @@ class TaskItem {
       project: project ?? this.project,
       team: team ?? this.team,
       teamId: teamId ?? this.teamId,
+      plannedStartAt: clearPlannedStartAt
+          ? null
+          : (plannedStartAt ?? this.plannedStartAt),
       assignee: assignee ?? this.assignee,
       status: status ?? this.status,
       priority: priority ?? this.priority,
@@ -275,6 +325,16 @@ class TaskItem {
       timeEntries: timeEntries ?? this.timeEntries,
       meetingLink: clearMeetingLink ? null : (meetingLink ?? this.meetingLink),
       requestSource: requestSource ?? this.requestSource,
+      serviceLocation: serviceLocation ?? this.serviceLocation,
+      contactName: contactName ?? this.contactName,
+      contactPhone: contactPhone ?? this.contactPhone,
+      accessNotes: accessNotes ?? this.accessNotes,
+      expectedOutcome: expectedOutcome ?? this.expectedOutcome,
+      managerBrief: managerBrief ?? this.managerBrief,
+      leadBrief: leadBrief ?? this.leadBrief,
+      fieldNotes: fieldNotes ?? this.fieldNotes,
+      completionSummary: completionSummary ?? this.completionSummary,
+      blockerNotes: blockerNotes ?? this.blockerNotes,
     );
   }
 }

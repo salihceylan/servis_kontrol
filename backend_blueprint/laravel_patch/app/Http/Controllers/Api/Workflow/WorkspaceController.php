@@ -38,9 +38,17 @@ class WorkspaceController extends Controller
             'team_id' => ['nullable', 'integer'],
             'assignee_id' => ['required', 'integer'],
             'priority' => ['required', 'string', 'in:low,medium,high'],
+            'planned_start_at' => ['nullable', 'date'],
             'due_at' => ['nullable', 'date'],
             'estimated_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'],
             'tag' => ['nullable', 'string', 'max:80'],
+            'service_location' => ['nullable', 'string', 'max:255'],
+            'contact_name' => ['nullable', 'string', 'max:160'],
+            'contact_phone' => ['nullable', 'string', 'max:32'],
+            'access_notes' => ['nullable', 'string', 'max:5000'],
+            'expected_outcome' => ['nullable', 'string', 'max:5000'],
+            'manager_brief' => ['nullable', 'string', 'max:5000'],
+            'lead_brief' => ['nullable', 'string', 'max:5000'],
         ]);
 
         return response()->json([
@@ -50,8 +58,12 @@ class WorkspaceController extends Controller
 
     public function startTask(Request $request, string $taskId): JsonResponse
     {
+        $payload = $request->validate([
+            'start_note' => ['nullable', 'string', 'max:5000'],
+        ]);
+
         return response()->json([
-            'task' => $this->workflow->startTask($request->user(), $taskId),
+            'task' => $this->workflow->startTask($request->user(), $taskId, $payload['start_note'] ?? null),
         ]);
     }
 
@@ -59,10 +71,16 @@ class WorkspaceController extends Controller
     {
         $payload = $request->validate([
             'message' => ['required', 'string', 'max:5000'],
+            'comment_type' => ['nullable', 'string', 'in:comment,manager_note,coordination,field_update'],
         ]);
 
         return response()->json([
-            'task' => $this->workflow->commentTask($request->user(), $taskId, $payload['message']),
+            'task' => $this->workflow->commentTask(
+                $request->user(),
+                $taskId,
+                $payload['message'],
+                $payload['comment_type'] ?? 'comment',
+            ),
         ]);
     }
 
@@ -75,8 +93,15 @@ class WorkspaceController extends Controller
 
     public function submitTask(Request $request, string $taskId): JsonResponse
     {
+        $payload = $request->validate([
+            'completion_summary' => ['required', 'string', 'max:5000'],
+            'field_notes' => ['nullable', 'string', 'max:5000'],
+            'blocker_notes' => ['nullable', 'string', 'max:5000'],
+            'actual_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'],
+        ]);
+
         return response()->json([
-            'task' => $this->workflow->submitTask($request->user(), $taskId),
+            'task' => $this->workflow->submitTask($request->user(), $taskId, $payload),
         ]);
     }
 

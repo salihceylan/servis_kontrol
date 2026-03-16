@@ -38,13 +38,20 @@ void main() {
     await controller.startSelectedTask();
     expect(controller.selectedTask!.status, TaskStatus.inProgress);
 
-    await controller.addComment('Revizyon oncesi son kontrol notu.');
+    await controller.addComment(
+      'Revizyon öncesi son kontrol notu.',
+      kind: TaskCommentKind.managerNote,
+    );
     expect(controller.selectedTask!.timeline.first.title, 'Yorum eklendi');
 
     await controller.scheduleMeeting();
     expect(controller.selectedTask!.meetingLink, isNotNull);
 
-    await controller.submitSelectedTask();
+    await controller.submitSelectedTask(
+      const TaskSubmissionDraft(
+        completionSummary: 'Teslim paketi incelenmeye gönderildi.',
+      ),
+    );
     expect(controller.selectedTask!.status, TaskStatus.inReview);
   });
 
@@ -275,7 +282,7 @@ class _FakeTaskRepository implements TaskRepository {
   }
 
   @override
-  Future<TaskItem> start(String taskId) async {
+  Future<TaskItem> start(String taskId, {TaskStartDraft? draft}) async {
     final item = _items[taskId]!;
     final updated = item.copyWith(status: TaskStatus.inProgress);
     _items[taskId] = updated;
@@ -286,6 +293,7 @@ class _FakeTaskRepository implements TaskRepository {
   Future<TaskItem> addComment({
     required String taskId,
     required String message,
+    required TaskCommentKind kind,
   }) async {
     final item = _items[taskId]!;
     final updated = item.copyWith(
@@ -312,9 +320,15 @@ class _FakeTaskRepository implements TaskRepository {
   }
 
   @override
-  Future<TaskItem> submit(String taskId) async {
+  Future<TaskItem> submit(String taskId, TaskSubmissionDraft draft) async {
     final item = _items[taskId]!;
-    final updated = item.copyWith(status: TaskStatus.inReview);
+    final updated = item.copyWith(
+      status: TaskStatus.inReview,
+      completionSummary: draft.completionSummary,
+      fieldNotes: draft.fieldNotes,
+      blockerNotes: draft.blockerNotes,
+      trackedMinutes: draft.actualMinutes ?? item.trackedMinutes,
+    );
     _items[taskId] = updated;
     return updated;
   }

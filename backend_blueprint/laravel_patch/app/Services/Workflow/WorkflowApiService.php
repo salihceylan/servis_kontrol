@@ -548,9 +548,19 @@ class WorkflowApiService
             throw new RuntimeException('Task status tanımı bulunamadı.');
         }
 
+        $plannedStartAt = !empty($payload['planned_start_at'])
+            ? Carbon::parse($payload['planned_start_at'])
+            : null;
+        $dueAt = !empty($payload['due_at'])
+            ? Carbon::parse($payload['due_at'])
+            : null;
+        if ($plannedStartAt !== null && $dueAt !== null && $dueAt->lt($plannedStartAt)) {
+            throw new RuntimeException('Son teslim tarihi planlanan başlangıçtan önce olamaz.');
+        }
+
         $teamId = $team?->id ?? $assignee->team_id ?? $project?->team_id ?? null;
 
-        $taskId = DB::transaction(function () use ($context, $payload, $user, $project, $assignee, $statusId, $teamId): int {
+        $taskId = DB::transaction(function () use ($context, $payload, $user, $project, $assignee, $statusId, $teamId, $plannedStartAt, $dueAt): int {
             $taskId = (int) DB::table('tasks')->insertGetId([
                 'company_id' => $context['company_id'],
                 'project_id' => $project?->id,
@@ -562,8 +572,16 @@ class WorkflowApiService
                 'team_id' => $teamId,
                 'primary_assignee_id' => $assignee->id,
                 'created_by' => $user->id,
-                'due_at' => !empty($payload['due_at']) ? Carbon::parse($payload['due_at']) : null,
+                'planned_start_at' => $plannedStartAt,
+                'due_at' => $dueAt,
                 'estimated_minutes' => $payload['estimated_minutes'] ?? null,
+                'service_location' => $this->nullableTrimmed($payload['service_location'] ?? null),
+                'contact_name' => $this->nullableTrimmed($payload['contact_name'] ?? null),
+                'contact_phone' => $this->nullableTrimmed($payload['contact_phone'] ?? null),
+                'access_notes' => $this->nullableTrimmed($payload['access_notes'] ?? null),
+                'expected_outcome' => $this->nullableTrimmed($payload['expected_outcome'] ?? null),
+                'manager_brief' => $this->nullableTrimmed($payload['manager_brief'] ?? null),
+                'lead_brief' => $this->nullableTrimmed($payload['lead_brief'] ?? null),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -597,10 +615,11 @@ class WorkflowApiService
         return $this->taskPayload($taskId);
     }
 
-    public function startTask(User $user, string $taskId): array
+    public function startTask(User $user, string $taskId, ?string $startNote = null): array
     {
         $context = $this->context($user);
-        $task = $this->taskRow($taskId, $context['company_id']);
+        $this->ensureTaskExecutionAllowed($context);
+        $task = $this->scopedTaskRow($context, $taskId);
         $nextStatusId = $this->statusId($context['company_id'], 'in_progress');
 
         DB::table('tasks')->where('id', $task->id)->update([
@@ -609,20 +628,31 @@ class WorkflowApiService
             'updated_at' => now(),
         ]);
 
+        $normalizedStartNote = trim((string) $startNote);
+        if ($normalizedStartNote !== '') {
+            DB::table('task_comments')->insert([
+                'task_id' => $task->id,
+                'user_id' => $user->id,
+                'body' => $normalizedStartNote,
+                'comment_type' => 'start_note',
+                'created_at' => now(),
+            ]);
+        }
+
         $this->recordTaskStatusHistory((int) $task->id, $task->status_id, $nextStatusId, (int) $user->id, 'Görev başlatıldı.');
         return $this->taskPayload((int) $task->id);
     }
 
-    public function commentTask(User $user, string $taskId, string $message): array
+    public function commentTask(User $user, string $taskId, string $message, string $commentType = 'comment'): array
     {
         $context = $this->context($user);
-        $task = $this->taskRow($taskId, $context['company_id']);
+        $task = $this->scopedTaskRow($context, $taskId);
 
         DB::table('task_comments')->insert([
             'task_id' => $task->id,
             'user_id' => $user->id,
             'body' => trim($message),
-            'comment_type' => 'comment',
+            'comment_type' => $this->normalizeTaskCommentType($commentType),
             'created_at' => now(),
         ]);
 
@@ -632,7 +662,8 @@ class WorkflowApiService
     public function scheduleTaskMeeting(User $user, string $taskId): array
     {
         $context = $this->context($user);
-        $task = $this->taskRow($taskId, $context['company_id']);
+        $this->ensureTaskMeetingAllowed($context);
+        $task = $this->scopedTaskRow($context, $taskId);
         $slug = Str::slug($task->title . '-' . $task->id . '-' . now()->timestamp);
 
         DB::table('task_comments')->insert([
@@ -646,15 +677,33 @@ class WorkflowApiService
         return $this->taskPayload((int) $task->id);
     }
 
-    public function submitTask(User $user, string $taskId): array
+    public function submitTask(User $user, string $taskId, array $payload): array
     {
         $context = $this->context($user);
-        $task = $this->taskRow($taskId, $context['company_id']);
+        $this->ensureTaskExecutionAllowed($context);
+        $task = $this->scopedTaskRow($context, $taskId);
         $nextStatusId = $this->statusId($context['company_id'], 'in_review');
+
+        $completionSummary = trim((string) ($payload['completion_summary'] ?? ''));
+        if ($completionSummary === '') {
+            throw new RuntimeException('Teslim özeti zorunlu.');
+        }
 
         DB::table('tasks')->where('id', $task->id)->update([
             'status_id' => $nextStatusId,
+            'field_notes' => $this->nullableTrimmed($payload['field_notes'] ?? null),
+            'completion_summary' => $completionSummary,
+            'blocker_notes' => $this->nullableTrimmed($payload['blocker_notes'] ?? null),
+            'actual_minutes' => $payload['actual_minutes'] ?? $task->actual_minutes,
             'updated_at' => now(),
+        ]);
+
+        DB::table('task_comments')->insert([
+            'task_id' => $task->id,
+            'user_id' => $user->id,
+            'body' => $completionSummary,
+            'comment_type' => 'submission',
+            'created_at' => now(),
         ]);
 
         $this->recordTaskStatusHistory((int) $task->id, $task->status_id, $nextStatusId, (int) $user->id, 'Teslim incelemeye gönderildi.');
@@ -1963,6 +2012,20 @@ class WorkflowApiService
         }
     }
 
+    protected function ensureTaskExecutionAllowed(array $context): void
+    {
+        if ($context['role'] !== 'employee') {
+            throw new AuthorizationException('Görevi başlatma ve teslim etme yalnızca çalışan akışında yapılabilir.');
+        }
+    }
+
+    protected function ensureTaskMeetingAllowed(array $context): void
+    {
+        if ($context['role'] === 'employee') {
+            throw new AuthorizationException('Toplantı planlama yetkisi çalışan rolünde kapalı.');
+        }
+    }
+
     protected function userHasPermission(int $userId, string $code): bool
     {
         return in_array($code, $this->permissions($userId), true);
@@ -2000,11 +2063,40 @@ class WorkflowApiService
         ]);
     }
 
+    protected function normalizeTaskCommentType(string $value): string
+    {
+        return match ($value) {
+            'manager_note', 'coordination', 'field_update' => $value,
+            default => 'comment',
+        };
+    }
+
+    protected function taskCommentTitle(string $commentType): string
+    {
+        return match ($commentType) {
+            'meeting' => 'Toplantı planlandı',
+            'manager_note' => 'Yönetici notu eklendi',
+            'coordination' => 'Takım lideri planı güncellendi',
+            'field_update' => 'Saha güncellemesi eklendi',
+            'start_note' => 'Göreve çıkış notu eklendi',
+            'submission' => 'Saha teslim özeti eklendi',
+            default => 'Yorum eklendi',
+        };
+    }
+
     protected function taskRow(string $taskId, int $companyId): object
     {
         return DB::table('tasks')
             ->where('id', $taskId)
             ->where('company_id', $companyId)
+            ->firstOrFail();
+    }
+
+    protected function scopedTaskRow(array $context, string $taskId): object
+    {
+        return $this->scopedTaskQuery($context)
+            ->where('t.id', $taskId)
+            ->select(['t.id', 't.company_id', 't.status_id', 't.started_at', 't.actual_minutes', 't.title'])
             ->firstOrFail();
     }
 
@@ -2033,10 +2125,21 @@ class WorkflowApiService
                 't.title',
                 't.description',
                 't.priority',
+                't.planned_start_at',
                 't.due_at',
                 't.updated_at',
                 't.estimated_minutes',
                 't.actual_minutes',
+                't.service_location',
+                't.contact_name',
+                't.contact_phone',
+                't.access_notes',
+                't.expected_outcome',
+                't.manager_brief',
+                't.lead_brief',
+                't.field_notes',
+                't.completion_summary',
+                't.blocker_notes',
                 'p.name as project_name',
                 'team.name as team_name',
                 'assignee.name as assignee_name',
@@ -2110,6 +2213,7 @@ class WorkflowApiService
             'assignee' => $task->assignee_name ?? 'Atanmamış',
             'status' => $task->status_code ?? 'pending',
             'priority' => $task->priority ?? 'medium',
+            'planned_start_at' => $this->iso($task->planned_start_at),
             'due_at' => $this->iso($task->due_at),
             'updated_at' => $this->iso($task->updated_at),
             'tag' => $label ?? 'Genel',
@@ -2124,6 +2228,16 @@ class WorkflowApiService
             'time_entries' => $timeEntries,
             'meeting_link' => $meetingLink,
             'request_source' => $requestSource,
+            'service_location' => $task->service_location,
+            'contact_name' => $task->contact_name,
+            'contact_phone' => $task->contact_phone,
+            'access_notes' => $task->access_notes,
+            'expected_outcome' => $task->expected_outcome,
+            'manager_brief' => $task->manager_brief,
+            'lead_brief' => $task->lead_brief,
+            'field_notes' => $task->field_notes,
+            'completion_summary' => $task->completion_summary,
+            'blocker_notes' => $task->blocker_notes,
             'timeline' => $this->taskTimeline($taskId),
         ];
     }
@@ -2148,7 +2262,7 @@ class WorkflowApiService
             ->where('c.task_id', $taskId)
             ->get()
             ->map(fn ($item) => [
-                'title' => $item->comment_type === 'meeting' ? 'Toplantı planlandı' : 'Yorum eklendi',
+                'title' => $this->taskCommentTitle((string) $item->comment_type),
                 'detail' => $item->body,
                 'actor' => $item->name ?: 'Sistem',
                 'timestamp' => $this->iso($item->created_at),
@@ -2370,6 +2484,12 @@ class WorkflowApiService
             return null;
         }
         return Carbon::parse($value)->toIso8601String();
+    }
+
+    protected function nullableTrimmed(mixed $value): ?string
+    {
+        $normalized = trim((string) $value);
+        return $normalized === '' ? null : $normalized;
     }
 
     protected function trimCode(mixed $value): string

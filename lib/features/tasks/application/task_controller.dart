@@ -196,7 +196,7 @@ class TaskController extends ChangeNotifier {
         caption: '${filteredTasks.length} görev filtreye uyuyor',
       ),
       TaskSummaryMetric(
-        label: 'Bugun Teslim',
+        label: 'Bugün Teslim',
         value: '$todayCount',
         caption: 'Gün içi tamamlanacak işler',
       ),
@@ -213,14 +213,14 @@ class TaskController extends ChangeNotifier {
     ];
     metrics.addAll([
       TaskSummaryMetric(
-        label: 'Bagimli Is',
+        label: 'Bağımlı İş',
         value: '$blockedCount',
-        caption: 'Baska kaydı bekleyen görevler',
+        caption: 'Başka kaydı bekleyen görevler',
       ),
       TaskSummaryMetric(
         label: 'Zaman Takibi',
         value: '${trackedMinutes ~/ 60}s ${trackedMinutes % 60}dk',
-        caption: 'Toplam izlenen çalışma suresi',
+        caption: 'Toplam izlenen çalışma süresi',
       ),
     ]);
     return metrics;
@@ -379,22 +379,29 @@ class TaskController extends ChangeNotifier {
     }
   }
 
-  Future<bool> startSelectedTask() async {
+  Future<bool> startSelectedTask([TaskStartDraft? draft]) async {
     final task = selectedTask;
     if (task == null) {
       return false;
     }
-    return _persistTask(() => _repository.start(task.id));
+    return _persistTask(() => _repository.start(task.id, draft: draft));
   }
 
-  Future<bool> addComment(String message) async {
+  Future<bool> addComment(
+    String message, {
+    required TaskCommentKind kind,
+  }) async {
     final task = selectedTask;
     final normalized = message.trim();
     if (task == null || normalized.isEmpty) {
       return false;
     }
     return _persistTask(
-      () => _repository.addComment(taskId: task.id, message: normalized),
+      () => _repository.addComment(
+        taskId: task.id,
+        message: normalized,
+        kind: kind,
+      ),
     );
   }
 
@@ -406,12 +413,12 @@ class TaskController extends ChangeNotifier {
     return _persistTask(() => _repository.scheduleMeeting(task.id));
   }
 
-  Future<bool> submitSelectedTask() async {
+  Future<bool> submitSelectedTask(TaskSubmissionDraft draft) async {
     final task = selectedTask;
     if (task == null) {
       return false;
     }
-    return _persistTask(() => _repository.submit(task.id));
+    return _persistTask(() => _repository.submit(task.id, draft));
   }
 
   Future<bool> _persistTask(Future<TaskItem> Function() action) async {
