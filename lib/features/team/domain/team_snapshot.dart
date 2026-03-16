@@ -5,11 +5,17 @@ class TeamSnapshot {
     required this.members,
     required this.corrections,
     required this.alerts,
+    this.teams = const [],
+    this.permissionOptions = const [],
+    this.roleOptions = const [],
   });
 
   final List<TeamMember> members;
   final List<TeamCorrection> corrections;
   final List<TeamAlert> alerts;
+  final List<ManagedTeam> teams;
+  final List<TeamPermissionOption> permissionOptions;
+  final List<TeamRoleOption> roleOptions;
 
   factory TeamSnapshot.fromJson(Map<String, dynamic> json) {
     List<T> readList<T>(
@@ -26,6 +32,12 @@ class TeamSnapshot {
       members: readList('members', TeamMember.fromJson),
       corrections: readList('corrections', TeamCorrection.fromJson),
       alerts: readList('alerts', TeamAlert.fromJson),
+      teams: readList('teams', ManagedTeam.fromJson),
+      permissionOptions: readList(
+        'permission_options',
+        TeamPermissionOption.fromJson,
+      ),
+      roleOptions: readList('role_options', TeamRoleOption.fromJson),
     );
   }
 }

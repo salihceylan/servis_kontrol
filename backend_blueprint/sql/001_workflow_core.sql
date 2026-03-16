@@ -178,6 +178,7 @@ EXECUTE FUNCTION wf_touch_updated_at();
 ALTER TABLE users
   ADD COLUMN IF NOT EXISTS company_id BIGINT,
   ADD COLUMN IF NOT EXISTS user_code CHAR(10),
+  ADD COLUMN IF NOT EXISTS login_name VARCHAR(80),
   ADD COLUMN IF NOT EXISTS phone VARCHAR(32),
   ADD COLUMN IF NOT EXISTS department_id BIGINT,
   ADD COLUMN IF NOT EXISTS position_id BIGINT,
@@ -192,6 +193,10 @@ ALTER TABLE users
 CREATE UNIQUE INDEX IF NOT EXISTS users_user_code_unique
   ON users(user_code)
   WHERE user_code IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS users_login_name_unique
+  ON users((LOWER(login_name)))
+  WHERE login_name IS NOT NULL;
 
 CREATE OR REPLACE FUNCTION wf_assign_user_code()
 RETURNS trigger
@@ -433,6 +438,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   description TEXT,
   status_id BIGINT REFERENCES task_statuses(id) ON DELETE SET NULL,
   priority VARCHAR(20) NOT NULL DEFAULT 'medium',
+  team_id BIGINT REFERENCES teams(id) ON DELETE SET NULL,
   primary_assignee_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
   created_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
   due_at TIMESTAMPTZ,
@@ -486,6 +492,8 @@ CREATE INDEX IF NOT EXISTS tasks_company_due_idx
   ON tasks(company_id, due_at);
 CREATE INDEX IF NOT EXISTS tasks_status_idx
   ON tasks(status_id);
+CREATE INDEX IF NOT EXISTS tasks_team_idx
+  ON tasks(team_id);
 CREATE INDEX IF NOT EXISTS tasks_primary_assignee_idx
   ON tasks(primary_assignee_id);
 

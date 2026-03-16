@@ -168,12 +168,8 @@ class _TaskPageState extends State<TaskPage> {
     }
 
     final composer = _controller.composer;
-    if (composer == null ||
-        composer.projects.isEmpty ||
-        composer.assignees.isEmpty) {
-      _showFeedback(
-        'Gorev acmak icin en az bir aktif proje ve atanabilir kullanici gerekli.',
-      );
+    if (composer == null || composer.assignees.isEmpty) {
+      _showFeedback('Gorev acmak icin en az bir atanabilir kullanici gerekli.');
       return;
     }
 
@@ -197,21 +193,11 @@ class _TaskPageState extends State<TaskPage> {
     );
   }
 
-  Future<void> _startTask() async {
-    await _startTaskWithFeedback();
-  }
-
-  Future<void> _saveComment() async {
-    await _saveCommentWithFeedback(_commentController);
-  }
-
-  Future<void> _createMeeting() async {
-    await _createMeetingWithFeedback();
-  }
-
-  Future<void> _submitTask() async {
-    await _submitTaskWithFeedback();
-  }
+  Future<void> _startTask() async => _startTaskWithFeedback();
+  Future<void> _saveComment() async =>
+      _saveCommentWithFeedback(_commentController);
+  Future<void> _createMeeting() async => _createMeetingWithFeedback();
+  Future<void> _submitTask() async => _submitTaskWithFeedback();
 
   Future<void> _openTaskDetailSheet(String taskId) async {
     _controller.selectTask(taskId);
@@ -336,7 +322,7 @@ class _PageHeader extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Gercek gorev kayitlarini filtrele, detay ac ve aksiyonlari dogrudan veritabanina isle.',
+          'Gercek gorev kayitlarini filtrele, takim bazli dagit ve detay aksiyonlarini dogrudan veritabanina isle.',
           style: TextStyle(color: AppPalette.muted, height: 1.5),
         ),
         if (action != null) ...[const SizedBox(height: 14), action!],
@@ -422,7 +408,7 @@ class _FilterCard extends StatelessWidget {
             child: TextField(
               controller: searchController,
               decoration: const InputDecoration(
-                hintText: 'Gorev, proje veya etiket ara...',
+                hintText: 'Gorev, proje, takim veya etiket ara...',
                 prefixIcon: Icon(Icons.search_rounded),
               ),
             ),
@@ -447,6 +433,13 @@ class _FilterCard extends StatelessWidget {
             items: TaskDateFilter.values,
             itemLabel: (value) => value.label,
             onChanged: (value) => controller.updateDateFilter(value!),
+          ),
+          _FilterDropdown<String?>(
+            label: 'Takim',
+            value: controller.teamFilter,
+            items: [null, ...controller.teams],
+            itemLabel: (value) => value ?? 'Tumu',
+            onChanged: controller.updateTeamFilter,
           ),
           _FilterDropdown<String?>(
             label: 'Kisi',
@@ -581,7 +574,7 @@ class _TaskListPanel extends StatelessWidget {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                '${task.project} • ${task.assignee}',
+                                _taskSubline(task),
                                 style: const TextStyle(color: AppPalette.muted),
                               ),
                               const SizedBox(height: 12),
@@ -597,6 +590,11 @@ class _TaskListPanel extends StatelessWidget {
                                     label: task.priority.label,
                                     color: _priorityColor(task.priority),
                                   ),
+                                  if (task.team.isNotEmpty)
+                                    _BadgeChip(
+                                      label: task.team,
+                                      color: const Color(0xFF0A7F5A),
+                                    ),
                                   _BadgeChip(
                                     label: task.tag,
                                     color: const Color(0xFF7A7AE6),
@@ -625,6 +623,15 @@ class _TaskListPanel extends StatelessWidget {
               ],
             ),
     );
+  }
+
+  String _taskSubline(TaskItem task) {
+    final parts = <String>[
+      if (task.project.isNotEmpty) task.project,
+      if (task.team.isNotEmpty) task.team,
+      task.assignee,
+    ];
+    return parts.join(' - ');
   }
 }
 
@@ -683,6 +690,8 @@ class _TaskDetailPanel extends StatelessWidget {
                 label: task!.priority.label,
                 color: _priorityColor(task!.priority),
               ),
+              if (task!.team.isNotEmpty)
+                _BadgeChip(label: task!.team, color: const Color(0xFF0A7F5A)),
               _BadgeChip(label: task!.tag, color: const Color(0xFF7A7AE6)),
             ],
           ),
@@ -695,6 +704,10 @@ class _TaskDetailPanel extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _InfoRow(label: 'Proje', value: task!.project),
+          _InfoRow(
+            label: 'Takim',
+            value: task!.team.isEmpty ? 'Takim baglanmadi' : task!.team,
+          ),
           _InfoRow(label: 'Atanan', value: task!.assignee),
           _InfoRow(label: 'Son teslim', value: _formatDate(task!.dueAt)),
           _InfoRow(
@@ -1037,7 +1050,11 @@ String _formatMinutes(int minutes) {
   return '${hours}s ${remainingMinutes}dk';
 }
 
-String _formatDate(DateTime value) {
+String _formatDate(DateTime? value) {
+  if (value == null) {
+    return 'Planlanmadi';
+  }
+
   const months = [
     'Oca',
     'Sub',
@@ -1052,7 +1069,7 @@ String _formatDate(DateTime value) {
     'Kas',
     'Ara',
   ];
-  return '${value.day.toString().padLeft(2, '0')} ${months[value.month - 1]}';
+  return '${value.day.toString().padLeft(2, '0')} ${months[value.month - 1]} ${value.year}';
 }
 
 String _formatDateTime(DateTime value) {

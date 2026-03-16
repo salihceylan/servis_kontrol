@@ -8,7 +8,7 @@ import 'package:servis_kontrol/features/tasks/domain/task_item.dart';
 import '../../../support/test_support.dart';
 
 void main() {
-  test('durum filtresi ve gorev aksiyonlari calisir', () async {
+  test('durum ve takim filtresi ile gorev aksiyonlari calisir', () async {
     final controller = TaskController(
       user: managerUser,
       apiClient: createTestApiClient(),
@@ -23,6 +23,12 @@ void main() {
       controller.filteredTasks.every(
         (task) => task.status == TaskStatus.pending,
       ),
+      isTrue,
+    );
+
+    controller.updateTeamFilter('Merkez Ekip');
+    expect(
+      controller.filteredTasks.every((task) => task.team == 'Merkez Ekip'),
       isTrue,
     );
 
@@ -42,36 +48,65 @@ void main() {
     expect(controller.selectedTask!.status, TaskStatus.inReview);
   });
 
-  test('yonetici gorev olusturma verisini yukler ve gorev olusturur', () async {
+  test(
+    'yonetici gorev olusturma verisini yukler ve takimli gorev olusturur',
+    () async {
+      final controller = TaskController(
+        user: managerUser,
+        apiClient: createTestApiClient(),
+        repository: _FakeTaskRepository(),
+      );
+
+      expect(controller.canCreateTask, isTrue);
+      expect(await controller.prepareComposer(), isTrue);
+      expect(controller.composer!.projects, isNotEmpty);
+      expect(controller.composer!.teams, isNotEmpty);
+
+      controller.updateStatusFilter(TaskStatus.delivered);
+      final success = await controller.createTask(
+        TaskDraft(
+          title: 'Yeni saha kontrolu',
+          description: 'Detayli kontrol listesi acildi.',
+          projectId: 'project-1',
+          teamId: 'team-1',
+          assigneeId: 'user-1',
+          priority: TaskPriority.medium,
+          dueAt: DateTime(2026, 3, 15, 18),
+          estimatedMinutes: 120,
+          tag: 'Saha',
+        ),
+      );
+
+      expect(success, isTrue);
+      expect(controller.statusFilter, isNull);
+      expect(controller.selectedTask!.title, 'Yeni saha kontrolu');
+      expect(controller.selectedTask!.team, 'Merkez Ekip');
+      expect(controller.selectedTask!.dueAt, DateTime(2026, 3, 15, 18));
+      expect(controller.composer!.tagSuggestions, contains('Saha'));
+    },
+  );
+
+  test('opsiyonel son tarih olmadan gorev olusturabilir', () async {
     final controller = TaskController(
       user: managerUser,
       apiClient: createTestApiClient(),
       repository: _FakeTaskRepository(),
     );
 
-    expect(controller.canCreateTask, isTrue);
-    expect(await controller.prepareComposer(), isTrue);
-    expect(controller.composer!.projects, isNotEmpty);
-
-    controller.updateStatusFilter(TaskStatus.delivered);
+    await controller.prepareComposer();
     final success = await controller.createTask(
-      TaskDraft(
-        title: 'Yeni saha kontrolu',
-        description: 'Detayli kontrol listesi acildi.',
-        projectId: 'project-1',
-        assigneeId: 'user-1',
-        priority: TaskPriority.medium,
-        dueAt: DateTime(2026, 3, 15, 18),
-        estimatedMinutes: 120,
-        tag: 'Saha',
+      const TaskDraft(
+        title: 'Plansiz kontrol',
+        description: 'Son tarih sonradan belirlenecek.',
+        teamId: 'team-2',
+        assigneeId: 'user-2',
+        priority: TaskPriority.low,
       ),
     );
 
     expect(success, isTrue);
-    expect(controller.statusFilter, isNull);
-    expect(controller.selectedTask!.title, 'Yeni saha kontrolu');
-    expect(controller.filteredTasks.any((task) => task.id == '2'), isTrue);
-    expect(controller.composer!.tagSuggestions, contains('Saha'));
+    expect(controller.selectedTask!.dueAt, isNull);
+    expect(controller.selectedTask!.team, 'Saha Ekip');
   });
 
   test('employee kullanici varsayilan durumda gorev olusturamaz', () async {
@@ -88,13 +123,12 @@ void main() {
     expect(await controller.prepareComposer(), isFalse);
     expect(
       await controller.createTask(
-        TaskDraft(
+        const TaskDraft(
           title: 'Yetkisiz is',
           description: '',
           projectId: 'project-1',
           assigneeId: 'user-1',
           priority: TaskPriority.low,
-          dueAt: DateTime(2026, 3, 15, 18),
         ),
       ),
       isFalse,
@@ -107,8 +141,11 @@ class _FakeTaskRepository implements TaskRepository {
   final Map<String, TaskItem> _items = {
     '1': TaskItem(
       id: '1',
+      taskNo: 'A12345ab10',
       title: 'Saha kontrolu',
       project: 'Merkez Plaza',
+      team: 'Merkez Ekip',
+      teamId: 'team-1',
       assignee: 'Merve',
       status: TaskStatus.pending,
       priority: TaskPriority.high,
@@ -123,7 +160,7 @@ class _FakeTaskRepository implements TaskRepository {
       blockedByCount: 1,
       subtaskCount: 2,
       dependencies: const [
-        TaskDependency(title: 'Malzeme onayı', statusLabel: 'Bekleniyor'),
+        TaskDependency(title: 'Malzeme onayi', statusLabel: 'Bekleniyor'),
       ],
       timeEntries: const [
         TaskTimeEntry(
@@ -147,24 +184,60 @@ class _FakeTaskRepository implements TaskRepository {
   @override
   Future<TaskComposerSnapshot> loadComposer() async {
     return const TaskComposerSnapshot(
-      projects: [TaskFormOption(id: 'project-1', label: 'Merkez Plaza')],
-      assignees: [TaskFormOption(id: 'user-1', label: 'Merve')],
+      teams: [
+        TaskFormOption(id: 'team-1', label: 'Merkez Ekip'),
+        TaskFormOption(id: 'team-2', label: 'Saha Ekip'),
+      ],
+      projects: [
+        TaskFormOption(
+          id: 'project-1',
+          label: 'Merkez Plaza',
+          groupId: 'team-1',
+        ),
+        TaskFormOption(id: 'project-2', label: 'Saha Hat', groupId: 'team-2'),
+      ],
+      assignees: [
+        TaskFormOption(id: 'user-1', label: 'Merve', groupId: 'team-1'),
+        TaskFormOption(id: 'user-2', label: 'Onur', groupId: 'team-2'),
+      ],
       tagSuggestions: ['Kontrol'],
     );
   }
 
   @override
   Future<TaskItem> createTask(TaskDraft draft) async {
+    final composer = await loadComposer();
     final id = '${_nextId++}';
+    final team = composer.teams.firstWhere(
+      (item) => item.id == (draft.teamId ?? 'team-1'),
+      orElse: () => const TaskFormOption(id: 'team-1', label: 'Merkez Ekip'),
+    );
+    final assignee = composer.assignees.firstWhere(
+      (item) => item.id == draft.assigneeId,
+      orElse: () => const TaskFormOption(id: 'user-1', label: 'Merve'),
+    );
+    final project = composer.projects.firstWhere(
+      (item) => item.id == (draft.projectId ?? ''),
+      orElse: () => TaskFormOption(
+        id: 'project-none',
+        label: team.label,
+        groupId: team.id,
+      ),
+    );
+    final timestamp = draft.dueAt ?? DateTime(2026, 3, 13, 9);
+
     final item = TaskItem(
       id: id,
+      taskNo: 'B12345cd$id',
       title: draft.title,
-      project: 'Merkez Plaza',
-      assignee: 'Merve',
+      project: project.label,
+      team: team.label,
+      teamId: team.id,
+      assignee: assignee.label,
       status: TaskStatus.pending,
       priority: draft.priority,
       dueAt: draft.dueAt,
-      updatedAt: draft.dueAt,
+      updatedAt: timestamp,
       tag: draft.tag?.trim().isNotEmpty == true ? draft.tag!.trim() : 'Genel',
       description: draft.description,
       checklistCompleted: 0,
@@ -179,8 +252,8 @@ class _FakeTaskRepository implements TaskRepository {
         TaskTimelineEntry(
           title: 'Gorev olusturuldu',
           detail: draft.description,
-          actor: 'Merve',
-          timestamp: draft.dueAt,
+          actor: assignee.label,
+          timestamp: timestamp,
         ),
       ],
     );
@@ -194,6 +267,7 @@ class _FakeTaskRepository implements TaskRepository {
     TaskStatus? status,
     TaskPriority? priority,
     TaskDateFilter? dateFilter,
+    String? team,
     String? assignee,
     String? tag,
   }) async {

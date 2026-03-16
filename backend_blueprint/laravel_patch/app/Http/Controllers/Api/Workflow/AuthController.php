@@ -19,7 +19,7 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
+            'email' => ['required', 'string', 'max:160'],
             'password' => ['required', 'string'],
         ]);
 
@@ -31,7 +31,7 @@ class AuthController extends Controller
 
         if ($session === null) {
             throw ValidationException::withMessages([
-                'email' => ['E-posta veya parola gecersiz.'],
+                'email' => ['Kullanici adi, e-posta veya parola gecersiz.'],
             ]);
         }
 

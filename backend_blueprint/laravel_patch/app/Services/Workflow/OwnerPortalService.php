@@ -178,6 +178,7 @@ class OwnerPortalService
             $userId = (int) DB::table('users')->insertGetId([
                 'company_id' => $companyId,
                 'name' => $adminName,
+                'login_name' => Str::lower(Str::before($adminEmail, '@')),
                 'email' => $adminEmail,
                 'password' => Hash::make($adminPassword),
                 'department_id' => $departmentId,

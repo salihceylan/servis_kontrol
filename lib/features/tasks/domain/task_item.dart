@@ -4,7 +4,7 @@ extension TaskStatusX on TaskStatus {
   String get label => switch (this) {
     TaskStatus.pending => 'Beklemede',
     TaskStatus.inProgress => 'Devam Ediyor',
-    TaskStatus.inReview => 'İncelemede',
+    TaskStatus.inReview => 'Incelemede',
     TaskStatus.revision => 'Revizyonda',
     TaskStatus.delivered => 'Teslim Edildi',
   };
@@ -30,9 +30,9 @@ enum TaskPriority { low, medium, high }
 
 extension TaskPriorityX on TaskPriority {
   String get label => switch (this) {
-    TaskPriority.low => 'Düşük',
+    TaskPriority.low => 'Dusuk',
     TaskPriority.medium => 'Orta',
-    TaskPriority.high => 'Yüksek',
+    TaskPriority.high => 'Yuksek',
   };
 
   String get apiValue => switch (this) {
@@ -52,8 +52,8 @@ enum TaskDateFilter { all, today, thisWeek, overdue }
 
 extension TaskDateFilterX on TaskDateFilter {
   String get label => switch (this) {
-    TaskDateFilter.all => 'Tümü',
-    TaskDateFilter.today => 'Bugün',
+    TaskDateFilter.all => 'Tumu',
+    TaskDateFilter.today => 'Bugun',
     TaskDateFilter.thisWeek => 'Bu Hafta',
     TaskDateFilter.overdue => 'Geciken',
   };
@@ -133,7 +133,6 @@ class TaskItem {
     required this.assignee,
     required this.status,
     required this.priority,
-    required this.dueAt,
     required this.updatedAt,
     required this.tag,
     required this.description,
@@ -147,6 +146,9 @@ class TaskItem {
     required this.dependencies,
     required this.timeEntries,
     this.taskNo = '',
+    this.team = '',
+    this.teamId,
+    this.dueAt,
     this.meetingLink,
     this.requestSource,
   });
@@ -155,10 +157,12 @@ class TaskItem {
   final String taskNo;
   final String title;
   final String project;
+  final String team;
+  final String? teamId;
   final String assignee;
   final TaskStatus status;
   final TaskPriority priority;
-  final DateTime dueAt;
+  final DateTime? dueAt;
   final DateTime updatedAt;
   final String tag;
   final String description;
@@ -190,11 +194,12 @@ class TaskItem {
       taskNo: json['task_no'] as String? ?? '',
       title: json['title'] as String? ?? '',
       project: json['project'] as String? ?? '',
+      team: json['team'] as String? ?? '',
+      teamId: json['team_id']?.toString(),
       assignee: json['assignee'] as String? ?? '',
       status: taskStatusFromApi(json['status'] as String?),
       priority: taskPriorityFromApi(json['priority'] as String?),
-      dueAt:
-          DateTime.tryParse(json['due_at'] as String? ?? '') ?? DateTime.now(),
+      dueAt: DateTime.tryParse(json['due_at'] as String? ?? ''),
       updatedAt:
           DateTime.tryParse(json['updated_at'] as String? ?? '') ??
           DateTime.now(),
@@ -222,6 +227,8 @@ class TaskItem {
     String? taskNo,
     String? title,
     String? project,
+    String? team,
+    String? teamId,
     String? assignee,
     TaskStatus? status,
     TaskPriority? priority,
@@ -241,16 +248,19 @@ class TaskItem {
     String? meetingLink,
     String? requestSource,
     bool clearMeetingLink = false,
+    bool clearDueAt = false,
   }) {
     return TaskItem(
       id: id ?? this.id,
       taskNo: taskNo ?? this.taskNo,
       title: title ?? this.title,
       project: project ?? this.project,
+      team: team ?? this.team,
+      teamId: teamId ?? this.teamId,
       assignee: assignee ?? this.assignee,
       status: status ?? this.status,
       priority: priority ?? this.priority,
-      dueAt: dueAt ?? this.dueAt,
+      dueAt: clearDueAt ? null : (dueAt ?? this.dueAt),
       updatedAt: updatedAt ?? this.updatedAt,
       tag: tag ?? this.tag,
       description: description ?? this.description,

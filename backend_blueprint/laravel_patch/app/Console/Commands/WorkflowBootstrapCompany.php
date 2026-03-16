@@ -65,6 +65,7 @@ class WorkflowBootstrapCompany extends Command
             $userId = DB::table('users')->insertGetId([
                 'company_id' => $companyId,
                 'name' => $ownerName,
+                'login_name' => Str::lower(Str::before($ownerEmail, '@')),
                 'email' => $ownerEmail,
                 'password' => Hash::make($ownerPassword),
                 'department_id' => $departmentId,
@@ -196,6 +197,7 @@ class WorkflowBootstrapCompany extends Command
         $taskA = DB::table('tasks')->insertGetId([
             'company_id' => $companyId,
             'project_id' => $projectId,
+            'team_id' => $teamId,
             'title' => 'Saha kontrol listesi tamamla',
             'description' => 'Merkez Plaza sahasında haftalık kontrol turu yapılacak.',
             'status_id' => $inProgressStatusId,
@@ -215,6 +217,7 @@ class WorkflowBootstrapCompany extends Command
         $taskB = DB::table('tasks')->insertGetId([
             'company_id' => $companyId,
             'project_id' => $projectId,
+            'team_id' => $teamId,
             'title' => 'Kamera revizyon geri donusu',
             'description' => 'Kamera montaj raporundaki eksik fotograflar tamamlanacak.',
             'status_id' => $reviewStatusId,

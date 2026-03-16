@@ -7,6 +7,7 @@ abstract class TaskRepository {
     TaskStatus? status,
     TaskPriority? priority,
     TaskDateFilter? dateFilter,
+    String? team,
     String? assignee,
     String? tag,
   });

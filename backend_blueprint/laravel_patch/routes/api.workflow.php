@@ -45,6 +45,10 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/revisions/{revisionId}/employee-update', [WorkspaceController::class, 'markRevisionUpdated']);
 
     Route::get('/team', [WorkspaceController::class, 'team']);
+    Route::post('/team/users', [WorkspaceController::class, 'createTeamMember']);
+    Route::put('/team/users/{memberId}', [WorkspaceController::class, 'updateTeamMember']);
+    Route::post('/team/groups', [WorkspaceController::class, 'createTeamGroup']);
+    Route::put('/team/groups/{teamId}', [WorkspaceController::class, 'updateTeamGroup']);
     Route::post('/team/members/{memberId}/note', [WorkspaceController::class, 'addManagerNote']);
 
     Route::get('/performance', [WorkspaceController::class, 'performance']);

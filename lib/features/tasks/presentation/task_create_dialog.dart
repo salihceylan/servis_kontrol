@@ -29,17 +29,46 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
   final _estimateController = TextEditingController();
   final _tagController = TextEditingController();
 
-  late String _projectId;
+  String? _teamId;
+  String? _projectId;
   late String _assigneeId;
   TaskPriority _priority = TaskPriority.medium;
-  late DateTime _dueAt;
+  bool _hasDueDate = true;
+  late DateTime _dueDate;
+  late TimeOfDay _dueTime;
+
+  List<TaskFormOption> get _visibleProjects {
+    if (_teamId == null || _teamId!.isEmpty) {
+      return widget.snapshot.projects;
+    }
+    return widget.snapshot.projects
+        .where(
+          (project) => project.groupId == null || project.groupId == _teamId,
+        )
+        .toList(growable: false);
+  }
+
+  List<TaskFormOption> get _visibleAssignees {
+    if (_teamId == null || _teamId!.isEmpty) {
+      return widget.snapshot.assignees;
+    }
+    return widget.snapshot.assignees
+        .where((assignee) => assignee.groupId == _teamId)
+        .toList(growable: false);
+  }
 
   @override
   void initState() {
     super.initState();
-    _projectId = widget.snapshot.projects.first.id;
-    _assigneeId = widget.snapshot.assignees.first.id;
-    _dueAt = _defaultDueAt(DateTime.now().add(const Duration(days: 1)));
+    _teamId = widget.snapshot.teams.isNotEmpty
+        ? widget.snapshot.teams.first.id
+        : null;
+    _projectId = _visibleProjects.isNotEmpty ? _visibleProjects.first.id : null;
+    _assigneeId = _visibleAssignees.isNotEmpty
+        ? _visibleAssignees.first.id
+        : widget.snapshot.assignees.first.id;
+    _dueDate = DateTime.now().add(const Duration(days: 1));
+    _dueTime = const TimeOfDay(hour: 18, minute: 0);
   }
 
   @override
@@ -54,7 +83,7 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
   Future<void> _pickDueDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _dueAt,
+      initialDate: _dueDate,
       firstDate: DateTime.now().subtract(const Duration(days: 30)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 3)),
     );
@@ -63,7 +92,52 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
     }
 
     setState(() {
-      _dueAt = _defaultDueAt(picked);
+      _dueDate = DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        _dueTime.hour,
+        _dueTime.minute,
+      );
+    });
+  }
+
+  Future<void> _pickDueTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _dueTime,
+    );
+    if (!mounted || picked == null) {
+      return;
+    }
+
+    setState(() {
+      _dueTime = picked;
+      _dueDate = DateTime(
+        _dueDate.year,
+        _dueDate.month,
+        _dueDate.day,
+        picked.hour,
+        picked.minute,
+      );
+    });
+  }
+
+  void _handleTeamChanged(String? value) {
+    setState(() {
+      _teamId = value;
+      final visibleProjects = _visibleProjects;
+      if (visibleProjects.every((item) => item.id != _projectId)) {
+        _projectId = visibleProjects.isNotEmpty
+            ? visibleProjects.first.id
+            : null;
+      }
+      final visibleAssignees = _visibleAssignees;
+      if (visibleAssignees.every((item) => item.id != _assigneeId)) {
+        _assigneeId = visibleAssignees.isNotEmpty
+            ? visibleAssignees.first.id
+            : widget.snapshot.assignees.first.id;
+      }
     });
   }
 
@@ -77,14 +151,25 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
         ? null
         : int.parse(estimateText);
 
+    final dueAt = _hasDueDate
+        ? DateTime(
+            _dueDate.year,
+            _dueDate.month,
+            _dueDate.day,
+            _dueTime.hour,
+            _dueTime.minute,
+          )
+        : null;
+
     Navigator.of(context).pop(
       TaskDraft(
         title: _titleController.text,
         description: _descriptionController.text,
         projectId: _projectId,
+        teamId: _teamId,
         assigneeId: _assigneeId,
         priority: _priority,
-        dueAt: _dueAt,
+        dueAt: dueAt,
         estimatedMinutes: estimatedMinutes,
         tag: _tagController.text,
       ),
@@ -93,6 +178,9 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final visibleProjects = _visibleProjects;
+    final visibleAssignees = _visibleAssignees;
+
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       backgroundColor: Colors.white,
@@ -112,7 +200,7 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
           ),
           SizedBox(height: 6),
           Text(
-            'Proje, atanan kisi, oncelik ve teslim tarihini belirleyerek yeni bir is kaydi ac.',
+            'Takim, atanan kisi, oncelik ve istenirse teslim tarihi belirleyerek yeni kayit ac.',
             style: TextStyle(
               color: AppPalette.muted,
               height: 1.5,
@@ -123,7 +211,7 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
         ],
       ),
       content: SizedBox(
-        width: 560,
+        width: 620,
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
@@ -155,16 +243,44 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
                   ),
                 ),
                 const SizedBox(height: 14),
+                if (widget.snapshot.teams.isNotEmpty)
+                  DropdownButtonFormField<String?>(
+                    isExpanded: true,
+                    initialValue: _teamId,
+                    decoration: const InputDecoration(labelText: 'Takim'),
+                    items: [
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('Takim secmeden devam et'),
+                      ),
+                      for (final team in widget.snapshot.teams)
+                        DropdownMenuItem<String?>(
+                          value: team.id,
+                          child: Text(
+                            team.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: _handleTeamChanged,
+                  ),
+                if (widget.snapshot.teams.isNotEmpty)
+                  const SizedBox(height: 14),
                 Row(
                   children: [
                     Expanded(
-                      child: DropdownButtonFormField<String>(
+                      child: DropdownButtonFormField<String?>(
                         isExpanded: true,
                         initialValue: _projectId,
                         decoration: const InputDecoration(labelText: 'Proje'),
                         items: [
-                          for (final project in widget.snapshot.projects)
-                            DropdownMenuItem<String>(
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('Proje baglama'),
+                          ),
+                          for (final project in visibleProjects)
+                            DropdownMenuItem<String?>(
                               value: project.id,
                               child: Text(
                                 project.label,
@@ -174,9 +290,6 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
                             ),
                         ],
                         onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
                           setState(() {
                             _projectId = value;
                           });
@@ -192,7 +305,7 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
                           labelText: 'Atanan kisi',
                         ),
                         items: [
-                          for (final assignee in widget.snapshot.assignees)
+                          for (final assignee in visibleAssignees)
                             DropdownMenuItem<String>(
                               value: assignee.id,
                               child: Text(
@@ -209,6 +322,12 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
                           setState(() {
                             _assigneeId = value;
                           });
+                        },
+                        validator: (_) {
+                          if (visibleAssignees.isEmpty) {
+                            return 'Secili takim icin atanabilir kullanici yok.';
+                          }
+                          return null;
                         },
                       ),
                     ),
@@ -300,40 +419,58 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: AppPalette.border),
                   ),
-                  child: Row(
+                  child: Column(
                     children: [
-                      const Icon(
-                        Icons.event_outlined,
-                        color: AppPalette.primary,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Teslim tarihi',
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.event_outlined,
+                            color: AppPalette.primary,
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Son teslim tarihi kullan',
                               style: TextStyle(
-                                color: AppPalette.muted,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _formatDate(_dueAt),
-                              style: const TextStyle(
                                 color: AppPalette.text,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
+                          ),
+                          Switch.adaptive(
+                            value: _hasDueDate,
+                            onChanged: (value) {
+                              setState(() {
+                                _hasDueDate = value;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                      if (_hasDueDate) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _DueCard(
+                                title: 'Tarih',
+                                value: _formatDate(_dueDate),
+                                icon: Icons.calendar_today_outlined,
+                                onPressed: _pickDueDate,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _DueCard(
+                                title: 'Saat',
+                                value: _dueTime.format(context),
+                                icon: Icons.schedule_rounded,
+                                onPressed: _pickDueTime,
+                              ),
+                            ),
                           ],
                         ),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: _pickDueDate,
-                        icon: const Icon(Icons.edit_calendar_outlined),
-                        label: const Text('Tarih sec'),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -356,10 +493,6 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
     );
   }
 
-  DateTime _defaultDueAt(DateTime value) {
-    return DateTime(value.year, value.month, value.day, 18);
-  }
-
   String _formatDate(DateTime value) {
     const months = [
       'Oca',
@@ -376,5 +509,46 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
       'Ara',
     ];
     return '${value.day.toString().padLeft(2, '0')} ${months[value.month - 1]} ${value.year}';
+  }
+}
+
+class _DueCard extends StatelessWidget {
+  const _DueCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String title;
+  final String value;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon),
+      label: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: AppPalette.muted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppPalette.text,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

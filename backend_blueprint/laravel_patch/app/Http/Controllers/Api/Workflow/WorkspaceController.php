@@ -34,10 +34,11 @@ class WorkspaceController extends Controller
         $payload = $request->validate([
             'title' => ['required', 'string', 'max:180'],
             'description' => ['nullable', 'string', 'max:10000'],
-            'project_id' => ['required', 'integer'],
+            'project_id' => ['nullable', 'integer'],
+            'team_id' => ['nullable', 'integer'],
             'assignee_id' => ['required', 'integer'],
             'priority' => ['required', 'string', 'in:low,medium,high'],
-            'due_at' => ['required', 'date'],
+            'due_at' => ['nullable', 'date'],
             'estimated_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'],
             'tag' => ['nullable', 'string', 'max:80'],
         ]);
@@ -116,6 +117,76 @@ class WorkspaceController extends Controller
     public function team(Request $request): JsonResponse
     {
         return response()->json($this->workflow->team($request->user(), $request->query()));
+    }
+
+    public function createTeamMember(Request $request): JsonResponse
+    {
+        $payload = $request->validate([
+            'name' => ['required', 'string', 'max:160'],
+            'login_name' => ['required', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/'],
+            'email' => ['nullable', 'email', 'max:160'],
+            'password' => ['required', 'string', 'min:8', 'max:160'],
+            'role_code' => ['required', 'string', 'in:team_lead,employee'],
+            'department' => ['nullable', 'string', 'max:120'],
+            'job_title' => ['nullable', 'string', 'max:120'],
+            'phone' => ['nullable', 'string', 'max:32'],
+            'team_id' => ['nullable', 'integer'],
+            'work_preference' => ['nullable', 'string', 'max:120'],
+            'status' => ['required', 'string', 'in:active,passive'],
+            'permission_codes' => ['array'],
+            'permission_codes.*' => ['string', 'max:120'],
+        ]);
+
+        return response()->json([
+            'member' => $this->workflow->createTeamMember($request->user(), $payload),
+        ]);
+    }
+
+    public function updateTeamMember(Request $request, string $memberId): JsonResponse
+    {
+        $payload = $request->validate([
+            'name' => ['required', 'string', 'max:160'],
+            'login_name' => ['required', 'string', 'max:80', 'regex:/^[A-Za-z0-9._-]+$/'],
+            'email' => ['nullable', 'email', 'max:160'],
+            'password' => ['nullable', 'string', 'min:8', 'max:160'],
+            'role_code' => ['required', 'string', 'in:team_lead,employee'],
+            'department' => ['nullable', 'string', 'max:120'],
+            'job_title' => ['nullable', 'string', 'max:120'],
+            'phone' => ['nullable', 'string', 'max:32'],
+            'team_id' => ['nullable', 'integer'],
+            'work_preference' => ['nullable', 'string', 'max:120'],
+            'status' => ['required', 'string', 'in:active,passive'],
+            'permission_codes' => ['array'],
+            'permission_codes.*' => ['string', 'max:120'],
+        ]);
+
+        return response()->json([
+            'member' => $this->workflow->updateTeamMember($request->user(), $memberId, $payload),
+        ]);
+    }
+
+    public function createTeamGroup(Request $request): JsonResponse
+    {
+        $payload = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'manager_user_id' => ['nullable', 'integer'],
+        ]);
+
+        return response()->json([
+            'team' => $this->workflow->createTeamGroup($request->user(), $payload),
+        ]);
+    }
+
+    public function updateTeamGroup(Request $request, string $teamId): JsonResponse
+    {
+        $payload = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'manager_user_id' => ['nullable', 'integer'],
+        ]);
+
+        return response()->json([
+            'team' => $this->workflow->updateTeamGroup($request->user(), $teamId, $payload),
+        ]);
     }
 
     public function addManagerNote(Request $request, string $memberId): JsonResponse

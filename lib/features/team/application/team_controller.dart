@@ -5,6 +5,7 @@ import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/auth/domain/user_role.dart';
 import 'package:servis_kontrol/features/team/data/api_team_repository.dart';
 import 'package:servis_kontrol/features/team/data/team_repository.dart';
+import 'package:servis_kontrol/features/team/domain/team_management.dart';
 import 'package:servis_kontrol/features/team/domain/team_member.dart';
 
 class TeamMetric {
@@ -24,9 +25,9 @@ class TeamController extends ChangeNotifier {
     required AppUser user,
     required ApiClient apiClient,
     TeamRepository? repository,
-  })  : _user = user,
-        _repository = repository ?? ApiTeamRepository(apiClient),
-        _managerMode = user.role == UserRole.manager {
+  }) : _user = user,
+       _repository = repository ?? ApiTeamRepository(apiClient),
+       _managerMode = user.role == UserRole.manager {
     load();
   }
 
@@ -36,6 +37,9 @@ class TeamController extends ChangeNotifier {
   List<TeamMember> _members = const [];
   List<TeamCorrection> _corrections = const [];
   List<TeamAlert> _alerts = const [];
+  List<ManagedTeam> _teams = const [];
+  List<TeamPermissionOption> _permissionOptions = const [];
+  List<TeamRoleOption> _roleOptions = const [];
   bool _managerMode;
   String _query = '';
   bool _flaggedOnly = false;
@@ -46,26 +50,35 @@ class TeamController extends ChangeNotifier {
 
   bool get managerMode => _managerMode;
   bool get canToggleManagerMode => _user.role == UserRole.manager;
+  bool get canManageWorkspace => _user.role == UserRole.manager;
   bool get flaggedOnly => _flaggedOnly;
   String get query => _query;
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
   String? get errorMessage => _errorMessage;
-  bool get hasData => _members.isNotEmpty;
+  bool get hasData => _members.isNotEmpty || _teams.isNotEmpty;
+  List<TeamPermissionOption> get permissionOptions => _permissionOptions;
+  List<TeamRoleOption> get roleOptions => _roleOptions;
+  List<ManagedTeam> get teams =>
+      [..._teams]..sort((a, b) => a.name.compareTo(b.name));
 
   List<TeamMember> get members {
     final normalized = _query.trim().toLowerCase();
-    final items = _members.where((member) {
-      final queryMatches =
-          normalized.isEmpty ||
-          member.name.toLowerCase().contains(normalized) ||
-          member.role.toLowerCase().contains(normalized) ||
-          member.status.toLowerCase().contains(normalized);
-      final flaggedMatches =
-          !_flaggedOnly || member.riskLevel == MemberRiskLevel.high;
-      return queryMatches && flaggedMatches;
-    }).toList()
-      ..sort((a, b) => b.performanceScore.compareTo(a.performanceScore));
+    final items =
+        _members.where((member) {
+            final queryMatches =
+                normalized.isEmpty ||
+                member.name.toLowerCase().contains(normalized) ||
+                member.role.toLowerCase().contains(normalized) ||
+                member.status.toLowerCase().contains(normalized) ||
+                member.loginName.toLowerCase().contains(normalized) ||
+                member.department.toLowerCase().contains(normalized) ||
+                (member.teamName ?? '').toLowerCase().contains(normalized);
+            final flaggedMatches =
+                !_flaggedOnly || member.riskLevel == MemberRiskLevel.high;
+            return queryMatches && flaggedMatches;
+          }).toList()
+          ..sort((a, b) => b.performanceScore.compareTo(a.performanceScore));
     return items;
   }
 
@@ -99,31 +112,31 @@ class TeamController extends ChangeNotifier {
     final averageScore = _members.isEmpty
         ? 0
         : _members
-                .map((member) => member.performanceScore)
-                .reduce((a, b) => a + b) ~/
-            _members.length;
+                  .map((member) => member.performanceScore)
+                  .reduce((a, b) => a + b) ~/
+              _members.length;
 
     return [
       TeamMetric(
-        label: 'Toplam Çalışan',
+        label: 'Toplam Calisan',
         value: '$totalMembers',
-        caption: 'Aktif ekip görünümü',
+        caption: 'Aktif ekip gorunumu',
       ),
       TeamMetric(
-        label: 'Aktif Görevler',
+        label: 'Takim Sayisi',
+        value: '${_teams.length}',
+        caption: 'Operasyon gruplari',
+      ),
+      TeamMetric(
+        label: 'Aktif Gorevler',
         value: '$activeTasks',
-        caption: 'Dağıtılmış iş yükü',
+        caption: 'Dagitilmis is yuku',
       ),
       TeamMetric(
-        label: 'Bekleyen Düzeltmeler',
-        value: '${_corrections.length}',
-        caption: 'Aksiyon bekleyen kayıt',
-      ),
-      TeamMetric(
-        label: 'Ekip Performansı',
+        label: 'Ekip Performansi',
         value: '%$averageScore',
         caption: highRisk > 0
-            ? '$highRisk kişi risk takibinde'
+            ? '$highRisk kisi risk takibinde'
             : 'Risk seviyesi dengeli',
       ),
     ];
@@ -141,19 +154,28 @@ class TeamController extends ChangeNotifier {
       _members = snapshot.members;
       _corrections = snapshot.corrections;
       _alerts = snapshot.alerts;
+      _teams = snapshot.teams;
+      _permissionOptions = snapshot.permissionOptions;
+      _roleOptions = snapshot.roleOptions;
       _ensureSelection();
     } on ApiException catch (error) {
       _members = const [];
       _corrections = const [];
       _alerts = const [];
+      _teams = const [];
+      _permissionOptions = const [];
+      _roleOptions = const [];
       _selectedMemberId = null;
       _errorMessage = error.message;
     } catch (_) {
       _members = const [];
       _corrections = const [];
       _alerts = const [];
+      _teams = const [];
+      _permissionOptions = const [];
+      _roleOptions = const [];
       _selectedMemberId = null;
-      _errorMessage = 'Ekip verileri alınamadı.';
+      _errorMessage = 'Ekip verileri alinamadi.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -209,7 +231,72 @@ class TeamController extends ChangeNotifier {
       _errorMessage = error.message;
       return false;
     } catch (_) {
-      _errorMessage = 'Yönetici notu kaydedilemedi.';
+      _errorMessage = 'Yonetici notu kaydedilemedi.';
+      return false;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> createMember(TeamMemberDraft draft) {
+    return _runMutation(() async {
+      final created = await _repository.createMember(draft);
+      _selectedMemberId = created.id;
+      await load();
+    }, fallbackMessage: 'Calisan kaydi olusturulamadi.');
+  }
+
+  Future<bool> updateMember({
+    required String memberId,
+    required TeamMemberDraft draft,
+  }) {
+    return _runMutation(() async {
+      final updated = await _repository.updateMember(
+        memberId: memberId,
+        draft: draft,
+      );
+      _selectedMemberId = updated.id;
+      await load();
+    }, fallbackMessage: 'Calisan kaydi guncellenemedi.');
+  }
+
+  Future<bool> createTeam(TeamGroupDraft draft) {
+    return _runMutation(() async {
+      await _repository.createTeam(draft);
+      await load();
+    }, fallbackMessage: 'Takim olusturulamadi.');
+  }
+
+  Future<bool> updateTeam({
+    required String teamId,
+    required TeamGroupDraft draft,
+  }) {
+    return _runMutation(() async {
+      await _repository.updateTeam(teamId: teamId, draft: draft);
+      await load();
+    }, fallbackMessage: 'Takim guncellenemedi.');
+  }
+
+  Future<bool> _runMutation(
+    Future<void> Function() action, {
+    required String fallbackMessage,
+  }) async {
+    if (!canManageWorkspace) {
+      return false;
+    }
+
+    _isSaving = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await action();
+      return true;
+    } on ApiException catch (error) {
+      _errorMessage = error.message;
+      return false;
+    } catch (_) {
+      _errorMessage = fallbackMessage;
       return false;
     } finally {
       _isSaving = false;

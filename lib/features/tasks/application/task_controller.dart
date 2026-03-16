@@ -39,6 +39,7 @@ class TaskController extends ChangeNotifier {
   TaskStatus? _statusFilter;
   TaskPriority? _priorityFilter;
   TaskDateFilter _dateFilter = TaskDateFilter.all;
+  String? _teamFilter;
   String? _assigneeFilter;
   String? _tagFilter;
   String? _selectedTaskId;
@@ -52,6 +53,7 @@ class TaskController extends ChangeNotifier {
   TaskStatus? get statusFilter => _statusFilter;
   TaskPriority? get priorityFilter => _priorityFilter;
   TaskDateFilter get dateFilter => _dateFilter;
+  String? get teamFilter => _teamFilter;
   String? get assigneeFilter => _assigneeFilter;
   String? get tagFilter => _tagFilter;
   bool get isLoading => _isLoading;
@@ -70,6 +72,11 @@ class TaskController extends ChangeNotifier {
 
   TaskComposerSnapshot? get composer => _composer;
 
+  List<String> get teams => {
+    for (final task in _allTasks)
+      if (task.team.isNotEmpty) task.team,
+  }.toList()..sort();
+
   List<String> get assignees =>
       {for (final task in _allTasks) task.assignee}.toList()..sort();
 
@@ -84,41 +91,63 @@ class TaskController extends ChangeNotifier {
       Duration(days: DateTime.daysPerWeek - now.weekday),
     );
 
-    final tasks = _allTasks.where((task) {
-      final queryMatches =
-          normalizedQuery.isEmpty ||
-          task.title.toLowerCase().contains(normalizedQuery) ||
-          task.project.toLowerCase().contains(normalizedQuery) ||
-          task.assignee.toLowerCase().contains(normalizedQuery) ||
-          task.tag.toLowerCase().contains(normalizedQuery);
+    final tasks =
+        _allTasks.where((task) {
+          final queryMatches =
+              normalizedQuery.isEmpty ||
+              task.title.toLowerCase().contains(normalizedQuery) ||
+              task.project.toLowerCase().contains(normalizedQuery) ||
+              task.team.toLowerCase().contains(normalizedQuery) ||
+              task.assignee.toLowerCase().contains(normalizedQuery) ||
+              task.tag.toLowerCase().contains(normalizedQuery);
 
-      final statusMatches =
-          _statusFilter == null || task.status == _statusFilter;
-      final priorityMatches =
-          _priorityFilter == null || task.priority == _priorityFilter;
-      final assigneeMatches =
-          _assigneeFilter == null || task.assignee == _assigneeFilter;
-      final tagMatches = _tagFilter == null || task.tag == _tagFilter;
-      final dateMatches = switch (_dateFilter) {
-        TaskDateFilter.all => true,
-        TaskDateFilter.today =>
-          task.dueAt.year == now.year &&
-              task.dueAt.month == now.month &&
-              task.dueAt.day == now.day,
-        TaskDateFilter.thisWeek =>
-          !task.dueAt.isBefore(startOfToday) && !task.dueAt.isAfter(endOfWeek),
-        TaskDateFilter.overdue =>
-          task.dueAt.isBefore(startOfToday) &&
-              task.status != TaskStatus.delivered,
-      };
+          final statusMatches =
+              _statusFilter == null || task.status == _statusFilter;
+          final priorityMatches =
+              _priorityFilter == null || task.priority == _priorityFilter;
+          final teamMatches = _teamFilter == null || task.team == _teamFilter;
+          final assigneeMatches =
+              _assigneeFilter == null || task.assignee == _assigneeFilter;
+          final tagMatches = _tagFilter == null || task.tag == _tagFilter;
+          final dueAt = task.dueAt;
+          final dateMatches = switch (_dateFilter) {
+            TaskDateFilter.all => true,
+            TaskDateFilter.today =>
+              dueAt != null &&
+                  dueAt.year == now.year &&
+                  dueAt.month == now.month &&
+                  dueAt.day == now.day,
+            TaskDateFilter.thisWeek =>
+              dueAt != null &&
+                  !dueAt.isBefore(startOfToday) &&
+                  !dueAt.isAfter(endOfWeek),
+            TaskDateFilter.overdue =>
+              dueAt != null &&
+                  dueAt.isBefore(startOfToday) &&
+                  task.status != TaskStatus.delivered,
+          };
 
-      return queryMatches &&
-          statusMatches &&
-          priorityMatches &&
-          assigneeMatches &&
-          tagMatches &&
-          dateMatches;
-    }).toList()..sort((a, b) => a.dueAt.compareTo(b.dueAt));
+          return queryMatches &&
+              statusMatches &&
+              priorityMatches &&
+              teamMatches &&
+              assigneeMatches &&
+              tagMatches &&
+              dateMatches;
+        }).toList()..sort((a, b) {
+          final left = a.dueAt;
+          final right = b.dueAt;
+          if (left == null && right == null) {
+            return a.title.compareTo(b.title);
+          }
+          if (left == null) {
+            return 1;
+          }
+          if (right == null) {
+            return -1;
+          }
+          return left.compareTo(right);
+        });
 
     return tasks;
   }
@@ -139,9 +168,11 @@ class TaskController extends ChangeNotifier {
   List<TaskSummaryMetric> get summaryMetrics {
     final now = DateTime.now();
     final todayCount = _allTasks.where((task) {
-      return task.dueAt.year == now.year &&
-          task.dueAt.month == now.month &&
-          task.dueAt.day == now.day;
+      final dueAt = task.dueAt;
+      return dueAt != null &&
+          dueAt.year == now.year &&
+          dueAt.month == now.month &&
+          dueAt.day == now.day;
     }).length;
     final reviewCount = _allTasks.where((task) {
       return task.status == TaskStatus.inReview ||
@@ -160,36 +191,36 @@ class TaskController extends ChangeNotifier {
 
     final metrics = [
       TaskSummaryMetric(
-        label: 'Toplam Görev',
+        label: 'Toplam Gorev',
         value: '${_allTasks.length}',
-        caption: '${filteredTasks.length} görev filtreye uyuyor',
+        caption: '${filteredTasks.length} gorev filtreye uyuyor',
       ),
       TaskSummaryMetric(
-        label: 'Bugün Teslim',
+        label: 'Bugun Teslim',
         value: '$todayCount',
-        caption: 'Gün içi tamamlanacak işler',
+        caption: 'Gun ici tamamlanacak isler',
       ),
       TaskSummaryMetric(
-        label: 'İnceleme / Revizyon',
+        label: 'Inceleme / Revizyon',
         value: '$reviewCount',
-        caption: 'Karar bekleyen görevler',
+        caption: 'Karar bekleyen gorevler',
       ),
       TaskSummaryMetric(
-        label: 'Yüksek Öncelik',
+        label: 'Yuksek Oncelik',
         value: '$highPriorityCount',
-        caption: 'Yakın takip gerektiren işler',
+        caption: 'Yakin takip gerektiren isler',
       ),
     ];
     metrics.addAll([
       TaskSummaryMetric(
-        label: 'Bağımlı İş',
+        label: 'Bagimli Is',
         value: '$blockedCount',
-        caption: 'Başka kaydı bekleyen görevler',
+        caption: 'Baska kaydi bekleyen gorevler',
       ),
       TaskSummaryMetric(
         label: 'Zaman Takibi',
         value: '${trackedMinutes ~/ 60}s ${trackedMinutes % 60}dk',
-        caption: 'Toplam izlenen çalışma süresi',
+        caption: 'Toplam izlenen calisma suresi',
       ),
     ]);
     return metrics;
@@ -232,6 +263,7 @@ class TaskController extends ChangeNotifier {
         status: _statusFilter,
         priority: _priorityFilter,
         dateFilter: _dateFilter,
+        team: _teamFilter,
         assignee: _assigneeFilter,
         tag: _tagFilter,
       );
@@ -243,7 +275,7 @@ class TaskController extends ChangeNotifier {
     } catch (_) {
       _allTasks = const [];
       _selectedTaskId = null;
-      _errorMessage = 'Görev verileri alınamadı.';
+      _errorMessage = 'Gorev verileri alinamadi.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -274,6 +306,12 @@ class TaskController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateTeamFilter(String? value) {
+    _teamFilter = value;
+    _ensureSelection();
+    notifyListeners();
+  }
+
   void updateAssigneeFilter(String? value) {
     _assigneeFilter = value;
     _ensureSelection();
@@ -291,6 +329,7 @@ class TaskController extends ChangeNotifier {
     _statusFilter = null;
     _priorityFilter = null;
     _dateFilter = TaskDateFilter.all;
+    _teamFilter = null;
     _assigneeFilter = null;
     _tagFilter = null;
     _ensureSelection();
@@ -321,6 +360,7 @@ class TaskController extends ChangeNotifier {
       _statusFilter = null;
       _priorityFilter = null;
       _dateFilter = TaskDateFilter.all;
+      _teamFilter = null;
       _assigneeFilter = null;
       _tagFilter = null;
       _selectedTaskId = createdTask.id;
@@ -387,7 +427,7 @@ class TaskController extends ChangeNotifier {
       notifyListeners();
       return false;
     } catch (_) {
-      _errorMessage = 'Görev güncellemesi kaydedilemedi.';
+      _errorMessage = 'Gorev guncellemesi kaydedilemedi.';
       notifyListeners();
       return false;
     } finally {

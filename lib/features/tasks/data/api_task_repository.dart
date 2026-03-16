@@ -14,6 +14,7 @@ class ApiTaskRepository implements TaskRepository {
     TaskStatus? status,
     TaskPriority? priority,
     TaskDateFilter? dateFilter,
+    String? team,
     String? assignee,
     String? tag,
   }) async {
@@ -24,6 +25,7 @@ class ApiTaskRepository implements TaskRepository {
         if (status != null) 'status': status.apiValue,
         if (priority != null) 'priority': priority.apiValue,
         if (dateFilter != null) 'date_filter': dateFilter.apiValue,
+        if (team != null && team.isNotEmpty) 'team': team,
         if (assignee != null && assignee.isNotEmpty) 'assignee': assignee,
         if (tag != null && tag.isNotEmpty) 'tag': tag,
       },

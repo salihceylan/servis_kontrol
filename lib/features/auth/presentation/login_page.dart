@@ -448,18 +448,15 @@ class _LoginCard extends StatelessWidget {
                 ],
                 TextFormField(
                   controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
+                  keyboardType: TextInputType.text,
                   decoration: _fieldDecoration(
-                    label: 'E-posta',
-                    hint: 'ornek@workflow.com',
-                    icon: Icons.alternate_email_rounded,
+                    label: 'E-posta veya kullanici adi',
+                    hint: 'ornek@workflow.com veya saha_ekibi01',
+                    icon: Icons.person_outline_rounded,
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'E-posta gerekli.';
-                    }
-                    if (!value.contains('@')) {
-                      return 'Geçerli bir e-posta girin.';
+                      return 'E-posta veya kullanici adi gerekli.';
                     }
                     return null;
                   },

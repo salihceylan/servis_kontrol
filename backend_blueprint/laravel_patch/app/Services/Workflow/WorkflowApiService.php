@@ -21,8 +21,13 @@ class WorkflowApiService
 
     public function attemptLogin(string $email, string $password, ?string $ipAddress = null): ?array
     {
+        $identifier = trim(Str::lower($email));
+
         /** @var User|null $user */
-        $user = User::query()->where('email', trim(Str::lower($email)))->first();
+        $user = User::query()
+            ->whereRaw('LOWER(email) = ?', [$identifier])
+            ->orWhereRaw('LOWER(login_name) = ?', [$identifier])
+            ->first();
 
         if ($user === null || !Hash::check($password, $user->password)) {
             $this->recordLoginAttempt($email, $ipAddress, false);
@@ -199,6 +204,7 @@ class WorkflowApiService
         return [
             'id' => (string) $context['user_id'],
             'user_code' => $this->trimCode($context['user_code']),
+            'login_name' => $this->trimCode($context['login_name']),
             'company_id' => (string) $context['company_id'],
             'company_code' => $this->trimCode($context['company_code']),
             'name' => $context['name'],
@@ -231,6 +237,7 @@ class WorkflowApiService
             ->select([
                 'u.id as user_id',
                 'u.user_code',
+                'u.login_name',
                 'u.company_id',
                 'u.name',
                 'u.email',
@@ -255,6 +262,7 @@ class WorkflowApiService
         return [
             'user_id' => (int) $row->user_id,
             'user_code' => $row->user_code,
+            'login_name' => $row->login_name,
             'company_id' => (int) $row->company_id,
             'company_code' => $row->company_code,
             'company_name' => $row->company_name,
@@ -425,6 +433,7 @@ class WorkflowApiService
             })
             ->when($filters['status'] ?? null, fn ($q, $value) => $q->where('ts.code', $value))
             ->when($filters['priority'] ?? null, fn ($q, $value) => $q->where('t.priority', $value))
+            ->when($filters['team'] ?? null, fn ($q, $value) => $q->where('team.name', $value))
             ->when($filters['assignee'] ?? null, fn ($q, $value) => $q->where('assignee.name', $value))
             ->when($filters['tag'] ?? null, function ($q, $value) {
                 $q->whereExists(function ($sub) use ($value) {
@@ -460,6 +469,7 @@ class WorkflowApiService
         $this->ensureTaskAssignmentAllowed($user);
 
         return [
+            'teams' => $this->taskTeamOptions($context),
             'projects' => $this->taskProjectOptions($context),
             'assignees' => $this->taskAssigneeOptions($context),
             'tag_suggestions' => $this->taskTagSuggestions($context['company_id']),
@@ -476,6 +486,7 @@ class WorkflowApiService
         return [
             'id' => (string) $user->id,
             'user_code' => $this->trimCode($user->user_code),
+            'login_name' => $this->trimCode($user->login_name),
             'company_id' => null,
             'company_code' => 'OWNER',
             'name' => $user->name,
@@ -503,33 +514,55 @@ class WorkflowApiService
         $context = $this->context($user);
         $this->ensureTaskAssignmentAllowed($user);
 
-        $project = $this->taskProjectQuery($context)
-            ->where('p.id', (int) $payload['project_id'])
-            ->select(['p.id'])
-            ->firstOrFail();
+        $project = null;
+        if (!empty($payload['project_id'])) {
+            $project = $this->taskProjectQuery($context)
+                ->where('p.id', (int) $payload['project_id'])
+                ->select(['p.id', 'p.team_id'])
+                ->firstOrFail();
+        }
+
+        $team = null;
+        if (!empty($payload['team_id'])) {
+            $team = $this->taskTeamQuery($context)
+                ->where('team.id', (int) $payload['team_id'])
+                ->select(['team.id'])
+                ->firstOrFail();
+        }
 
         $assignee = $this->taskAssigneeQuery($context)
             ->where('u.id', (int) $payload['assignee_id'])
-            ->select(['u.id'])
+            ->select(['u.id', 'u.team_id'])
             ->firstOrFail();
+
+        if ($team !== null && (int) ($assignee->team_id ?? 0) !== (int) $team->id) {
+            throw new RuntimeException('Atanan kullanici secilen takimin bir uyesi olmali.');
+        }
+
+        if ($team !== null && $project !== null && $project->team_id !== null && (int) $project->team_id !== (int) $team->id) {
+            throw new RuntimeException('Secilen proje bu takim ile eslesmiyor.');
+        }
 
         $statusId = $this->statusId($context['company_id'], 'pending');
         if ($statusId === null) {
             throw new RuntimeException('Task status tanimi bulunamadi.');
         }
 
-        $taskId = DB::transaction(function () use ($context, $payload, $user, $project, $assignee, $statusId): int {
+        $teamId = $team?->id ?? $assignee->team_id ?? $project?->team_id ?? null;
+
+        $taskId = DB::transaction(function () use ($context, $payload, $user, $project, $assignee, $statusId, $teamId): int {
             $taskId = (int) DB::table('tasks')->insertGetId([
                 'company_id' => $context['company_id'],
-                'project_id' => $project->id,
+                'project_id' => $project?->id,
                 'task_no' => $this->generateTaskCode(),
                 'title' => trim((string) $payload['title']),
                 'description' => trim((string) ($payload['description'] ?? '')),
                 'status_id' => $statusId,
                 'priority' => $payload['priority'],
+                'team_id' => $teamId,
                 'primary_assignee_id' => $assignee->id,
                 'created_by' => $user->id,
-                'due_at' => Carbon::parse($payload['due_at']),
+                'due_at' => !empty($payload['due_at']) ? Carbon::parse($payload['due_at']) : null,
                 'estimated_minutes' => $payload['estimated_minutes'] ?? null,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -737,12 +770,37 @@ class WorkflowApiService
         $context = $this->context($user);
         $members = DB::table('users as u')
             ->leftJoin('positions as p', 'p.id', '=', 'u.position_id')
+            ->leftJoin('departments as d', 'd.id', '=', 'u.department_id')
+            ->leftJoin('teams as team', 'team.id', '=', 'u.team_id')
             ->where('u.company_id', $context['company_id'])
             ->when($context['role'] === 'team_lead' && $context['team_id'] !== null, fn ($q) => $q->where('u.team_id', $context['team_id']))
-            ->when($filters['q'] ?? null, fn ($q, $value) => $q->where('u.name', 'ilike', '%' . $value . '%'))
+            ->when($filters['q'] ?? null, function ($q, $value) {
+                $q->where(function ($sub) use ($value) {
+                    $sub->where('u.name', 'ilike', '%' . $value . '%')
+                        ->orWhere('u.login_name', 'ilike', '%' . $value . '%')
+                        ->orWhere('u.email', 'ilike', '%' . $value . '%')
+                        ->orWhere('p.name', 'ilike', '%' . $value . '%')
+                        ->orWhere('d.name', 'ilike', '%' . $value . '%')
+                        ->orWhere('team.name', 'ilike', '%' . $value . '%');
+                });
+            })
             ->orderBy('u.name')
-            ->get(['u.id', 'u.name', 'u.status', 'p.name as position_name'])
+            ->get([
+                'u.id',
+                'u.user_code',
+                'u.login_name',
+                'u.name',
+                'u.email',
+                'u.phone',
+                'u.status',
+                'u.work_preference',
+                'u.team_id',
+                'p.name as position_name',
+                'd.name as department_name',
+                'team.name as team_name',
+            ])
             ->map(function ($member) use ($context) {
+                $roleCode = $this->roleForUser((int) $member->id);
                 $active = DB::table('tasks as t')
                     ->leftJoin('task_statuses as ts', 'ts.id', '=', 't.status_id')
                     ->where('t.company_id', $context['company_id'])
@@ -777,15 +835,28 @@ class WorkflowApiService
 
                 return [
                     'id' => (string) $member->id,
+                    'user_code' => $this->trimCode($member->user_code),
+                    'login_name' => $this->trimCode($member->login_name),
                     'name' => $member->name,
+                    'role_code' => $roleCode,
+                    'status_code' => (string) ($member->status ?? 'active'),
+                    'email' => $member->email,
+                    'phone' => $member->phone,
+                    'department' => $member->department_name ?? '',
+                    'job_title' => $member->position_name ?? '',
+                    'work_preference' => $member->work_preference ?? '',
+                    'team_id' => $member->team_id !== null ? (string) $member->team_id : null,
+                    'team_name' => $member->team_name,
                     'role' => $member->position_name ?: 'Çalışan',
-                    'status' => $member->status ?? 'active',
+                    'status' => $this->memberStatusLabel((string) ($member->status ?? 'active')),
                     'active_tasks' => $active,
                     'completed_tasks' => $completed,
                     'performance_score' => max(0, min(100, 70 + ($completed * 4) - ($late * 10) - ($revision * 6))),
                     'focus_note' => $this->memberFocusNote($late, $revision, $active),
                     'risk_level' => $late > 0 || $revision >= 3 ? 'high' : ($revision > 0 || $active >= 5 ? 'medium' : 'low'),
                     'last_manager_note' => $lastNote,
+                    'permissions' => $this->permissions((int) $member->id),
+                    'can_edit' => $roleCode !== 'manager',
                 ];
             });
 
@@ -829,7 +900,165 @@ class WorkflowApiService
                 ])
                 ->values()
                 ->all(),
+            'teams' => $this->teamGroupPayloads($context),
+            'permission_options' => $this->teamPermissionOptions(),
+            'role_options' => $this->teamRoleOptions(),
         ];
+    }
+
+    public function createTeamMember(User $user, array $payload): array
+    {
+        $context = $this->ensureManagerWorkspaceAccess($user);
+        $loginName = $this->normalizeLoginName((string) $payload['login_name']);
+        $email = $this->normalizedManagedEmail(
+            $payload['email'] ?? null,
+            $loginName,
+            (string) $context['company_code'],
+        );
+        $teamId = !empty($payload['team_id'])
+            ? $this->managedTeamId($context, (int) $payload['team_id'])
+            : null;
+        $roleId = $this->teamRoleId($context['company_id'], (string) $payload['role_code']);
+
+        if ($roleId === null) {
+            throw new RuntimeException('Calisan rol kaydi bulunamadi.');
+        }
+
+        $this->assertUniqueLoginName($loginName);
+        $this->assertUniqueEmail($email);
+
+        $departmentId = !empty($payload['department'])
+            ? $this->findOrCreateDepartment($context['company_id'], trim((string) $payload['department']))
+            : null;
+        $positionId = !empty($payload['job_title'])
+            ? $this->findOrCreatePosition($context['company_id'], trim((string) $payload['job_title']))
+            : null;
+
+        $memberId = DB::transaction(function () use ($context, $payload, $loginName, $email, $teamId, $departmentId, $positionId, $roleId): int {
+            $memberId = (int) DB::table('users')->insertGetId([
+                'company_id' => $context['company_id'],
+                'name' => trim((string) $payload['name']),
+                'login_name' => $loginName,
+                'email' => $email,
+                'password' => Hash::make((string) $payload['password']),
+                'phone' => trim((string) ($payload['phone'] ?? '')) ?: null,
+                'department_id' => $departmentId,
+                'position_id' => $positionId,
+                'team_id' => $teamId,
+                'status' => (string) $payload['status'],
+                'is_first_login' => false,
+                'work_preference' => trim((string) ($payload['work_preference'] ?? '')) ?: null,
+                'wants_quick_tour' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $this->syncManagedUserRole($memberId, $roleId);
+            $this->syncUserPermissionOverrides($memberId, (array) ($payload['permission_codes'] ?? []));
+            $this->ensureManagedUserDefaults($memberId);
+
+            return $memberId;
+        });
+
+        return $this->teamMemberPayload($memberId, $context['company_id']);
+    }
+
+    public function updateTeamMember(User $user, string $memberId, array $payload): array
+    {
+        $context = $this->ensureManagerWorkspaceAccess($user);
+        $target = $this->teamMemberRow($memberId, $context['company_id']);
+
+        if ($this->roleForUser((int) $target->id) === 'manager') {
+            throw new AuthorizationException('Manager hesabi bu ekrandan duzenlenemez.');
+        }
+
+        $loginName = $this->normalizeLoginName((string) $payload['login_name']);
+        $email = $this->normalizedManagedEmail(
+            $payload['email'] ?? null,
+            $loginName,
+            (string) $context['company_code'],
+        );
+        $teamId = !empty($payload['team_id'])
+            ? $this->managedTeamId($context, (int) $payload['team_id'])
+            : null;
+        $roleId = $this->teamRoleId($context['company_id'], (string) $payload['role_code']);
+
+        if ($roleId === null) {
+            throw new RuntimeException('Calisan rol kaydi bulunamadi.');
+        }
+
+        $this->assertUniqueLoginName($loginName, (int) $target->id);
+        $this->assertUniqueEmail($email, (int) $target->id);
+
+        $departmentId = !empty($payload['department'])
+            ? $this->findOrCreateDepartment($context['company_id'], trim((string) $payload['department']))
+            : null;
+        $positionId = !empty($payload['job_title'])
+            ? $this->findOrCreatePosition($context['company_id'], trim((string) $payload['job_title']))
+            : null;
+
+        DB::transaction(function () use ($target, $payload, $loginName, $email, $teamId, $departmentId, $positionId, $roleId): void {
+            $updates = [
+                'name' => trim((string) $payload['name']),
+                'login_name' => $loginName,
+                'email' => $email,
+                'phone' => trim((string) ($payload['phone'] ?? '')) ?: null,
+                'department_id' => $departmentId,
+                'position_id' => $positionId,
+                'team_id' => $teamId,
+                'status' => (string) $payload['status'],
+                'work_preference' => trim((string) ($payload['work_preference'] ?? '')) ?: null,
+                'updated_at' => now(),
+            ];
+
+            $password = trim((string) ($payload['password'] ?? ''));
+            if ($password !== '') {
+                $updates['password'] = Hash::make($password);
+            }
+
+            DB::table('users')->where('id', $target->id)->update($updates);
+            $this->syncManagedUserRole((int) $target->id, $roleId);
+            $this->syncUserPermissionOverrides((int) $target->id, (array) ($payload['permission_codes'] ?? []));
+            $this->ensureManagedUserDefaults((int) $target->id);
+        });
+
+        return $this->teamMemberPayload((int) $target->id, $context['company_id']);
+    }
+
+    public function createTeamGroup(User $user, array $payload): array
+    {
+        $context = $this->ensureManagerWorkspaceAccess($user);
+        $managerUserId = !empty($payload['manager_user_id'])
+            ? $this->managedUserId($context, (int) $payload['manager_user_id'])
+            : null;
+
+        $teamId = (int) DB::table('teams')->insertGetId([
+            'company_id' => $context['company_id'],
+            'name' => trim((string) $payload['name']),
+            'code' => $this->uniqueTeamCode($context['company_id'], trim((string) $payload['name'])),
+            'manager_user_id' => $managerUserId,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $this->teamGroupPayload($teamId, $context['company_id']);
+    }
+
+    public function updateTeamGroup(User $user, string $teamId, array $payload): array
+    {
+        $context = $this->ensureManagerWorkspaceAccess($user);
+        $team = $this->teamGroupRow($teamId, $context['company_id']);
+        $managerUserId = !empty($payload['manager_user_id'])
+            ? $this->managedUserId($context, (int) $payload['manager_user_id'])
+            : null;
+
+        DB::table('teams')->where('id', $team->id)->update([
+            'name' => trim((string) $payload['name']),
+            'manager_user_id' => $managerUserId,
+            'updated_at' => now(),
+        ]);
+
+        return $this->teamGroupPayload((int) $team->id, $context['company_id']);
     }
 
     public function addManagerNote(User $user, string $memberId, string $note, ?string $ipAddress = null): void
@@ -1087,6 +1316,444 @@ class WorkflowApiService
         ];
     }
 
+    protected function ensureManagerWorkspaceAccess(User $user): array
+    {
+        $context = $this->context($user);
+        if ($context['role'] !== 'manager') {
+            throw new AuthorizationException('Bu islem yalnizca yonetici hesabina aciktir.');
+        }
+
+        return $context;
+    }
+
+    protected function teamRoleId(int $companyId, string $roleCode): ?int
+    {
+        $value = DB::table('roles')
+            ->where('company_id', $companyId)
+            ->where('code', $roleCode)
+            ->value('id');
+
+        return $value !== null ? (int) $value : null;
+    }
+
+    protected function teamMemberRow(string $memberId, int $companyId): object
+    {
+        return DB::table('users')
+            ->where('id', $memberId)
+            ->where('company_id', $companyId)
+            ->firstOrFail();
+    }
+
+    protected function teamGroupRow(string $teamId, int $companyId): object
+    {
+        return DB::table('teams')
+            ->where('id', $teamId)
+            ->where('company_id', $companyId)
+            ->firstOrFail();
+    }
+
+    protected function managedTeamId(array $context, int $teamId): int
+    {
+        $value = DB::table('teams')
+            ->where('company_id', $context['company_id'])
+            ->where('id', $teamId)
+            ->value('id');
+
+        if ($value === null) {
+            throw new RuntimeException('Secilen takim bulunamadi.');
+        }
+
+        return (int) $value;
+    }
+
+    protected function managedUserId(array $context, int $userId): int
+    {
+        $value = DB::table('users')
+            ->where('company_id', $context['company_id'])
+            ->where('id', $userId)
+            ->value('id');
+
+        if ($value === null) {
+            throw new RuntimeException('Secilen kullanici bulunamadi.');
+        }
+
+        return (int) $value;
+    }
+
+    protected function teamMemberPayload(int $memberId, int $companyId): array
+    {
+        $member = DB::table('users as u')
+            ->leftJoin('positions as p', 'p.id', '=', 'u.position_id')
+            ->leftJoin('departments as d', 'd.id', '=', 'u.department_id')
+            ->leftJoin('teams as team', 'team.id', '=', 'u.team_id')
+            ->where('u.id', $memberId)
+            ->where('u.company_id', $companyId)
+            ->select([
+                'u.id',
+                'u.user_code',
+                'u.login_name',
+                'u.name',
+                'u.email',
+                'u.phone',
+                'u.status',
+                'u.work_preference',
+                'u.team_id',
+                'p.name as position_name',
+                'd.name as department_name',
+                'team.name as team_name',
+            ])
+            ->firstOrFail();
+
+        $roleCode = $this->roleForUser((int) $member->id);
+        $active = DB::table('tasks as t')
+            ->leftJoin('task_statuses as ts', 'ts.id', '=', 't.status_id')
+            ->where('t.company_id', $companyId)
+            ->where('t.primary_assignee_id', $member->id)
+            ->whereNotIn('ts.code', ['delivered'])
+            ->count();
+        $completed = DB::table('tasks as t')
+            ->leftJoin('task_statuses as ts', 'ts.id', '=', 't.status_id')
+            ->where('t.company_id', $companyId)
+            ->where('t.primary_assignee_id', $member->id)
+            ->where('ts.code', 'delivered')
+            ->count();
+        $late = DB::table('tasks as t')
+            ->leftJoin('task_statuses as ts', 'ts.id', '=', 't.status_id')
+            ->where('t.company_id', $companyId)
+            ->where('t.primary_assignee_id', $member->id)
+            ->whereNotIn('ts.code', ['delivered'])
+            ->where('t.due_at', '<', now())
+            ->count();
+        $revision = DB::table('revisions as r')
+            ->join('tasks as t', 't.id', '=', 'r.task_id')
+            ->where('t.primary_assignee_id', $member->id)
+            ->whereIn('r.status', ['pending_review', 'in_revision'])
+            ->count();
+        $lastNote = DB::table('audit_logs')
+            ->where('entity_type', 'team_member')
+            ->where('entity_id', (string) $member->id)
+            ->where('action', 'manager_note')
+            ->selectRaw("new_values_json->>'note' as last_note")
+            ->orderByDesc('created_at')
+            ->value('last_note');
+
+        return [
+            'id' => (string) $member->id,
+            'user_code' => $this->trimCode($member->user_code),
+            'login_name' => $this->trimCode($member->login_name),
+            'name' => $member->name,
+            'role' => $member->position_name ?: $this->roleLabelFromCode($roleCode),
+            'role_code' => $roleCode,
+            'status' => $this->memberStatusLabel((string) ($member->status ?? 'active')),
+            'status_code' => (string) ($member->status ?? 'active'),
+            'email' => $member->email,
+            'phone' => $member->phone,
+            'department' => $member->department_name ?? '',
+            'job_title' => $member->position_name ?? '',
+            'work_preference' => $member->work_preference ?? '',
+            'team_id' => $member->team_id !== null ? (string) $member->team_id : null,
+            'team_name' => $member->team_name,
+            'active_tasks' => $active,
+            'completed_tasks' => $completed,
+            'performance_score' => max(0, min(100, 70 + ($completed * 4) - ($late * 10) - ($revision * 6))),
+            'focus_note' => $this->memberFocusNote($late, $revision, $active),
+            'risk_level' => $late > 0 || $revision >= 3 ? 'high' : ($revision > 0 || $active >= 5 ? 'medium' : 'low'),
+            'last_manager_note' => $lastNote,
+            'permissions' => $this->permissions($memberId),
+            'can_edit' => $roleCode !== 'manager',
+        ];
+    }
+
+    protected function teamGroupPayload(int $teamId, int $companyId): array
+    {
+        $team = DB::table('teams as t')
+            ->leftJoin('users as manager', 'manager.id', '=', 't.manager_user_id')
+            ->where('t.id', $teamId)
+            ->where('t.company_id', $companyId)
+            ->select([
+                't.id',
+                't.name',
+                't.code',
+                't.manager_user_id',
+                'manager.name as manager_name',
+            ])
+            ->firstOrFail();
+
+        return [
+            'id' => (string) $team->id,
+            'name' => $team->name,
+            'code' => $this->trimCode($team->code),
+            'manager_user_id' => $team->manager_user_id !== null ? (string) $team->manager_user_id : null,
+            'manager_name' => $team->manager_name,
+            'member_count' => (int) DB::table('users')
+                ->where('company_id', $companyId)
+                ->where('team_id', $team->id)
+                ->count(),
+            'active_task_count' => (int) DB::table('tasks as t')
+                ->leftJoin('task_statuses as ts', 'ts.id', '=', 't.status_id')
+                ->where('t.company_id', $companyId)
+                ->where('t.team_id', $team->id)
+                ->whereNotIn('ts.code', ['delivered'])
+                ->count(),
+        ];
+    }
+
+    protected function teamGroupPayloads(array $context): array
+    {
+        $query = DB::table('teams')
+            ->where('company_id', $context['company_id']);
+
+        if (($context['role'] === 'team_lead' || $context['role'] === 'employee') && $context['team_id'] !== null) {
+            $query->where('id', $context['team_id']);
+        } elseif ($context['role'] === 'employee' && $context['team_id'] === null) {
+            $query->whereRaw('1 = 0');
+        }
+
+        return $query
+            ->orderBy('name')
+            ->pluck('id')
+            ->map(fn ($id) => $this->teamGroupPayload((int) $id, $context['company_id']))
+            ->values()
+            ->all();
+    }
+
+    protected function teamPermissionOptions(): array
+    {
+        return DB::table('permissions')
+            ->orderBy('module')
+            ->orderBy('action')
+            ->get(['module', 'action', 'code'])
+            ->map(fn ($permission) => [
+                'code' => $permission->code,
+                'module' => $permission->module,
+                'label' => $this->permissionLabel((string) $permission->code),
+                'description' => $this->permissionDescription((string) $permission->code),
+            ])
+            ->values()
+            ->all();
+    }
+
+    protected function teamRoleOptions(): array
+    {
+        return [
+            ['code' => 'team_lead', 'label' => $this->roleLabelFromCode('team_lead')],
+            ['code' => 'employee', 'label' => $this->roleLabelFromCode('employee')],
+        ];
+    }
+
+    protected function normalizeLoginName(string $value): string
+    {
+        return trim(Str::lower($value));
+    }
+
+    protected function normalizedManagedEmail(?string $value, string $loginName, string $companyCode): string
+    {
+        $normalized = trim(Str::lower((string) $value));
+        if ($normalized !== '') {
+            return $normalized;
+        }
+
+        $companyPart = trim(Str::lower($companyCode));
+        if ($companyPart === '') {
+            $companyPart = 'company';
+        }
+
+        return "{$loginName}.{$companyPart}@users.workflow.local";
+    }
+
+    protected function assertUniqueLoginName(string $loginName, ?int $ignoreUserId = null): void
+    {
+        $query = User::query()->whereRaw('LOWER(login_name) = ?', [$loginName]);
+        if ($ignoreUserId !== null) {
+            $query->where('id', '!=', $ignoreUserId);
+        }
+
+        if ($query->exists()) {
+            throw new RuntimeException('Bu kullanici adi zaten kullaniliyor.');
+        }
+    }
+
+    protected function assertUniqueEmail(string $email, ?int $ignoreUserId = null): void
+    {
+        $query = User::query()->whereRaw('LOWER(email) = ?', [$email]);
+        if ($ignoreUserId !== null) {
+            $query->where('id', '!=', $ignoreUserId);
+        }
+
+        if ($query->exists()) {
+            throw new RuntimeException('Bu e-posta ile baska bir kullanici zaten var.');
+        }
+    }
+
+    protected function syncManagedUserRole(int $userId, int $roleId): void
+    {
+        DB::table('user_roles')->where('user_id', $userId)->delete();
+        DB::table('user_roles')->insert([
+            'user_id' => $userId,
+            'role_id' => $roleId,
+            'created_at' => now(),
+        ]);
+    }
+
+    protected function syncUserPermissionOverrides(int $userId, array $selectedCodes): void
+    {
+        $permissionMap = DB::table('permissions')
+            ->pluck('id', 'code')
+            ->all();
+
+        $selected = collect($selectedCodes)
+            ->map(fn ($code) => trim((string) $code))
+            ->filter(fn ($code) => $code !== '' && array_key_exists($code, $permissionMap))
+            ->unique()
+            ->values()
+            ->all();
+
+        $base = DB::table('user_roles as ur')
+            ->join('role_permissions as rp', 'rp.role_id', '=', 'ur.role_id')
+            ->join('permissions as p', 'p.id', '=', 'rp.permission_id')
+            ->where('ur.user_id', $userId)
+            ->pluck('p.code')
+            ->all();
+
+        DB::table('user_permission_overrides')
+            ->where('user_id', $userId)
+            ->whereIn('permission_id', array_values($permissionMap))
+            ->delete();
+
+        $rows = [];
+        foreach ($permissionMap as $code => $permissionId) {
+            $hasBasePermission = in_array($code, $base, true);
+            $shouldAllow = in_array($code, $selected, true);
+            if ($hasBasePermission === $shouldAllow) {
+                continue;
+            }
+
+            $rows[] = [
+                'user_id' => $userId,
+                'permission_id' => $permissionId,
+                'is_allowed' => $shouldAllow,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        if ($rows !== []) {
+            DB::table('user_permission_overrides')->insert($rows);
+        }
+    }
+
+    protected function ensureManagedUserDefaults(int $userId): void
+    {
+        DB::table('notification_preferences')->upsert([
+            [
+                'user_id' => $userId,
+                'in_app_enabled' => true,
+                'email_enabled' => true,
+                'slack_enabled' => false,
+                'daily_summary_enabled' => true,
+                'report_ready_enabled' => true,
+                'revision_alert_enabled' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ], ['user_id'], [
+            'in_app_enabled',
+            'email_enabled',
+            'slack_enabled',
+            'daily_summary_enabled',
+            'report_ready_enabled',
+            'revision_alert_enabled',
+            'updated_at',
+        ]);
+
+        DB::table('user_settings')->upsert([
+            [
+                'user_id' => $userId,
+                'theme_preference' => 'light',
+                'language' => 'tr',
+                'wants_quick_tour' => false,
+                'default_dashboard_view' => 'panel',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ], ['user_id'], [
+            'theme_preference',
+            'language',
+            'wants_quick_tour',
+            'default_dashboard_view',
+            'updated_at',
+        ]);
+    }
+
+    protected function uniqueTeamCode(int $companyId, string $name): string
+    {
+        $base = Str::slug($name, '_');
+        if ($base === '') {
+            $base = 'team';
+        }
+
+        $candidate = $base;
+        $suffix = 1;
+        while (DB::table('teams')->where('company_id', $companyId)->where('code', $candidate)->exists()) {
+            $suffix++;
+            $candidate = Str::limit($base, 34, '') . '_' . $suffix;
+        }
+
+        return $candidate;
+    }
+
+    protected function roleLabelFromCode(string $code): string
+    {
+        return match ($code) {
+            'manager' => 'Yonetici',
+            'team_lead' => 'Ekip Lideri',
+            default => 'Calisan',
+        };
+    }
+
+    protected function memberStatusLabel(string $status): string
+    {
+        return match ($status) {
+            'passive' => 'Pasif',
+            'on_leave' => 'Izinde',
+            default => 'Aktif',
+        };
+    }
+
+    protected function permissionLabel(string $code): string
+    {
+        return match ($code) {
+            'dashboard.view' => 'Paneli gorebilir',
+            'tasks.view' => 'Gorevleri gorebilir',
+            'tasks.assign' => 'Gorev atayabilir',
+            'tasks.comment' => 'Gorevlere yorum ekleyebilir',
+            'tasks.submit' => 'Gorev teslim edebilir',
+            'revisions.view' => 'Revizyonlari gorebilir',
+            'revisions.approve' => 'Revizyon onaylayabilir',
+            'revisions.request' => 'Revizyon isteyebilir',
+            'team.view' => 'Ekip ekranini gorebilir',
+            'team.manage' => 'Ekip yonetebilir',
+            'team.note' => 'Yonetici notu yazabilir',
+            'performance.view' => 'Performans ekranini gorebilir',
+            'reports.view' => 'Raporlari gorebilir',
+            'reports.create' => 'Rapor olusturabilir',
+            'settings.view' => 'Ayarlari gorebilir',
+            'settings.update' => 'Ayarlari guncelleyebilir',
+            default => 'Yardim iceriklerini gorebilir',
+        };
+    }
+
+    protected function permissionDescription(string $code): string
+    {
+        return match ($code) {
+            'tasks.assign' => 'Takim veya calisana yeni gorev kaydi acabilir.',
+            'team.manage' => 'Calisan, takim ve gorev dagitimi duzenlemelerini yapabilir.',
+            'reports.create' => 'Operasyon ve performans raporu uretebilir.',
+            'settings.update' => 'Sirket ayarlarini degistirebilir.',
+            default => 'Bu yetki ilgili modulde islem yapmaya izin verir.',
+        };
+    }
+
     protected function settingsMap(int $companyId): array
     {
         return DB::table('system_settings')
@@ -1108,12 +1775,14 @@ class WorkflowApiService
     {
         $query = DB::table('tasks as t')
             ->leftJoin('projects as p', 'p.id', '=', 't.project_id')
+            ->leftJoin('teams as team', 'team.id', '=', 't.team_id')
             ->leftJoin('users as assignee', 'assignee.id', '=', 't.primary_assignee_id')
             ->leftJoin('task_statuses as ts', 'ts.id', '=', 't.status_id')
             ->where('t.company_id', $context['company_id'])
             ->select([
                 't.id',
                 't.project_id',
+                't.team_id',
                 't.title',
                 't.description',
                 't.priority',
@@ -1128,6 +1797,7 @@ class WorkflowApiService
                 't.quality_score',
                 't.revision_count',
                 'p.name as project_name',
+                'team.name as team_name',
                 'assignee.name as assignee_name',
                 'ts.name as status_name',
                 'ts.code as status_code',
@@ -1194,6 +1864,24 @@ class WorkflowApiService
         return $query;
     }
 
+    protected function taskTeamQuery(array $context)
+    {
+        $query = DB::table('teams as team')
+            ->where('team.company_id', $context['company_id']);
+
+        if ($context['role'] === 'team_lead') {
+            if ($context['team_id'] === null) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where('team.id', $context['team_id']);
+            }
+        } elseif ($context['role'] === 'employee') {
+            $query->whereRaw('1 = 0');
+        }
+
+        return $query;
+    }
+
     protected function taskAssigneeQuery(array $context)
     {
         $query = DB::table('users as u')
@@ -1217,10 +1905,24 @@ class WorkflowApiService
     {
         return $this->taskProjectQuery($context)
             ->orderBy('p.name')
-            ->get(['p.id', 'p.name'])
+            ->get(['p.id', 'p.name', 'p.team_id'])
             ->map(fn ($project) => [
                 'id' => (string) $project->id,
                 'label' => $project->name,
+                'group_id' => $project->team_id !== null ? (string) $project->team_id : null,
+            ])
+            ->values()
+            ->all();
+    }
+
+    protected function taskTeamOptions(array $context): array
+    {
+        return $this->taskTeamQuery($context)
+            ->orderBy('team.name')
+            ->get(['team.id', 'team.name'])
+            ->map(fn ($team) => [
+                'id' => (string) $team->id,
+                'label' => $team->name,
             ])
             ->values()
             ->all();
@@ -1230,10 +1932,11 @@ class WorkflowApiService
     {
         return $this->taskAssigneeQuery($context)
             ->orderBy('u.name')
-            ->get(['u.id', 'u.name'])
+            ->get(['u.id', 'u.name', 'u.team_id'])
             ->map(fn ($assignee) => [
                 'id' => (string) $assignee->id,
                 'label' => $assignee->name,
+                'group_id' => $assignee->team_id !== null ? (string) $assignee->team_id : null,
             ])
             ->values()
             ->all();
@@ -1319,12 +2022,14 @@ class WorkflowApiService
     {
         $task = DB::table('tasks as t')
             ->leftJoin('projects as p', 'p.id', '=', 't.project_id')
+            ->leftJoin('teams as team', 'team.id', '=', 't.team_id')
             ->leftJoin('users as assignee', 'assignee.id', '=', 't.primary_assignee_id')
             ->leftJoin('task_statuses as ts', 'ts.id', '=', 't.status_id')
             ->where('t.id', $taskId)
             ->select([
                 't.id',
                 't.task_no',
+                't.team_id',
                 't.title',
                 't.description',
                 't.priority',
@@ -1333,6 +2038,7 @@ class WorkflowApiService
                 't.estimated_minutes',
                 't.actual_minutes',
                 'p.name as project_name',
+                'team.name as team_name',
                 'assignee.name as assignee_name',
                 'ts.code as status_code',
             ])
@@ -1399,6 +2105,8 @@ class WorkflowApiService
             'task_no' => (string) $task->task_no,
             'title' => $task->title,
             'project' => $task->project_name ?? 'Proje Yok',
+            'team' => $task->team_name ?? '',
+            'team_id' => $task->team_id !== null ? (string) $task->team_id : null,
             'assignee' => $task->assignee_name ?? 'Atanmamış',
             'status' => $task->status_code ?? 'pending',
             'priority' => $task->priority ?? 'medium',
