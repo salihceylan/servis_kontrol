@@ -4,6 +4,8 @@ return [
     'paths' => ['*'],
     'allowed_methods' => ['*'],
     'allowed_origins' => [
+        'https://gudeteknoloji.com.tr',
+        'https://www.gudeteknoloji.com.tr',
         'https://workflow.gudeteknoloji.com.tr',
     ],
     'allowed_origins_patterns' => [
