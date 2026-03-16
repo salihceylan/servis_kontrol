@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Workflow;
 
 use App\Http\Controllers\Controller;
+use App\Services\Workflow\OperationMessageService;
 use App\Services\Workflow\WorkflowApiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,6 +12,7 @@ class WorkspaceController extends Controller
 {
     public function __construct(
         private readonly WorkflowApiService $workflow,
+        private readonly OperationMessageService $operationMessages,
     ) {
     }
 
@@ -103,6 +105,54 @@ class WorkspaceController extends Controller
         return response()->json([
             'task' => $this->workflow->submitTask($request->user(), $taskId, $payload),
         ]);
+    }
+
+    public function operationInbox(Request $request): JsonResponse
+    {
+        return response()->json($this->operationMessages->inbox($request->user()));
+    }
+
+    public function openOperationThread(Request $request): JsonResponse
+    {
+        $payload = $request->validate([
+            'counterpart_user_id' => ['required', 'integer'],
+        ]);
+
+        return response()->json([
+            'thread' => $this->operationMessages->openThread(
+                $request->user(),
+                (int) $payload['counterpart_user_id'],
+            ),
+        ]);
+    }
+
+    public function operationThread(Request $request, string $threadId): JsonResponse
+    {
+        return response()->json([
+            'thread' => $this->operationMessages->thread($request->user(), (int) $threadId),
+        ]);
+    }
+
+    public function sendOperationMessage(Request $request, string $threadId): JsonResponse
+    {
+        $payload = $request->validate([
+            'body' => ['required', 'string', 'max:5000'],
+        ]);
+
+        return response()->json([
+            'thread' => $this->operationMessages->sendMessage(
+                $request->user(),
+                (int) $threadId,
+                $payload['body'],
+            ),
+        ]);
+    }
+
+    public function markOperationThreadRead(Request $request, string $threadId): JsonResponse
+    {
+        return response()->json(
+            $this->operationMessages->markRead($request->user(), (int) $threadId),
+        );
     }
 
     public function revisions(Request $request): JsonResponse

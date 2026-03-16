@@ -39,6 +39,12 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/tasks/{taskId}/meeting', [WorkspaceController::class, 'scheduleTaskMeeting']);
     Route::post('/tasks/{taskId}/submit', [WorkspaceController::class, 'submitTask']);
 
+    Route::get('/operations/messages', [WorkspaceController::class, 'operationInbox']);
+    Route::post('/operations/messages/threads/open', [WorkspaceController::class, 'openOperationThread']);
+    Route::get('/operations/messages/threads/{threadId}', [WorkspaceController::class, 'operationThread']);
+    Route::post('/operations/messages/threads/{threadId}/messages', [WorkspaceController::class, 'sendOperationMessage']);
+    Route::post('/operations/messages/threads/{threadId}/read', [WorkspaceController::class, 'markOperationThreadRead']);
+
     Route::get('/revisions', [WorkspaceController::class, 'revisions']);
     Route::post('/revisions/{revisionId}/approve', [WorkspaceController::class, 'approveRevision']);
     Route::post('/revisions/{revisionId}/request', [WorkspaceController::class, 'requestRevision']);

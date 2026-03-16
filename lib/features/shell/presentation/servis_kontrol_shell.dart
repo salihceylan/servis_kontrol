@@ -5,6 +5,8 @@ import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/auth/domain/user_role.dart';
 import 'package:servis_kontrol/features/dashboard/presentation/dashboard_page.dart';
 import 'package:servis_kontrol/features/help/presentation/help_center_page.dart';
+import 'package:servis_kontrol/features/operations_messages/application/operation_message_dock_controller.dart';
+import 'package:servis_kontrol/features/operations_messages/presentation/operation_message_dock.dart';
 import 'package:servis_kontrol/features/performance/presentation/performance_page.dart';
 import 'package:servis_kontrol/features/revisions/presentation/revision_page.dart';
 import 'package:servis_kontrol/features/reports/presentation/reports_page.dart';
@@ -41,6 +43,7 @@ class ServisKontrolShell extends StatefulWidget {
 
 class _ServisKontrolShellState extends State<ServisKontrolShell> {
   AppSection _selected = AppSection.panel;
+  late final OperationMessageDockController _messageDockController;
 
   AppUser get _user => widget.user;
   UserRole get _role => _user.role;
@@ -89,6 +92,21 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
   (IconData, AppSection) get _quickAction => _canAccessSettings
       ? (Icons.settings_outlined, AppSection.settings)
       : (Icons.help_outline_rounded, AppSection.help);
+
+  @override
+  void initState() {
+    super.initState();
+    _messageDockController = OperationMessageDockController(
+      user: widget.user,
+      apiClient: widget.apiClient,
+    );
+  }
+
+  @override
+  void dispose() {
+    _messageDockController.dispose();
+    super.dispose();
+  }
 
   List<(AppSection, String, IconData)> get _sidebarItems => switch (_role) {
     UserRole.employee => [
@@ -181,26 +199,34 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
                   child: SafeArea(child: _sidebar()),
                 ),
           body: SafeArea(
-            child: Row(
+            child: Stack(
               children: [
-                if (wide) SizedBox(width: 244, child: _sidebar()),
-                Expanded(
-                  child: Column(
-                    children: [
-                      _topBar(wide),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: EdgeInsets.fromLTRB(
-                            wide ? 20 : 14,
-                            20,
-                            wide ? 20 : 14,
-                            24,
+                Row(
+                  children: [
+                    if (wide) SizedBox(width: 244, child: _sidebar()),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          _topBar(wide),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: EdgeInsets.fromLTRB(
+                                wide ? 20 : 14,
+                                20,
+                                wide ? 20 : 14,
+                                24,
+                              ),
+                              child: _content(),
+                            ),
                           ),
-                          child: _content(),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
+                ),
+                OperationMessageDock(
+                  user: _user,
+                  controller: _messageDockController,
                 ),
               ],
             ),
