@@ -63,10 +63,7 @@ class ReportMetric {
 }
 
 class ReportStatusCount {
-  const ReportStatusCount({
-    required this.label,
-    required this.count,
-  });
+  const ReportStatusCount({required this.label, required this.count});
 
   final String label;
   final int count;
@@ -80,10 +77,7 @@ class ReportStatusCount {
 }
 
 class ReportActivity {
-  const ReportActivity({
-    required this.title,
-    required this.subtitle,
-  });
+  const ReportActivity({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;

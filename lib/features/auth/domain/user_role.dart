@@ -18,19 +18,19 @@ extension UserRoleX on UserRole {
     UserRole.manager =>
       'Operasyon, ekip kartları, KPI ve erken uyarı özetleri burada.',
     UserRole.superAdmin =>
-      'SaaS operasyonu, musteriler ve lisans yonetimi tek panelde.',
-    UserRole.sales => 'Demo, teklif ve musteri gecisleri bu panelde yonetilir.',
+      'SaaS operasyonu, müşteriler ve lisans yönetimi tek panelde.',
+    UserRole.sales => 'Demo, teklif ve müşteri geçişleri bu panelde yönetilir.',
     UserRole.support =>
-      'Destek talepleri, tenant erisim kayitlari ve musteri takibi burada.',
+      'Destek talepleri, tenant erişim kayıtlari ve müşteri takibi burada.',
   };
 
   String get primaryActionLabel => switch (this) {
     UserRole.employee => 'Teslim Güncelle',
     UserRole.teamLead => 'Revizyonları İncele',
     UserRole.manager => 'Görev Ata',
-    UserRole.superAdmin => 'Yeni Sirket',
-    UserRole.sales => 'Demo Hazirla',
-    UserRole.support => 'Destek Kaydi',
+    UserRole.superAdmin => 'Yeni Şirket',
+    UserRole.sales => 'Demo Hazırla',
+    UserRole.support => 'Destek Kaydı',
   };
 
   String get apiValue => switch (this) {

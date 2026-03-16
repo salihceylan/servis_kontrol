@@ -5,7 +5,7 @@ import 'package:servis_kontrol/features/performance/domain/performance_snapshot.
 import '../../../support/test_support.dart';
 
 void main() {
-  test('performans araligi degisince snapshot yenilenir', () async {
+  test('performans araligi değişince snapshot yenilenir', () async {
     final controller = PerformanceController(
       apiClient: createTestApiClient(),
       repository: _FakePerformanceRepository(),

@@ -124,7 +124,7 @@ class _TeamMemberDialogState extends State<_TeamMemberDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      title: Text(_isEdit ? 'Calisani Duzenle' : 'Yeni Calisan'),
+      title: Text(_isEdit ? 'Çalışanı Düzenle' : 'Yeni Çalışan'),
       content: SizedBox(
         width: 680,
         child: SingleChildScrollView(
@@ -150,13 +150,13 @@ class _TeamMemberDialogState extends State<_TeamMemberDialog> {
                       child: TextFormField(
                         controller: _loginController,
                         decoration: const InputDecoration(
-                          labelText: 'Kullanici adi',
+                          labelText: 'Kullanıcı adı',
                         ),
                         validator: (value) {
                           final normalized = value?.trim() ?? '';
                           final valid = RegExp(r'^[A-Za-z0-9._-]+$');
                           if (normalized.isEmpty) {
-                            return 'Kullanici adi gerekli.';
+                            return 'Kullanıcı adı gerekli.';
                           }
                           if (!valid.hasMatch(normalized)) {
                             return 'Sadece harf, rakam, nokta, alt tire ve tire kullan.';
@@ -172,13 +172,13 @@ class _TeamMemberDialogState extends State<_TeamMemberDialog> {
                         obscureText: true,
                         decoration: InputDecoration(
                           labelText: _isEdit
-                              ? 'Yeni sifre (opsiyonel)'
-                              : 'Sifre',
+                              ? 'Yeni şifre (opsiyonel)'
+                              : 'Şifre',
                         ),
                         validator: (value) {
                           final normalized = value?.trim() ?? '';
                           if (!_isEdit && normalized.isEmpty) {
-                            return 'Sifre gerekli.';
+                            return 'Şifre gerekli.';
                           }
                           if (normalized.isNotEmpty && normalized.length < 8) {
                             return 'En az 8 karakter gir.';
@@ -194,7 +194,7 @@ class _TeamMemberDialogState extends State<_TeamMemberDialog> {
                   controller: _emailController,
                   decoration: const InputDecoration(
                     labelText: 'E-posta (opsiyonel)',
-                    hintText: 'Bos birakirsan sistem teknik e-posta uretir',
+                    hintText: 'Boş bırakırsan sistem teknik e-posta üretir',
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -250,11 +250,11 @@ class _TeamMemberDialogState extends State<_TeamMemberDialog> {
                 DropdownButtonFormField<String?>(
                   isExpanded: true,
                   initialValue: _teamId,
-                  decoration: const InputDecoration(labelText: 'Takim'),
+                  decoration: const InputDecoration(labelText: 'Takım'),
                   items: [
                     const DropdownMenuItem<String?>(
                       value: null,
-                      child: Text('Takim atama'),
+                      child: Text('Takım atama'),
                     ),
                     for (final team in widget.teams)
                       DropdownMenuItem<String?>(
@@ -280,7 +280,7 @@ class _TeamMemberDialogState extends State<_TeamMemberDialog> {
                       child: TextFormField(
                         controller: _jobTitleController,
                         decoration: const InputDecoration(
-                          labelText: 'Gorev unvani',
+                          labelText: 'Görev unvanı',
                         ),
                       ),
                     ),
@@ -300,7 +300,7 @@ class _TeamMemberDialogState extends State<_TeamMemberDialog> {
                       child: TextFormField(
                         controller: _workPreferenceController,
                         decoration: const InputDecoration(
-                          labelText: 'Calisma tercihi',
+                          labelText: 'Çalışma tercihi',
                         ),
                       ),
                     ),
@@ -343,11 +343,11 @@ class _TeamMemberDialogState extends State<_TeamMemberDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Vazgec'),
+          child: const Text('Vazgeç'),
         ),
         FilledButton(
           onPressed: _submit,
-          child: Text(_isEdit ? 'Kaydet' : 'Calisani Olustur'),
+          child: Text(_isEdit ? 'Kaydet' : 'Çalışanı Oluştur'),
         ),
       ],
     );

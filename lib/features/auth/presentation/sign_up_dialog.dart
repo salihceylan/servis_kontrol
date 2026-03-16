@@ -90,7 +90,7 @@ class _SignUpDialogState extends State<SignUpDialog> {
           ),
           SizedBox(height: 6),
           Text(
-            'Sirket ve kullanici bilgilerini birak. Ekibimiz hesap acilisi icin sizinle iletisime gecsin.',
+            'Şirket ve kullanıcı bilgilerini bırak. Ekibimiz hesap açılışı için sizinle iletişime geçsin.',
             style: TextStyle(
               color: AppPalette.muted,
               height: 1.5,
@@ -112,7 +112,7 @@ class _SignUpDialogState extends State<SignUpDialog> {
                 TextFormField(
                   controller: _companyController,
                   decoration: const InputDecoration(
-                    labelText: 'Sirket adi',
+                    labelText: 'Şirket adı',
                     hintText: 'Workflow Teknoloji',
                     prefixIcon: Icon(
                       Icons.apartment_rounded,
@@ -122,7 +122,7 @@ class _SignUpDialogState extends State<SignUpDialog> {
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Sirket adi gerekli.';
+                      return 'Şirket adı gerekli.';
                     }
                     return null;
                   },
@@ -164,7 +164,7 @@ class _SignUpDialogState extends State<SignUpDialog> {
                       return 'E-posta gerekli.';
                     }
                     if (!value.contains('@')) {
-                      return 'Gecerli bir e-posta girin.';
+                      return 'Geçerli bir e-posta girin.';
                     }
                     return null;
                   },
@@ -225,7 +225,7 @@ class _SignUpDialogState extends State<SignUpDialog> {
         ),
         FilledButton(
           onPressed: _submitting ? null : _submit,
-          child: Text(_submitting ? 'Gonderiliyor...' : 'Talep Gonder'),
+          child: Text(_submitting ? 'Gönderiliyor...' : 'Talep Gönder'),
         ),
       ],
     );

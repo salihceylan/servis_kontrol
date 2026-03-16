@@ -191,7 +191,7 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Yeni Gorev',
+            'Yeni Görev',
             style: TextStyle(
               color: AppPalette.text,
               fontSize: 22,
@@ -200,7 +200,7 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
           ),
           SizedBox(height: 6),
           Text(
-            'Takim, atanan kisi, oncelik ve istenirse teslim tarihi belirleyerek yeni kayit ac.',
+            'Takım, atanan kisi, öncelik ve istenirse teslim tarihi belirleyerek yeni kayıt ac.',
             style: TextStyle(
               color: AppPalette.muted,
               height: 1.5,
@@ -222,12 +222,12 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
                 TextFormField(
                   controller: _titleController,
                   decoration: const InputDecoration(
-                    labelText: 'Gorev basligi',
-                    hintText: 'Ornek: Saha kontrol listesini tamamla',
+                    labelText: 'Görev başlığı',
+                    hintText: 'Örnek: Saha kontrol listesini tamamla',
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Baslik gerekli.';
+                      return 'Başlık gerekli.';
                     }
                     return null;
                   },
@@ -238,8 +238,8 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
                   minLines: 3,
                   maxLines: 5,
                   decoration: const InputDecoration(
-                    labelText: 'Aciklama',
-                    hintText: 'Gorevin detayini ve beklenen ciktiyi yaz.',
+                    labelText: 'Açıklama',
+                    hintText: 'Görevin detayını ve beklenen çıktıyı yaz.',
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -247,11 +247,11 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
                   DropdownButtonFormField<String?>(
                     isExpanded: true,
                     initialValue: _teamId,
-                    decoration: const InputDecoration(labelText: 'Takim'),
+                    decoration: const InputDecoration(labelText: 'Takım'),
                     items: [
                       const DropdownMenuItem<String?>(
                         value: null,
-                        child: Text('Takim secmeden devam et'),
+                        child: Text('Takım secmeden devam et'),
                       ),
                       for (final team in widget.snapshot.teams)
                         DropdownMenuItem<String?>(
@@ -277,7 +277,7 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
                         items: [
                           const DropdownMenuItem<String?>(
                             value: null,
-                            child: Text('Proje baglama'),
+                            child: Text('Proje bağlama'),
                           ),
                           for (final project in visibleProjects)
                             DropdownMenuItem<String?>(
@@ -325,7 +325,7 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
                         },
                         validator: (_) {
                           if (visibleAssignees.isEmpty) {
-                            return 'Secili takim icin atanabilir kullanici yok.';
+                            return 'Seçili takım için atanabilir kullanıcı yok.';
                           }
                           return null;
                         },
@@ -340,7 +340,7 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
                       child: DropdownButtonFormField<TaskPriority>(
                         isExpanded: true,
                         initialValue: _priority,
-                        decoration: const InputDecoration(labelText: 'Oncelik'),
+                        decoration: const InputDecoration(labelText: 'Öncelik'),
                         items: [
                           for (final priority in TaskPriority.values)
                             DropdownMenuItem<TaskPriority>(
@@ -482,12 +482,12 @@ class _TaskCreateDialogState extends State<_TaskCreateDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Vazgec'),
+          child: const Text('Vazgeç'),
         ),
         FilledButton.icon(
           onPressed: _submit,
           icon: const Icon(Icons.add_task_rounded),
-          label: const Text('Gorevi Olustur'),
+          label: const Text('Görevi Oluştur'),
         ),
       ],
     );

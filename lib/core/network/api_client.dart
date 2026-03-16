@@ -4,10 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:servis_kontrol/core/network/api_exception.dart';
 
 class ApiClient {
-  ApiClient({
-    required this.baseUrl,
-    http.Client? httpClient,
-  }) : _httpClient = httpClient ?? http.Client();
+  ApiClient({required this.baseUrl, http.Client? httpClient})
+    : _httpClient = httpClient ?? http.Client();
 
   final String baseUrl;
   final http.Client _httpClient;
@@ -166,7 +164,8 @@ class ApiClient {
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      final message = _extractMessage(decoded) ??
+      final message =
+          _extractMessage(decoded) ??
           'İstek başarısız oldu. HTTP ${response.statusCode}.';
       throw ApiException(
         message: message,
@@ -192,10 +191,7 @@ class ApiClient {
         if (entry.value.isNotEmpty) entry.key: entry.value,
     };
     return uri.replace(
-      queryParameters: {
-        ...uri.queryParameters,
-        ...filteredParameters,
-      },
+      queryParameters: {...uri.queryParameters, ...filteredParameters},
     );
   }
 

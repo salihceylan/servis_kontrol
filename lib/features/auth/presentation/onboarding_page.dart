@@ -116,11 +116,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               Expanded(
                                 child: Text(
                                   'İlk giriş kurulumu',
-                                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                    color: AppPalette.text,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 28,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(
+                                        color: AppPalette.text,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 28,
+                                      ),
                                 ),
                               ),
                               TextButton.icon(
@@ -160,29 +163,37 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               children: [
                                 _OnboardingCard(
                                   title: '1. Profil tamamlama',
-                                  subtitle: 'Ad, departman ve unvan bilgilerini güncelle.',
+                                  subtitle:
+                                      'Ad, departman ve unvan bilgilerini güncelle.',
                                   child: Column(
                                     children: [
                                       TextField(
                                         controller: _fullNameController,
-                                        decoration: const InputDecoration(labelText: 'Ad Soyad'),
+                                        decoration: const InputDecoration(
+                                          labelText: 'Ad Soyad',
+                                        ),
                                       ),
                                       const SizedBox(height: 14),
                                       TextField(
                                         controller: _departmentController,
-                                        decoration: const InputDecoration(labelText: 'Departman'),
+                                        decoration: const InputDecoration(
+                                          labelText: 'Departman',
+                                        ),
                                       ),
                                       const SizedBox(height: 14),
                                       TextField(
                                         controller: _jobTitleController,
-                                        decoration: const InputDecoration(labelText: 'Pozisyon'),
+                                        decoration: const InputDecoration(
+                                          labelText: 'Pozisyon',
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
                                 _OnboardingCard(
                                   title: '2. Çalışma tercihi',
-                                  subtitle: 'Rolüne uygun çalışma modelini seç.',
+                                  subtitle:
+                                      'Rolüne uygun çalışma modelini seç.',
                                   child: Wrap(
                                     spacing: 10,
                                     runSpacing: 10,
@@ -210,7 +221,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                     spacing: 10,
                                     runSpacing: 10,
                                     children: [
-                                      for (final channel in NotificationChannel.values)
+                                      for (final channel
+                                          in NotificationChannel.values)
                                         FilterChip(
                                           label: Text(channel.label),
                                           selected: _channels.contains(channel),
@@ -229,15 +241,20 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                 ),
                                 _OnboardingCard(
                                   title: '4. Son kontrol',
-                                  subtitle: 'Kurulumu tamamlamadan önce özeti kontrol et.',
+                                  subtitle:
+                                      'Kurulumu tamamlamadan önce özeti kontrol et.',
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       SwitchListTile(
                                         value: _wantsQuickTour,
-                                        onChanged: (value) =>
-                                            setState(() => _wantsQuickTour = value),
-                                        title: const Text('Hızlı ürün turunu göster'),
+                                        onChanged: (value) => setState(
+                                          () => _wantsQuickTour = value,
+                                        ),
+                                        title: const Text(
+                                          'Hızlı ürün turunu göster',
+                                        ),
                                         contentPadding: EdgeInsets.zero,
                                       ),
                                       const SizedBox(height: 12),
@@ -247,7 +264,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                       ),
                                       _SummaryRow(
                                         label: 'Departman',
-                                        value: _departmentController.text.trim(),
+                                        value: _departmentController.text
+                                            .trim(),
                                       ),
                                       _SummaryRow(
                                         label: 'Pozisyon',
@@ -274,7 +292,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               ),
                               const Spacer(),
                               FilledButton.icon(
-                                onPressed: widget.controller.busy ? null : _nextStep,
+                                onPressed: widget.controller.busy
+                                    ? null
+                                    : _nextStep,
                                 icon: Icon(
                                   _step == 3
                                       ? Icons.check_rounded
@@ -283,7 +303,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                 label: Text(
                                   widget.controller.busy
                                       ? 'Kaydediliyor...'
-                                      : (_step == 3 ? 'Panele Geç' : 'Devam Et'),
+                                      : (_step == 3
+                                            ? 'Panele Geç'
+                                            : 'Devam Et'),
                                 ),
                               ),
                             ],

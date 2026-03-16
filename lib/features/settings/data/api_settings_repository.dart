@@ -19,6 +19,8 @@ class ApiSettingsRepository implements SettingsRepository {
       'settings/general',
       body: settings.toJson(),
     );
-    return GeneralSettings.fromJson(payload['settings'] as Map<String, dynamic>? ?? payload);
+    return GeneralSettings.fromJson(
+      payload['settings'] as Map<String, dynamic>? ?? payload,
+    );
   }
 }

@@ -8,7 +8,7 @@ import 'package:servis_kontrol/features/team/domain/team_snapshot.dart';
 import '../../../support/test_support.dart';
 
 void main() {
-  test('ekip filtreleri, not ve yonetici gorunumu calisir', () async {
+  test('ekip filtreleri, not ve yönetici görünumu çalışir', () async {
     final controller = TeamController(
       user: managerUser,
       apiClient: createTestApiClient(),
@@ -46,7 +46,7 @@ void main() {
     expect(controller.alerts.length, lessThanOrEqualTo(2));
   });
 
-  test('manager calisan ve takim olusturup duzenleyebilir', () async {
+  test('manager çalışan ve takım oluşturup düzenleyebilir', () async {
     final repository = _FakeTeamRepository();
     final controller = TeamController(
       user: managerUser,
@@ -91,7 +91,7 @@ void main() {
         statusCode: 'passive',
         teamId: '2',
         department: 'Saha',
-        jobTitle: 'Takim Lideri',
+        jobTitle: 'Takım Lideri',
         workPreference: 'Karma',
         permissionCodes: {'tasks.assign', 'team.manage'},
       ),
@@ -150,7 +150,7 @@ class _FakeTeamRepository implements TeamRepository {
         userCode: '1000000002',
         loginName: 'onur01',
         name: 'Onur Kaya',
-        role: 'Calisan',
+        role: 'Çalışan',
         roleCode: 'employee',
         status: 'Aktif',
         statusCode: 'active',
@@ -167,7 +167,7 @@ class _FakeTeamRepository implements TeamRepository {
         riskLevel: MemberRiskLevel.high,
         capacityPercent: 108,
         trackedHoursLabel: '7.8 saat',
-        workloadStatusLabel: 'Asiri yukte',
+        workloadStatusLabel: 'Aşıri yükte',
         permissions: {'tasks.view'},
         canEdit: true,
       ),
@@ -185,7 +185,7 @@ class _FakeTeamRepository implements TeamRepository {
       TeamAlert(
         id: 'a1',
         title: 'Onur riskte',
-        detail: 'Yuksek yuk',
+        detail: 'Yüksek yük',
         project: 'Merkez Plaza',
         riskLevel: MemberRiskLevel.high,
       ),
@@ -193,7 +193,7 @@ class _FakeTeamRepository implements TeamRepository {
         id: 'a2',
         title: 'Teslimler yogun',
         detail: 'Bugun 3 teslim var',
-        project: 'Coklu proje',
+        project: 'Çoklu proje',
         riskLevel: MemberRiskLevel.medium,
       ),
       TeamAlert(
@@ -219,25 +219,25 @@ class _FakeTeamRepository implements TeamRepository {
       TeamPermissionOption(
         code: 'tasks.view',
         module: 'tasks',
-        label: 'Gorevleri Gor',
-        description: 'Gorev listesi goruntuleme',
+        label: 'Görevleri Gör',
+        description: 'Görev listesi görüntüleme',
       ),
       TeamPermissionOption(
         code: 'tasks.assign',
         module: 'tasks',
-        label: 'Gorev Ata',
-        description: 'Gorev olusturma ve dagitma',
+        label: 'Görev Ata',
+        description: 'Görev oluşturma ve dağıtma',
       ),
       TeamPermissionOption(
         code: 'team.manage',
         module: 'team',
-        label: 'Ekip Yonet',
-        description: 'Calisan ve takim guncelleme',
+        label: 'Ekip Yönet',
+        description: 'Çalışan ve takım güncelleme',
       ),
     ],
     roleOptions: const [
       TeamRoleOption(code: 'team_lead', label: 'Ekip Lideri'),
-      TeamRoleOption(code: 'employee', label: 'Calisan'),
+      TeamRoleOption(code: 'employee', label: 'Çalışan'),
     ],
   );
 
@@ -377,7 +377,7 @@ class _FakeTeamRepository implements TeamRepository {
     required TeamMemberDraft draft,
     required String? teamName,
   }) {
-    final roleLabel = draft.roleCode == 'team_lead' ? 'Ekip Lideri' : 'Calisan';
+    final roleLabel = draft.roleCode == 'team_lead' ? 'Ekip Lideri' : 'Çalışan';
     final statusLabel = draft.statusCode == 'passive' ? 'Pasif' : 'Aktif';
     return TeamMember(
       id: id,
@@ -397,11 +397,11 @@ class _FakeTeamRepository implements TeamRepository {
       activeTasks: 0,
       completedTasks: 0,
       performanceScore: 0,
-      focusNote: 'Yeni ekip uyesi',
+      focusNote: 'Yeni ekip üyesi',
       riskLevel: MemberRiskLevel.low,
       capacityPercent: 0,
       trackedHoursLabel: '0 saat',
-      workloadStatusLabel: 'Planlanmadi',
+      workloadStatusLabel: 'Planlanmadı',
       permissions: draft.permissionCodes,
       canEdit: true,
     );

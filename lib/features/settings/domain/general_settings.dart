@@ -34,10 +34,15 @@ class GeneralSettings {
   factory GeneralSettings.fromJson(Map<String, dynamic> json) {
     final permissionProfiles =
         (json['permission_profiles'] as List<dynamic>? ?? const [])
-            .map((item) => PermissionProfile.fromJson(item as Map<String, dynamic>))
+            .map(
+              (item) =>
+                  PermissionProfile.fromJson(item as Map<String, dynamic>),
+            )
             .toList(growable: false);
     final integrations = (json['integrations'] as List<dynamic>? ?? const [])
-        .map((item) => IntegrationSetting.fromJson(item as Map<String, dynamic>))
+        .map(
+          (item) => IntegrationSetting.fromJson(item as Map<String, dynamic>),
+        )
         .toList(growable: false);
 
     return GeneralSettings(
@@ -119,10 +124,7 @@ class GeneralSettings {
 }
 
 class PermissionProfile {
-  const PermissionProfile({
-    required this.title,
-    required this.summary,
-  });
+  const PermissionProfile({required this.title, required this.summary});
 
   final String title;
   final String summary;

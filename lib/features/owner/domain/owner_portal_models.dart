@@ -472,7 +472,7 @@ class OwnerRequestItem {
 
   String get typeLabel => switch (type) {
     'sign_up_requested' => 'Kaydol',
-    'forgot_password_requested' => 'Sifre Sifirlama',
+    'forgot_password_requested' => 'Şifre Sıfırlama',
     _ => 'Talep',
   };
 

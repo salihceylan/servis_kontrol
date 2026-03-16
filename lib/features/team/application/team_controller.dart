@@ -118,19 +118,19 @@ class TeamController extends ChangeNotifier {
 
     return [
       TeamMetric(
-        label: 'Toplam Calisan',
+        label: 'Toplam Çalışan',
         value: '$totalMembers',
-        caption: 'Aktif ekip gorunumu',
+        caption: 'Aktif ekip görünumu',
       ),
       TeamMetric(
-        label: 'Takim Sayisi',
+        label: 'Takım Sayisi',
         value: '${_teams.length}',
         caption: 'Operasyon gruplari',
       ),
       TeamMetric(
-        label: 'Aktif Gorevler',
+        label: 'Aktif Görevler',
         value: '$activeTasks',
-        caption: 'Dagitilmis is yuku',
+        caption: 'Dağıtilmis iş yükü',
       ),
       TeamMetric(
         label: 'Ekip Performansi',
@@ -175,7 +175,7 @@ class TeamController extends ChangeNotifier {
       _permissionOptions = const [];
       _roleOptions = const [];
       _selectedMemberId = null;
-      _errorMessage = 'Ekip verileri alinamadi.';
+      _errorMessage = 'Ekip verileri alınamadı.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -231,7 +231,7 @@ class TeamController extends ChangeNotifier {
       _errorMessage = error.message;
       return false;
     } catch (_) {
-      _errorMessage = 'Yonetici notu kaydedilemedi.';
+      _errorMessage = 'Yönetici notu kaydedilemedi.';
       return false;
     } finally {
       _isSaving = false;
@@ -244,7 +244,7 @@ class TeamController extends ChangeNotifier {
       final created = await _repository.createMember(draft);
       _selectedMemberId = created.id;
       await load();
-    }, fallbackMessage: 'Calisan kaydi olusturulamadi.');
+    }, fallbackMessage: 'Çalışan kaydı oluşturulamadı.');
   }
 
   Future<bool> updateMember({
@@ -258,14 +258,14 @@ class TeamController extends ChangeNotifier {
       );
       _selectedMemberId = updated.id;
       await load();
-    }, fallbackMessage: 'Calisan kaydi guncellenemedi.');
+    }, fallbackMessage: 'Çalışan kaydı güncellenemedi.');
   }
 
   Future<bool> createTeam(TeamGroupDraft draft) {
     return _runMutation(() async {
       await _repository.createTeam(draft);
       await load();
-    }, fallbackMessage: 'Takim olusturulamadi.');
+    }, fallbackMessage: 'Takım oluşturulamadı.');
   }
 
   Future<bool> updateTeam({
@@ -275,7 +275,7 @@ class TeamController extends ChangeNotifier {
     return _runMutation(() async {
       await _repository.updateTeam(teamId: teamId, draft: draft);
       await load();
-    }, fallbackMessage: 'Takim guncellenemedi.');
+    }, fallbackMessage: 'Takım güncellenemedi.');
   }
 
   Future<bool> _runMutation(

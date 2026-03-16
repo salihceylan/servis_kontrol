@@ -1,10 +1,7 @@
 import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 
 class AuthSession {
-  const AuthSession({
-    required this.token,
-    required this.user,
-  });
+  const AuthSession({required this.token, required this.user});
 
   final String token;
   final AppUser user;
@@ -17,9 +14,6 @@ class AuthSession {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'token': token,
-      'user': user.toJson(),
-    };
+    return {'token': token, 'user': user.toJson()};
   }
 }

@@ -38,7 +38,8 @@ class RevisionHistoryEntry {
       title: json['title'] as String? ?? '',
       detail: json['detail'] as String? ?? '',
       actor: json['actor'] as String? ?? '',
-      timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ??
+      timestamp:
+          DateTime.tryParse(json['timestamp'] as String? ?? '') ??
           DateTime.now(),
     );
   }
@@ -90,7 +91,8 @@ class RevisionItem {
       stage: revisionStageFromApi(json['stage'] as String?),
       revisionCount: json['revision_count'] as int? ?? 0,
       updatedAt:
-          DateTime.tryParse(json['updated_at'] as String? ?? '') ?? DateTime.now(),
+          DateTime.tryParse(json['updated_at'] as String? ?? '') ??
+          DateTime.now(),
       category: json['category'] as String? ?? '',
       summary: json['summary'] as String? ?? '',
       revisionReason: json['revision_reason'] as String?,

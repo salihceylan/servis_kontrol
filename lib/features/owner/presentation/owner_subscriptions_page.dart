@@ -57,7 +57,7 @@ class _OwnerSubscriptionsPageState extends State<OwnerSubscriptionsPage> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const StatePanel.loading(
-        title: 'Abonelikler yukleniyor',
+        title: 'Abonelikler yükleniyor',
         message: 'Paket ve lisans sinirlari okunuyor.',
       );
     }
@@ -84,7 +84,7 @@ class _OwnerSubscriptionsPageState extends State<OwnerSubscriptionsPage> {
         ),
         const SizedBox(height: 6),
         const Text(
-          'Tum tenant planlarini ve lisans bitislerini tek listede takip et.',
+          'Tüm tenant planlarını ve lisans bitişlerini tek listede takip et.',
           style: TextStyle(color: AppPalette.muted, height: 1.5),
         ),
         const SizedBox(height: 18),

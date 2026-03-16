@@ -53,8 +53,8 @@ class _OwnerRequestsPageState extends State<OwnerRequestsPage> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const StatePanel.loading(
-        title: 'Talepler yukleniyor',
-        message: 'Kaydol ve sifre talepleri listeleniyor.',
+        title: 'Talepler yükleniyor',
+        message: 'Kaydol ve şifre talepleri listeleniyor.',
       );
     }
     if (_errorMessage != null) {
@@ -99,7 +99,7 @@ class _OwnerRequestsPageState extends State<OwnerRequestsPage> {
                   ),
                   SizedBox(height: 6),
                   Text(
-                    'Kaydol ve sifre sifirlama taleplerini owner arka ofisinden takip et.',
+                    'Kaydol ve şifre sıfırlama taleplerini owner arka ofisinden takip et.',
                     style: TextStyle(color: AppPalette.muted, height: 1.5),
                   ),
                 ],
@@ -117,7 +117,7 @@ class _OwnerRequestsPageState extends State<OwnerRequestsPage> {
           spacing: 10,
           children: [
             ChoiceChip(
-              label: const Text('Tum Talepler'),
+              label: const Text('Tüm Talepler'),
               selected: _filter == 'all',
               onSelected: (_) => setState(() => _filter = 'all'),
             ),
@@ -127,7 +127,7 @@ class _OwnerRequestsPageState extends State<OwnerRequestsPage> {
               onSelected: (_) => setState(() => _filter = 'sign_up_requested'),
             ),
             ChoiceChip(
-              label: const Text('Sifre'),
+              label: const Text('Şifre'),
               selected: _filter == 'forgot_password_requested',
               onSelected: (_) =>
                   setState(() => _filter = 'forgot_password_requested'),
@@ -137,8 +137,8 @@ class _OwnerRequestsPageState extends State<OwnerRequestsPage> {
         const SizedBox(height: 18),
         if (items.isEmpty)
           StatePanel.empty(
-            title: 'Kayit bulunamadi',
-            message: 'Secilen filtre icin talep yok.',
+            title: 'Kayıt bulunamadı',
+            message: 'Seçilen filtre için talep yok.',
             onRetry: _load,
           )
         else

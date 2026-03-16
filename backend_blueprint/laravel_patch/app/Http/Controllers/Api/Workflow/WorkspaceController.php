@@ -198,7 +198,7 @@ class WorkspaceController extends Controller
         $this->workflow->addManagerNote($request->user(), $memberId, $payload['note'], $request->ip());
 
         return response()->json([
-            'message' => 'Yonetici notu kaydedildi.',
+            'message' => 'Yönetici notu kaydedildi.',
         ]);
     }
 

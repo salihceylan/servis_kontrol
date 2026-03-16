@@ -61,10 +61,7 @@ class SharedPrefsAuthSessionStorage implements AuthSessionStorage {
         await clear();
         return null;
       }
-      return AuthSession.fromJson({
-        'token': token,
-        'user': decoded,
-      });
+      return AuthSession.fromJson({'token': token, 'user': decoded});
     } on FormatException {
       await clear();
       return null;

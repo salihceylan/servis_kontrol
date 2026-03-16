@@ -81,11 +81,11 @@ class AuthController extends ChangeNotifier {
       } else {
         await _sessionStorage.clear();
       }
-      return AuthResult.success('Oturum acildi.');
+      return AuthResult.success('Oturum açıldı.');
     } on ApiException catch (error) {
       return AuthResult.failure(error.message);
     } catch (_) {
-      return AuthResult.failure('Oturum acilamadi. Sunucu cevabi gecersiz.');
+      return AuthResult.failure('Oturum açılamadı. Sunucu cevabı geçersiz.');
     } finally {
       _busy = false;
       notifyListeners();
@@ -95,7 +95,7 @@ class AuthController extends ChangeNotifier {
   Future<AuthResult> requestPasswordReset(String email) async {
     final normalized = email.trim().toLowerCase();
     if (normalized.isEmpty || !normalized.contains('@')) {
-      return AuthResult.failure('Gecerli bir e-posta adresi girin.');
+      return AuthResult.failure('Geçerli bir e-posta adresi girin.');
     }
 
     _busy = true;
@@ -103,12 +103,12 @@ class AuthController extends ChangeNotifier {
     try {
       await _repository.requestPasswordReset(normalized);
       return AuthResult.success(
-        'Parola sifirlama baglantisi gonderildi. Gelen kutunuzu kontrol edin.',
+        'Parola sıfırlama bağlantısı gönderildi. Gelen kutunuzu kontrol edin.',
       );
     } on ApiException catch (error) {
       return AuthResult.failure(error.message);
     } catch (_) {
-      return AuthResult.failure('Parola sifirlama istegi gonderilemedi.');
+      return AuthResult.failure('Parola sıfırlama istegi gönderilemedi.');
     } finally {
       _busy = false;
       notifyListeners();
@@ -127,13 +127,13 @@ class AuthController extends ChangeNotifier {
     final normalizedPhone = phone?.trim() ?? '';
 
     if (normalizedCompanyName.isEmpty) {
-      return AuthResult.failure('Sirket adi gerekli.');
+      return AuthResult.failure('Şirket adı gerekli.');
     }
     if (normalizedFullName.isEmpty) {
       return AuthResult.failure('Ad soyad gerekli.');
     }
     if (normalizedEmail.isEmpty || !normalizedEmail.contains('@')) {
-      return AuthResult.failure('Gecerli bir e-posta adresi girin.');
+      return AuthResult.failure('Geçerli bir e-posta adresi girin.');
     }
 
     _busy = true;
@@ -146,12 +146,12 @@ class AuthController extends ChangeNotifier {
         phone: normalizedPhone.isEmpty ? null : normalizedPhone,
       );
       return AuthResult.success(
-        'Kayit talebiniz alindi. Ekibimiz sizinle iletisime gececek.',
+        'Kayıt talebiniz alındı. Ekibimiz sizinle iletişime geçecek.',
       );
     } on ApiException catch (error) {
       return AuthResult.failure(error.message);
     } catch (_) {
-      return AuthResult.failure('Kayit talebi gonderilemedi.');
+      return AuthResult.failure('Kayıt talebi gönderilemedi.');
     } finally {
       _busy = false;
       notifyListeners();
@@ -160,7 +160,7 @@ class AuthController extends ChangeNotifier {
 
   Future<AuthResult> completeOnboarding(OnboardingProfile profile) async {
     if (_currentUser == null) {
-      return AuthResult.failure('Aktif kullanici bulunamadi.');
+      return AuthResult.failure('Aktif kullanıcı bulunamadı.');
     }
 
     _busy = true;
@@ -178,7 +178,7 @@ class AuthController extends ChangeNotifier {
           await _sessionStorage.clear();
         }
       }
-      return AuthResult.success('Ilk giris kurulumu tamamlandi.');
+      return AuthResult.success('İlk giriş kurulumu tamamlandı.');
     } on ApiException catch (error) {
       return AuthResult.failure(error.message);
     } catch (_) {

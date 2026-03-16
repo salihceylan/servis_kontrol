@@ -68,24 +68,24 @@ class OwnerPortalService
 
         return [
             'title' => 'Owner Dashboard',
-            'subtitle' => 'Musteri tenantlari, lisanslar ve destek talepleri tek arka ofiste.',
+            'subtitle' => 'Müşteri tenantları, lisanslar ve destek talepleri tek arka ofiste.',
             'summary_cards' => [
                 [
-                    'label' => 'Sirket',
+                    'label' => 'Şirket',
                     'value' => $totalCompanies,
                     'caption' => $activeCompanies . ' aktif tenant',
                     'accent' => 'primary',
                     'icon' => 'business',
                 ],
                 [
-                    'label' => 'Aktif Kullanici',
+                    'label' => 'Aktif Kullanıci',
                     'value' => $totalActiveUsers,
-                    'caption' => 'Tum tenantlarda aktif hesaplar',
+                    'caption' => 'Tüm tenantlarda aktif hesaplar',
                     'accent' => 'success',
                     'icon' => 'users',
                 ],
                 [
-                    'label' => 'Acik Gorev',
+                    'label' => 'Açık Görev',
                     'value' => $openTasks,
                     'caption' => 'Teslim bekleyen toplam is',
                     'accent' => 'warning',
@@ -94,7 +94,7 @@ class OwnerPortalService
                 [
                     'label' => 'Destek Talebi',
                     'value' => $requestCount,
-                    'caption' => 'Kaydol ve sifre talepleri',
+                    'caption' => 'Kaydol ve şifre talepleri',
                     'accent' => 'danger',
                     'icon' => 'support',
                 ],
@@ -141,14 +141,14 @@ class OwnerPortalService
 
         $adminEmail = trim(Str::lower((string) $payload['admin_email']));
         if (User::query()->where('email', $adminEmail)->exists()) {
-            throw new RuntimeException('Bu e-posta ile baska bir kullanici zaten var.');
+            throw new RuntimeException('Bu e-posta ile başka bir kullanıcı zaten var.');
         }
 
         $companyId = DB::transaction(function () use ($payload, $adminEmail): int {
             $companyName = trim((string) $payload['company_name']);
             $adminName = trim((string) $payload['admin_name']);
             $adminPassword = (string) $payload['admin_password'];
-            $departmentName = trim((string) ($payload['department_name'] ?? 'Yonetim'));
+            $departmentName = trim((string) ($payload['department_name'] ?? 'Yönetim'));
             $teamName = trim((string) ($payload['team_name'] ?? 'Merkez Operasyon'));
 
             $companyId = (int) DB::table('companies')->insertGetId([
@@ -163,7 +163,7 @@ class OwnerPortalService
             DB::select('SELECT wf_seed_company_defaults(?)', [$companyId]);
 
             $departmentId = $this->findOrCreateDepartment($companyId, $departmentName);
-            $positionId = $this->findOrCreatePosition($companyId, 'Sirket Yoneticisi');
+            $positionId = $this->findOrCreatePosition($companyId, 'Şirket Yöneticisi');
 
             $teamCode = Str::slug($teamName, '_');
             $teamId = (int) DB::table('teams')->insertGetId([
@@ -208,7 +208,7 @@ class OwnerPortalService
                 ->value('id');
 
             if ($managerRoleId === null) {
-                throw new RuntimeException('Manager rolu bulunamadi.');
+                throw new RuntimeException('Manager rolu bulunamadı.');
             }
 
             DB::table('user_roles')->insert([
@@ -242,7 +242,7 @@ class OwnerPortalService
             $this->upsertSubscriptionSettings($companyId, $payload);
             $this->upsertSupportSettings($companyId, [
                 'support_email' => $payload['support_email'] ?? 'kodver@gudeteknoloji.com.tr',
-                'response_sla' => $payload['response_sla'] ?? '4 is saati',
+                'response_sla' => $payload['response_sla'] ?? '4 iş saati',
             ]);
 
             return $companyId;
@@ -300,13 +300,13 @@ class OwnerPortalService
             'locale' => $company->locale,
             'created_at' => Carbon::parse($company->created_at)->toIso8601String(),
             'owner' => [
-                'name' => $company->owner_name ?? 'Atanmamis',
+                'name' => $company->owner_name ?? 'Atanmamış',
                 'email' => $company->owner_email ?? '',
             ],
             'subscription' => $subscription,
             'support' => [
                 'support_email' => $settings['support_email'] ?? 'kodver@gudeteknoloji.com.tr',
-                'response_sla' => $settings['response_sla'] ?? '4 is saati',
+                'response_sla' => $settings['response_sla'] ?? '4 iş saati',
             ],
             'stats' => $stats,
             'recent_activity' => $recentActivity,
@@ -430,14 +430,14 @@ class OwnerPortalService
         ]);
 
         return [
-            'message' => 'Destek erisim kaydi olusturuldu.',
+            'message' => 'Destek erişim kaydı oluşturuldu.',
         ];
     }
 
     private function ensureOwnerAccess(User $user): void
     {
         if (!$this->workflow->isOwnerUser($user)) {
-            throw new AuthorizationException('Bu alan yalnizca owner kullanicilar icindir.');
+            throw new AuthorizationException('Bu alan yalnızca owner kullanıcılar içindir.');
         }
     }
 
@@ -470,7 +470,7 @@ class OwnerPortalService
             'company_code' => trim((string) $company->company_code),
             'name' => $company->name,
             'status' => $company->status,
-            'owner_name' => $company->owner_name ?? 'Atanmamis',
+            'owner_name' => $company->owner_name ?? 'Atanmamış',
             'owner_email' => $company->owner_email ?? '',
             'timezone' => $company->timezone,
             'locale' => $company->locale,

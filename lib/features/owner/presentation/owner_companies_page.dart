@@ -74,7 +74,7 @@ class _OwnerCompaniesPageState extends State<OwnerCompaniesPage> {
       await _load();
       widget.onOpenCompany(detail.id);
       messenger.showSnackBar(
-        const SnackBar(content: Text('Yeni sirket olusturuldu.')),
+        const SnackBar(content: Text('Yeni şirket oluşturuldu.')),
       );
     } catch (error) {
       if (!mounted) {
@@ -92,7 +92,7 @@ class _OwnerCompaniesPageState extends State<OwnerCompaniesPage> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const StatePanel.loading(
-        title: 'Sirketler yukleniyor',
+        title: 'Şirketler yükleniyor',
         message: 'Tenant listesi ve lisans durumlari okunuyor.',
       );
     }
@@ -111,7 +111,7 @@ class _OwnerCompaniesPageState extends State<OwnerCompaniesPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Sirketler',
+                    'Şirketler',
                     style: TextStyle(
                       color: AppPalette.text,
                       fontSize: 24,
@@ -120,7 +120,7 @@ class _OwnerCompaniesPageState extends State<OwnerCompaniesPage> {
                   ),
                   SizedBox(height: 6),
                   Text(
-                    'Tenantlari, owner hesaplarini ve lisans sinirlarini merkezi olarak yonet.',
+                    'Tenantları, owner hesaplarını ve lisans sınırlarını merkezi olarak yönet.',
                     style: TextStyle(color: AppPalette.muted, height: 1.5),
                   ),
                 ],
@@ -136,15 +136,15 @@ class _OwnerCompaniesPageState extends State<OwnerCompaniesPage> {
             FilledButton.icon(
               onPressed: _creating ? null : _createCompany,
               icon: const Icon(Icons.add_business_rounded),
-              label: Text(_creating ? 'Olusturuluyor...' : 'Yeni Sirket'),
+              label: Text(_creating ? 'Oluşturuluyor...' : 'Yeni Şirket'),
             ),
           ],
         ),
         const SizedBox(height: 20),
         if (_companies.isEmpty)
           StatePanel.empty(
-            title: 'Sirket bulunamadi',
-            message: 'Owner panelinde henuz tenant kaydi yok.',
+            title: 'Şirket bulunamadı',
+            message: 'Owner panelinde henüz tenant kaydı yok.',
             onRetry: _load,
           )
         else
@@ -268,7 +268,7 @@ class _CompanyCard extends StatelessWidget {
                 _InfoPill(
                   icon: Icons.people_alt_outlined,
                   label:
-                      '${company.stats.activeUsers}/${company.subscription.userLimit} kullanici',
+                      '${company.stats.activeUsers}/${company.subscription.userLimit} kullanıcı',
                 ),
                 _InfoPill(
                   icon: Icons.storage_rounded,
@@ -279,7 +279,7 @@ class _CompanyCard extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              'Aktif kullanici dolulugu',
+              'Aktif kullanıcı doluluğu',
               style: const TextStyle(
                 color: AppPalette.muted,
                 fontWeight: FontWeight.w700,
@@ -300,7 +300,7 @@ class _CompanyCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _StatColumn(
-                    label: 'Acik gorev',
+                    label: 'Açık görev',
                     value: '${company.stats.openTasks}',
                   ),
                 ),
@@ -400,12 +400,12 @@ class _CreateCompanyDialogState extends State<_CreateCompanyDialog> {
   final _adminNameController = TextEditingController();
   final _adminEmailController = TextEditingController();
   final _adminPasswordController = TextEditingController();
-  final _departmentController = TextEditingController(text: 'Yonetim');
+  final _departmentController = TextEditingController(text: 'Yönetim');
   final _teamController = TextEditingController(text: 'Merkez Operasyon');
   final _supportEmailController = TextEditingController(
     text: 'kodver@gudeteknoloji.com.tr',
   );
-  final _slaController = TextEditingController(text: '4 is saati');
+  final _slaController = TextEditingController(text: '4 iş saati');
   final _userLimitController = TextEditingController(text: '25');
   final _storageLimitController = TextEditingController(text: '50');
 
@@ -480,7 +480,7 @@ class _CreateCompanyDialogState extends State<_CreateCompanyDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      title: const Text('Yeni Sirket'),
+      title: const Text('Yeni Şirket'),
       content: SizedBox(
         width: 560,
         child: SingleChildScrollView(
@@ -489,13 +489,13 @@ class _CreateCompanyDialogState extends State<_CreateCompanyDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _field(_companyNameController, 'Sirket adi'),
+                _field(_companyNameController, 'Şirket adı'),
                 const SizedBox(height: 12),
-                _field(_adminNameController, 'Ilk admin adi'),
+                _field(_adminNameController, 'İlk admin adı'),
                 const SizedBox(height: 12),
                 _field(
                   _adminEmailController,
-                  'Ilk admin e-posta',
+                  'İlk admin e-posta',
                   keyboardType: TextInputType.emailAddress,
                 ),
                 const SizedBox(height: 12),
@@ -507,7 +507,7 @@ class _CreateCompanyDialogState extends State<_CreateCompanyDialog> {
                 const SizedBox(height: 12),
                 _field(_departmentController, 'Departman'),
                 const SizedBox(height: 12),
-                _field(_teamController, 'Takim'),
+                _field(_teamController, 'Takım'),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -579,7 +579,7 @@ class _CreateCompanyDialogState extends State<_CreateCompanyDialog> {
                         controller: _userLimitController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
-                          labelText: 'Kullanici limiti',
+                          labelText: 'Kullanıci limiti',
                         ),
                         validator: _numberValidator,
                       ),
@@ -603,7 +603,7 @@ class _CreateCompanyDialogState extends State<_CreateCompanyDialog> {
                   borderRadius: BorderRadius.circular(16),
                   child: InputDecorator(
                     decoration: const InputDecoration(
-                      labelText: 'Lisans bitis tarihi',
+                      labelText: 'Lisans bitiş tarihi',
                     ),
                     child: Text(formatOwnerDate(_licenseEndsAt)),
                   ),
@@ -647,7 +647,7 @@ class _CreateCompanyDialogState extends State<_CreateCompanyDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Vazgec'),
         ),
-        FilledButton(onPressed: _submit, child: const Text('Olustur')),
+        FilledButton(onPressed: _submit, child: const Text('Oluştur')),
       ],
     );
   }
@@ -669,7 +669,7 @@ class _CreateCompanyDialogState extends State<_CreateCompanyDialog> {
         }
         if (keyboardType == TextInputType.emailAddress &&
             !value.contains('@')) {
-          return 'Gecerli bir e-posta girin.';
+          return 'Geçerli bir e-posta girin.';
         }
         return null;
       },
@@ -679,7 +679,7 @@ class _CreateCompanyDialogState extends State<_CreateCompanyDialog> {
   String? _numberValidator(String? value) {
     final parsed = int.tryParse(value ?? '');
     if (parsed == null || parsed <= 0) {
-      return 'Gecerli bir sayi girin.';
+      return 'Geçerli bir sayi girin.';
     }
     return null;
   }

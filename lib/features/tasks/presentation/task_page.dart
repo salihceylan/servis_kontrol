@@ -49,8 +49,8 @@ class _TaskPageState extends State<TaskPage> {
       builder: (context, _) {
         if (_controller.isLoading) {
           return const StatePanel.loading(
-            title: 'Gorevler yukleniyor',
-            message: 'Sirket gorev kayitlari ve detaylari sunucudan aliniyor.',
+            title: 'Görevler yükleniyor',
+            message: 'Şirket görev kayıtları ve detayları sunucudan alınıyor.',
           );
         }
         if (_controller.errorMessage != null && !_controller.hasData) {
@@ -69,8 +69,8 @@ class _TaskPageState extends State<TaskPage> {
                 icon: const Icon(Icons.add_task_rounded),
                 label: Text(
                   _controller.isPreparingComposer
-                      ? 'Hazirlaniyor...'
-                      : 'Yeni Gorev',
+                      ? 'Hazırlanıyor...'
+                      : 'Yeni Görev',
                 ),
               )
             : null;
@@ -82,9 +82,9 @@ class _TaskPageState extends State<TaskPage> {
               _PageHeader(action: action),
               const SizedBox(height: 18),
               StatePanel.empty(
-                title: 'Gorev kaydi bulunamadi',
+                title: 'Görev kaydı bulunamadı',
                 message:
-                    'Veritabaninda bu kullanici icin henuz gorunen bir gorev yok.',
+                    'Veritabanında bu kullanıcı için henüz görünen bir görev yok.',
                 onRetry: _controller.load,
               ),
             ],
@@ -162,14 +162,14 @@ class _TaskPageState extends State<TaskPage> {
       _showFeedback(
         _controller.composerErrorMessage ??
             _controller.errorMessage ??
-            'Gorev formu hazirlanamadi.',
+            'Görev formu hazırlanamadı.',
       );
       return;
     }
 
     final composer = _controller.composer;
     if (composer == null || composer.assignees.isEmpty) {
-      _showFeedback('Gorev acmak icin en az bir atanabilir kullanici gerekli.');
+      _showFeedback('Görev açmak için en az bir atanabilir kullanıcı gerekli.');
       return;
     }
 
@@ -188,8 +188,8 @@ class _TaskPageState extends State<TaskPage> {
     }
     _showFeedback(
       success
-          ? 'Gorev olusturuldu.'
-          : (_controller.errorMessage ?? 'Gorev olusturulamadi.'),
+          ? 'Görev oluşturuldu.'
+          : (_controller.errorMessage ?? 'Görev oluşturulamadı.'),
     );
   }
 
@@ -251,8 +251,8 @@ class _TaskPageState extends State<TaskPage> {
     final success = await _controller.startSelectedTask();
     _showFeedback(
       success
-          ? 'Gorev baslatildi.'
-          : (_controller.errorMessage ?? 'Gorev baslatilamadi.'),
+          ? 'Görev başlatıldı.'
+          : (_controller.errorMessage ?? 'Görev başlatılamadı.'),
     );
   }
 
@@ -269,7 +269,7 @@ class _TaskPageState extends State<TaskPage> {
     }
     _showFeedback(
       success
-          ? 'Yorum goreve eklendi.'
+          ? 'Yorum göreve eklendi.'
           : (_controller.errorMessage ?? 'Yorum kaydedilemedi.'),
     );
   }
@@ -278,8 +278,8 @@ class _TaskPageState extends State<TaskPage> {
     final success = await _controller.scheduleMeeting();
     _showFeedback(
       success
-          ? 'Toplanti baglantisi olusturuldu.'
-          : (_controller.errorMessage ?? 'Toplanti baglantisi olusturulamadi.'),
+          ? 'Toplantı bağlantısı oluşturuldu.'
+          : (_controller.errorMessage ?? 'Toplantı bağlantısı oluşturulamadı.'),
     );
   }
 
@@ -287,8 +287,8 @@ class _TaskPageState extends State<TaskPage> {
     final success = await _controller.submitSelectedTask();
     _showFeedback(
       success
-          ? 'Gorev incelemeye gonderildi.'
-          : (_controller.errorMessage ?? 'Gorev teslim edilemedi.'),
+          ? 'Görev incelemeye gönderildi.'
+          : (_controller.errorMessage ?? 'Görev teslim edilemedi.'),
     );
   }
 
@@ -313,7 +313,7 @@ class _PageHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Gorevler',
+          'Görevler',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
@@ -322,7 +322,7 @@ class _PageHeader extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Gercek gorev kayitlarini filtrele, takim bazli dagit ve detay aksiyonlarini dogrudan veritabanina isle.',
+          'Gerçek görev kayıtlarını filtrele, takım bazlı dağıt ve detay aksiyonlarını doğrudan veritabanına işle.',
           style: TextStyle(color: AppPalette.muted, height: 1.5),
         ),
         if (action != null) ...[const SizedBox(height: 14), action!],
@@ -408,7 +408,7 @@ class _FilterCard extends StatelessWidget {
             child: TextField(
               controller: searchController,
               decoration: const InputDecoration(
-                hintText: 'Gorev, proje, takim veya etiket ara...',
+                hintText: 'Görev, proje, takım veya etiket ara...',
                 prefixIcon: Icon(Icons.search_rounded),
               ),
             ),
@@ -417,14 +417,14 @@ class _FilterCard extends StatelessWidget {
             label: 'Durum',
             value: controller.statusFilter,
             items: const [null, ...TaskStatus.values],
-            itemLabel: (value) => value?.label ?? 'Tumu',
+            itemLabel: (value) => value?.label ?? 'Tümu',
             onChanged: controller.updateStatusFilter,
           ),
           _FilterDropdown<TaskPriority?>(
-            label: 'Oncelik',
+            label: 'Öncelik',
             value: controller.priorityFilter,
             items: const [null, ...TaskPriority.values],
-            itemLabel: (value) => value?.label ?? 'Tumu',
+            itemLabel: (value) => value?.label ?? 'Tümu',
             onChanged: controller.updatePriorityFilter,
           ),
           _FilterDropdown<TaskDateFilter>(
@@ -435,24 +435,24 @@ class _FilterCard extends StatelessWidget {
             onChanged: (value) => controller.updateDateFilter(value!),
           ),
           _FilterDropdown<String?>(
-            label: 'Takim',
+            label: 'Takım',
             value: controller.teamFilter,
             items: [null, ...controller.teams],
-            itemLabel: (value) => value ?? 'Tumu',
+            itemLabel: (value) => value ?? 'Tümu',
             onChanged: controller.updateTeamFilter,
           ),
           _FilterDropdown<String?>(
             label: 'Kisi',
             value: controller.assigneeFilter,
             items: [null, ...controller.assignees],
-            itemLabel: (value) => value ?? 'Tumu',
+            itemLabel: (value) => value ?? 'Tümu',
             onChanged: controller.updateAssigneeFilter,
           ),
           _FilterDropdown<String?>(
             label: 'Etiket',
             value: controller.tagFilter,
             items: [null, ...controller.tags],
-            itemLabel: (value) => value ?? 'Tumu',
+            itemLabel: (value) => value ?? 'Tümu',
             onChanged: controller.updateTagFilter,
           ),
           OutlinedButton.icon(
@@ -461,7 +461,7 @@ class _FilterCard extends StatelessWidget {
               controller.clearFilters();
             },
             icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Filtreleri Sifirla'),
+            label: const Text('Filtreleri Sıfırla'),
           ),
           if (onCreate != null)
             FilledButton.icon(
@@ -471,8 +471,8 @@ class _FilterCard extends StatelessWidget {
               icon: const Icon(Icons.add_task_rounded),
               label: Text(
                 controller.isPreparingComposer
-                    ? 'Hazirlaniyor...'
-                    : 'Yeni Gorev',
+                    ? 'Hazırlanıyor...'
+                    : 'Yeni Görev',
               ),
             ),
         ],
@@ -537,15 +537,15 @@ class _TaskListPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Card(
-      title: 'Gorev Listesi',
+      title: 'Görev Listesi',
       subtitle: opensDetailSheet
-          ? 'Kayda dokununca detay ve aksiyonlar acilir.'
-          : 'Secilen kayit sagdaki detay kartinda acilir.',
+          ? 'Kayda dokununca detay ve aksiyonlar açılır.'
+          : 'Seçilen kayıt sağdaki detay kartında açılır.',
       child: tasks.isEmpty
           ? const StatePanel.empty(
-              title: 'Filtreye uygun gorev yok',
+              title: 'Filtreye uygun görev yok',
               message:
-                  'Arama veya filtreler mevcut kayitlarla eslesmiyor. Filtreleri sifirlayip tekrar dene.',
+                  'Arama veya filtreler mevcut kayıtlarla eşleşmiyor. Filtreleri sıfırlayip tekrar dene.',
             )
           : Column(
               children: [
@@ -658,14 +658,14 @@ class _TaskDetailPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     if (task == null) {
       return const StatePanel.empty(
-        title: 'Gorev detayi yok',
-        message: 'Listeden bir gorev secildiginde detay burada acilir.',
+        title: 'Görev detayı yok',
+        message: 'Listeden bir görev seçildiğinde detay burada açılır.',
       );
     }
 
     return _Card(
-      title: 'Gorev Detayi',
-      subtitle: 'Baslat, yorum ekle, toplanti planla ve teslim et.',
+      title: 'Görev Detayı',
+      subtitle: 'Baslat, yorum ekle, toplantı planla ve teslim et.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -698,20 +698,20 @@ class _TaskDetailPanel extends StatelessWidget {
           const SizedBox(height: 18),
           Text(
             task!.description.isEmpty
-                ? 'Aciklama girilmemis.'
+                ? 'Açıklama girilmemiş.'
                 : task!.description,
             style: const TextStyle(color: AppPalette.muted, height: 1.6),
           ),
           const SizedBox(height: 16),
           _InfoRow(label: 'Proje', value: task!.project),
           _InfoRow(
-            label: 'Takim',
-            value: task!.team.isEmpty ? 'Takim baglanmadi' : task!.team,
+            label: 'Takım',
+            value: task!.team.isEmpty ? 'Takım bağlanmadı' : task!.team,
           ),
           _InfoRow(label: 'Atanan', value: task!.assignee),
           _InfoRow(label: 'Son teslim', value: _formatDate(task!.dueAt)),
           _InfoRow(
-            label: 'Guncelleme',
+            label: 'Güncelleme',
             value: _formatDateTime(task!.updatedAt),
           ),
           if (task!.requestSource != null && task!.requestSource!.isNotEmpty)
@@ -749,7 +749,7 @@ class _TaskDetailPanel extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: controller.isSaving ? null : onMeeting,
                 icon: const Icon(Icons.video_call_rounded),
-                label: const Text('Toplanti Olustur'),
+                label: const Text('Toplantı Oluştur'),
               ),
               OutlinedButton.icon(
                 onPressed: controller.isSaving ? null : onSubmit,
@@ -783,7 +783,7 @@ class _TaskDetailPanel extends StatelessWidget {
             maxLines: 4,
             decoration: const InputDecoration(
               labelText: 'Yorum ekle',
-              hintText: 'Goreve not birak ve kaydet.',
+              hintText: 'Göreve not bırak ve kaydet.',
             ),
           ),
           const SizedBox(height: 10),
@@ -1040,7 +1040,7 @@ Color _priorityColor(TaskPriority priority) => switch (priority) {
 
 String _formatMinutes(int minutes) {
   if (minutes <= 0) {
-    return 'Kayit yok';
+    return 'Kayıt yok';
   }
   final hours = minutes ~/ 60;
   final remainingMinutes = minutes % 60;
@@ -1052,7 +1052,7 @@ String _formatMinutes(int minutes) {
 
 String _formatDate(DateTime? value) {
   if (value == null) {
-    return 'Planlanmadi';
+    return 'Planlanmadı';
   }
 
   const months = [

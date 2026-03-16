@@ -6,10 +6,7 @@ import 'package:servis_kontrol/features/performance/application/performance_cont
 import 'package:servis_kontrol/features/performance/domain/performance_snapshot.dart';
 
 class PerformancePage extends StatefulWidget {
-  const PerformancePage({
-    super.key,
-    required this.apiClient,
-  });
+  const PerformancePage({super.key, required this.apiClient});
 
   final ApiClient apiClient;
 
@@ -40,7 +37,8 @@ class _PerformancePageState extends State<PerformancePage> {
         if (_controller.isLoading) {
           return const StatePanel.loading(
             title: 'Performans verileri yükleniyor',
-            message: 'Trend, kalite ve görev bazlı performans kayıtları alınıyor.',
+            message:
+                'Trend, kalite ve görev bazlı performans kayıtları alınıyor.',
           );
         }
         if (_controller.errorMessage != null && !_controller.hasData) {

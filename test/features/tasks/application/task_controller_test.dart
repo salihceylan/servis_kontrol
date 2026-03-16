@@ -8,7 +8,7 @@ import 'package:servis_kontrol/features/tasks/domain/task_item.dart';
 import '../../../support/test_support.dart';
 
 void main() {
-  test('durum ve takim filtresi ile gorev aksiyonlari calisir', () async {
+  test('durum ve takım filtresi ile görev aksiyonlari çalışir', () async {
     final controller = TaskController(
       user: managerUser,
       apiClient: createTestApiClient(),
@@ -49,7 +49,7 @@ void main() {
   });
 
   test(
-    'yonetici gorev olusturma verisini yukler ve takimli gorev olusturur',
+    'yönetici görev oluşturma verisini yükler ve takımli görev oluşturur',
     () async {
       final controller = TaskController(
         user: managerUser,
@@ -65,8 +65,8 @@ void main() {
       controller.updateStatusFilter(TaskStatus.delivered);
       final success = await controller.createTask(
         TaskDraft(
-          title: 'Yeni saha kontrolu',
-          description: 'Detayli kontrol listesi acildi.',
+          title: 'Yeni saha kontrolü',
+          description: 'Detaylı kontrol listesi açıldı.',
           projectId: 'project-1',
           teamId: 'team-1',
           assigneeId: 'user-1',
@@ -79,14 +79,14 @@ void main() {
 
       expect(success, isTrue);
       expect(controller.statusFilter, isNull);
-      expect(controller.selectedTask!.title, 'Yeni saha kontrolu');
+      expect(controller.selectedTask!.title, 'Yeni saha kontrolü');
       expect(controller.selectedTask!.team, 'Merkez Ekip');
       expect(controller.selectedTask!.dueAt, DateTime(2026, 3, 15, 18));
       expect(controller.composer!.tagSuggestions, contains('Saha'));
     },
   );
 
-  test('opsiyonel son tarih olmadan gorev olusturabilir', () async {
+  test('opsiyonel son tarih olmadan görev oluşturabilir', () async {
     final controller = TaskController(
       user: managerUser,
       apiClient: createTestApiClient(),
@@ -109,7 +109,7 @@ void main() {
     expect(controller.selectedTask!.team, 'Saha Ekip');
   });
 
-  test('employee kullanici varsayilan durumda gorev olusturamaz', () async {
+  test('employee kullanıcı varsayılan durumda görev oluşturamaz', () async {
     final controller = TaskController(
       user: managerUser.copyWith(
         role: UserRole.employee,
@@ -152,7 +152,7 @@ class _FakeTaskRepository implements TaskRepository {
       dueAt: DateTime(2026, 3, 12, 17),
       updatedAt: DateTime(2026, 3, 12, 9),
       tag: 'Kontrol',
-      description: 'Kontrol kaydi',
+      description: 'Kontrol kaydı',
       checklistCompleted: 1,
       checklistTotal: 3,
       estimatedMinutes: 180,
@@ -171,8 +171,8 @@ class _FakeTaskRepository implements TaskRepository {
       ],
       timeline: [
         TaskTimelineEntry(
-          title: 'Gorev olusturuldu',
-          detail: 'Kayit acildi',
+          title: 'Görev oluşturuldu',
+          detail: 'Kayıt açıldı',
           actor: 'Sistem',
           timestamp: DateTime(2026, 3, 12, 9),
         ),
@@ -250,7 +250,7 @@ class _FakeTaskRepository implements TaskRepository {
       timeEntries: const [],
       timeline: [
         TaskTimelineEntry(
-          title: 'Gorev olusturuldu',
+          title: 'Görev oluşturuldu',
           detail: draft.description,
           actor: assignee.label,
           timestamp: timestamp,

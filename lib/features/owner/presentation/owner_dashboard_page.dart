@@ -58,8 +58,8 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const StatePanel.loading(
-        title: 'Owner paneli hazirlaniyor',
-        message: 'Musteri ve lisans verileri sunucudan aliniyor.',
+        title: 'Owner paneli hazırlaniyor',
+        message: 'Müşteri ve lisans verileri sunucudan alınıyor.',
       );
     }
 
@@ -70,8 +70,8 @@ class _OwnerDashboardPageState extends State<OwnerDashboardPage> {
     final snapshot = _snapshot;
     if (snapshot == null) {
       return StatePanel.empty(
-        title: 'Veri bulunamadi',
-        message: 'Owner paneli icin kayit bulunamadi.',
+        title: 'Veri bulunamadı',
+        message: 'Owner paneli için kayıt bulunamadı.',
         onRetry: _load,
       );
     }
@@ -305,7 +305,7 @@ class _PlanBreakdown extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Aktif tenantlarin plan yogunlugu canli veriden okunuyor.',
+            'Aktif tenantların plan yogunlugu canli veriden okunuyor.',
             style: TextStyle(color: AppPalette.muted, height: 1.5),
           ),
           const SizedBox(height: 18),
@@ -370,7 +370,7 @@ class _RequestFeed extends StatelessWidget {
           const SizedBox(height: 14),
           if (items.isEmpty)
             const Text(
-              'Acik talep yok.',
+              'Açık talep yok.',
               style: TextStyle(color: AppPalette.muted),
             )
           else
@@ -470,7 +470,7 @@ class _CompanyWatchlist extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${company.subscription.planName} • ${company.stats.openTasks} acik gorev',
+                            '${company.subscription.planName} • ${company.stats.openTasks} açık görev',
                             style: const TextStyle(color: AppPalette.muted),
                           ),
                         ],

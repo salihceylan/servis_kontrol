@@ -11,13 +11,13 @@ use Illuminate\Support\Str;
 class WorkflowBootstrapCompany extends Command
 {
     protected $signature = 'workflow:bootstrap-company
-        {company : Sirket adi}
-        {owner_name : Owner kullanici adi}
+        {company : Şirket adı}
+        {owner_name : Owner kullanıcı adı}
         {owner_email : Owner e-posta adresi}
         {owner_password : Owner parolasi}
-        {--with-sample-data : Test icin ornek proje ve gorevler uret}';
+        {--with-sample-data : Test için örnek proje ve görevler üret}';
 
-    protected $description = 'Workflow icin ilk sirket, owner kullanici ve temel ayarlari olusturur.';
+    protected $description = 'Workflow için ilk şirket, owner kullanıcı ve temel ayarları oluşturur.';
 
     public function handle(): int
     {
@@ -27,7 +27,7 @@ class WorkflowBootstrapCompany extends Command
         $ownerPassword = (string) $this->argument('owner_password');
 
         if (User::query()->where('email', $ownerEmail)->exists()) {
-            $this->error('Bu e-posta ile bir kullanici zaten var.');
+            $this->error('Bu e-posta ile bir kullanıcı zaten var.');
             return self::FAILURE;
         }
 
@@ -162,7 +162,7 @@ class WorkflowBootstrapCompany extends Command
             $companyCode = DB::table('companies')->where('id', $companyId)->value('company_code');
             $userCode = DB::table('users')->where('id', $userId)->value('user_code');
 
-            $this->info('Workflow company bootstrap tamamlandi.');
+            $this->info('Workflow company bootstrap tamamlandı.');
             $this->line('company_id: ' . $companyId);
             $this->line('company_code: ' . trim((string) $companyCode));
             $this->line('owner_user_id: ' . $userId);
@@ -218,7 +218,7 @@ class WorkflowBootstrapCompany extends Command
             'company_id' => $companyId,
             'project_id' => $projectId,
             'team_id' => $teamId,
-            'title' => 'Kamera revizyon geri donusu',
+            'title' => 'Kamera revizyon geri dönüşu',
             'description' => 'Kamera montaj raporundaki eksik fotograflar tamamlanacak.',
             'status_id' => $reviewStatusId,
             'priority' => 'medium',
@@ -235,13 +235,13 @@ class WorkflowBootstrapCompany extends Command
 
         DB::table('task_checklists')->insert([
             ['task_id' => $taskA, 'title' => 'Kontrol turunu baslat', 'is_completed' => true, 'completed_by' => $ownerUserId, 'completed_at' => now()->subHour(), 'sort_order' => 1],
-            ['task_id' => $taskA, 'title' => 'Fotograf yukle', 'is_completed' => false, 'completed_by' => null, 'completed_at' => null, 'sort_order' => 2],
+            ['task_id' => $taskA, 'title' => 'Fotograf yükle', 'is_completed' => false, 'completed_by' => null, 'completed_at' => null, 'sort_order' => 2],
             ['task_id' => $taskA, 'title' => 'Kontrol formunu kapat', 'is_completed' => false, 'completed_by' => null, 'completed_at' => null, 'sort_order' => 3],
         ]);
 
         DB::table('task_comments')->insert([
-            ['task_id' => $taskA, 'user_id' => $ownerUserId, 'body' => 'Saha ziyareti basladi, eksik ekipman listesi hazirlaniyor.', 'comment_type' => 'comment', 'created_at' => now()->subMinutes(40)],
-            ['task_id' => $taskA, 'user_id' => $ownerUserId, 'body' => 'https://meet.jit.si/workflow-ornek-toplanti', 'comment_type' => 'meeting', 'created_at' => now()->subMinutes(20)],
+            ['task_id' => $taskA, 'user_id' => $ownerUserId, 'body' => 'Saha ziyareti başladı, eksik ekipman listesi hazırlanıyor.', 'comment_type' => 'comment', 'created_at' => now()->subMinutes(40)],
+            ['task_id' => $taskA, 'user_id' => $ownerUserId, 'body' => 'https://meet.jit.si/workflow-ornek-toplantı', 'comment_type' => 'meeting', 'created_at' => now()->subMinutes(20)],
         ]);
 
         DB::table('task_status_history')->insert([
@@ -249,7 +249,7 @@ class WorkflowBootstrapCompany extends Command
             'from_status_id' => $pendingStatusId,
             'to_status_id' => $inProgressStatusId,
             'changed_by' => $ownerUserId,
-            'note' => 'Gorev isleme alindi.',
+            'note' => 'Görev işleme alındı.',
             'created_at' => now()->subHours(2),
         ]);
 
@@ -269,7 +269,7 @@ class WorkflowBootstrapCompany extends Command
         DB::table('revision_messages')->insert([
             'revision_id' => $revisionId,
             'user_id' => $ownerUserId,
-            'message' => 'Fotograflar yuklenip tekrar incelemeye gonderildi.',
+            'message' => 'Fotoğraflar yüklenip tekrar incelemeye gönderildi.',
             'message_type' => 'employee_update',
             'created_at' => now()->subHour(),
         ]);
@@ -280,7 +280,7 @@ class WorkflowBootstrapCompany extends Command
             'user_id' => $ownerUserId,
             'alert_type' => 'revision',
             'severity' => 'warning',
-            'message' => 'Bir revizyon kaydi bugun sonuc bekliyor.',
+            'message' => 'Bir revizyon kaydı bugun sonuc bekliyor.',
             'is_resolved' => false,
             'created_at' => now()->subHour(),
             'resolved_at' => null,

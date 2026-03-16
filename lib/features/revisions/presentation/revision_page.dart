@@ -8,11 +8,7 @@ import 'package:servis_kontrol/features/revisions/application/revision_controlle
 import 'package:servis_kontrol/features/revisions/domain/revision_item.dart';
 
 class RevisionPage extends StatefulWidget {
-  const RevisionPage({
-    super.key,
-    required this.user,
-    required this.apiClient,
-  });
+  const RevisionPage({super.key, required this.user, required this.apiClient});
 
   final AppUser user;
   final ApiClient apiClient;
@@ -201,7 +197,8 @@ class _RevisionPageState extends State<RevisionPage> {
                 child: const Text('Vazgeç'),
               ),
               FilledButton(
-                onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+                onPressed: () =>
+                    Navigator.of(context).pop(controller.text.trim()),
                 child: const Text('Gönder'),
               ),
             ],
@@ -217,9 +214,9 @@ class _RevisionPageState extends State<RevisionPage> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -286,10 +283,7 @@ class _MetricCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            metric.caption,
-            style: const TextStyle(color: AppPalette.muted),
-          ),
+          Text(metric.caption, style: const TextStyle(color: AppPalette.muted)),
         ],
       ),
     );
@@ -297,10 +291,7 @@ class _MetricCard extends StatelessWidget {
 }
 
 class _QueuePanel extends StatelessWidget {
-  const _QueuePanel({
-    required this.controller,
-    required this.selectedId,
-  });
+  const _QueuePanel({required this.controller, required this.selectedId});
 
   final RevisionController controller;
   final String? selectedId;
@@ -361,14 +352,20 @@ class _QueuePanel extends StatelessWidget {
                               spacing: 8,
                               runSpacing: 8,
                               children: [
-                                _BadgeChip(label: item.stage.label, color: _stageColor(item.stage)),
+                                _BadgeChip(
+                                  label: item.stage.label,
+                                  color: _stageColor(item.stage),
+                                ),
                                 _BadgeChip(
                                   label: '${item.revisionCount} revizyon',
                                   color: item.earlyWarning
                                       ? AppPalette.danger
                                       : AppPalette.warning,
                                 ),
-                                _BadgeChip(label: item.category, color: const Color(0xFF7A7AE6)),
+                                _BadgeChip(
+                                  label: item.category,
+                                  color: const Color(0xFF7A7AE6),
+                                ),
                               ],
                             ),
                           ],
@@ -432,10 +429,15 @@ class _DetailPanel extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _BadgeChip(label: item!.stage.label, color: _stageColor(item!.stage)),
+              _BadgeChip(
+                label: item!.stage.label,
+                color: _stageColor(item!.stage),
+              ),
               _BadgeChip(
                 label: '${item!.revisionCount} revizyon',
-                color: item!.earlyWarning ? AppPalette.danger : AppPalette.warning,
+                color: item!.earlyWarning
+                    ? AppPalette.danger
+                    : AppPalette.warning,
               ),
               _BadgeChip(label: item!.category, color: const Color(0xFF7A7AE6)),
             ],
@@ -535,7 +537,10 @@ class _DetailPanel extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       history.detail,
-                      style: const TextStyle(color: AppPalette.muted, height: 1.5),
+                      style: const TextStyle(
+                        color: AppPalette.muted,
+                        height: 1.5,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -640,10 +645,7 @@ class _BadgeChip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w700,
-        ),
+        style: TextStyle(color: color, fontWeight: FontWeight.w700),
       ),
     );
   }

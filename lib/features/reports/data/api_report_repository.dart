@@ -42,6 +42,8 @@ class ApiReportRepository implements ReportRepository {
         if (user != null && user.isNotEmpty) 'user': user,
       },
     );
-    return ReportRun.fromJson(payload['run'] as Map<String, dynamic>? ?? payload);
+    return ReportRun.fromJson(
+      payload['run'] as Map<String, dynamic>? ?? payload,
+    );
   }
 }

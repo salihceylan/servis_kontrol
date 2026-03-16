@@ -67,7 +67,7 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Parolamı unuttum',
+            'Parolamı unuttüm',
             style: TextStyle(
               color: AppPalette.text,
               fontSize: 22,
@@ -122,7 +122,9 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
                   child: Text(
                     _message!,
                     style: TextStyle(
-                      color: _isSuccess ? AppPalette.success : AppPalette.danger,
+                      color: _isSuccess
+                          ? AppPalette.success
+                          : AppPalette.danger,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

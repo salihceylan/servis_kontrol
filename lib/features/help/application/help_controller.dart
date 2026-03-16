@@ -6,10 +6,8 @@ import 'package:servis_kontrol/features/help/data/help_repository.dart';
 import 'package:servis_kontrol/features/help/domain/help_center_snapshot.dart';
 
 class HelpController extends ChangeNotifier {
-  HelpController({
-    required ApiClient apiClient,
-    HelpRepository? repository,
-  }) : _repository = repository ?? ApiHelpRepository(apiClient) {
+  HelpController({required ApiClient apiClient, HelpRepository? repository})
+    : _repository = repository ?? ApiHelpRepository(apiClient) {
     load();
   }
 

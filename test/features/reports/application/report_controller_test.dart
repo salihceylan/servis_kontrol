@@ -5,7 +5,7 @@ import 'package:servis_kontrol/features/reports/domain/report_snapshot.dart';
 import '../../../support/test_support.dart';
 
 void main() {
-  test('rapor olusturma akisi hazir kayda doner', () async {
+  test('rapor oluşturma akışı hazır kayda döner', () async {
     final controller = ReportController(
       user: managerUser,
       apiClient: createTestApiClient(),
@@ -35,7 +35,7 @@ class _FakeReportRepository implements ReportRepository {
     const ReportRun(
       id: 'seed',
       title: 'Operasyon Raporu',
-      scope: 'Tum Sirket',
+      scope: 'Tüm Şirket',
       format: ReportFormat.pdf,
       createdAtLabel: '12 Mar 2026',
       status: ReportRunStatus.ready,
@@ -50,13 +50,11 @@ class _FakeReportRepository implements ReportRepository {
   }) async {
     return ReportSnapshot(
       metrics: const [
-        ReportMetric(label: 'Toplam', value: '4', caption: 'Hazir'),
+        ReportMetric(label: 'Toplam', value: '4', caption: 'Hazır'),
       ],
-      statusCounts: const [
-        ReportStatusCount(label: 'Hazir', count: 4),
-      ],
+      statusCounts: const [ReportStatusCount(label: 'Hazır', count: 4)],
       activities: const [
-        ReportActivity(title: 'Rapor guncellendi', subtitle: 'Hazir'),
+        ReportActivity(title: 'Rapor güncellendi', subtitle: 'Hazır'),
       ],
       teamOptions: const ['Saha Ekibi'],
       userOptions: const ['Merve'],

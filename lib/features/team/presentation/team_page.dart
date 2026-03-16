@@ -60,9 +60,9 @@ class _TeamPageState extends State<TeamPage> {
       builder: (context, _) {
         if (_controller.isLoading) {
           return const StatePanel.loading(
-            title: 'Ekip verileri yukleniyor',
+            title: 'Ekip verileri yükleniyor',
             message:
-                'Calisanlar, takimlar ve yetki kayitlari sunucudan aliniyor.',
+                'Çalışanlar, takımlar ve yetki kayıtları sunucudan alınıyor.',
           );
         }
         if (_controller.errorMessage != null && !_controller.hasData) {
@@ -101,14 +101,14 @@ class _TeamPageState extends State<TeamPage> {
             const SizedBox(height: 18),
             _card(
               title: 'Filtreler',
-              subtitle: 'Calisanlari, takimlari ve risk sinyallerini filtrele.',
+              subtitle: 'Çalışanları, takımları ve risk sinyallerini filtrele.',
               child: Column(
                 children: [
                   TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
                       hintText:
-                          'Calisan, kullanici adi, departman veya takim ara',
+                          'Çalışan, kullanıcı adı, departman veya takım ara',
                       prefixIcon: const Icon(Icons.search_rounded),
                       fillColor: palette.surfaceMuted,
                     ),
@@ -128,15 +128,15 @@ class _TeamPageState extends State<TeamPage> {
                           selected: _controller.managerMode,
                           label: Text(
                             _controller.managerMode
-                                ? 'Yonetici gorunumu'
-                                : 'Ozet gorunumu',
+                                ? 'Yönetici görünümü'
+                                : 'Özet görünümü',
                           ),
                           onSelected: _controller.toggleManagerMode,
                         ),
                       FilledButton.tonalIcon(
                         onPressed: widget.onOpenTasks,
                         icon: const Icon(Icons.task_alt_rounded),
-                        label: const Text('Gorevler'),
+                        label: const Text('Görevler'),
                       ),
                       FilledButton.tonalIcon(
                         onPressed: widget.onOpenRevisions,
@@ -177,7 +177,7 @@ class _TeamPageState extends State<TeamPage> {
                 final wide = constraints.maxWidth >= 980;
                 final corrections = _signalsCard(
                   title: 'Revizyon Sinyalleri',
-                  subtitle: 'Takim bazli kalite ve duzeltme bekleyen isler.',
+                  subtitle: 'Takım bazlı kalite ve düzeltme bekleyen işler.',
                   action: TextButton.icon(
                     onPressed: widget.onOpenRevisions,
                     icon: const Icon(Icons.open_in_new_rounded),
@@ -195,7 +195,7 @@ class _TeamPageState extends State<TeamPage> {
                 );
                 final alerts = _signalsCard(
                   title: 'Operasyon Uyarilari',
-                  subtitle: 'Asiri yuk ve kritik teslim sinyalleri.',
+                  subtitle: 'Aşıri yük ve kritik teslim sinyalleri.',
                   action: TextButton.icon(
                     onPressed: widget.onOpenTasks,
                     icon: const Icon(Icons.open_in_new_rounded),
@@ -210,7 +210,7 @@ class _TeamPageState extends State<TeamPage> {
                         badge: item.riskLevel.label,
                       ),
                   ],
-                  empty: 'Aktif operasyon uyarisi yok.',
+                  empty: 'Aktif operasyon uyarısı yok.',
                 );
                 if (wide) {
                   return Row(
@@ -256,7 +256,7 @@ class _TeamPageState extends State<TeamPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Calisan, takim ve izin yonetimi',
+            'Çalışan, takım ve izin yönetimi',
             style: TextStyle(
               color: Colors.white,
               fontSize: 26,
@@ -265,7 +265,7 @@ class _TeamPageState extends State<TeamPage> {
           ),
           const SizedBox(height: 10),
           const Text(
-            'Manager kullanicisi ekip kurabilir, calisan ekleyebilir, sifre belirleyebilir, takim atamasi yapabilir ve personel detaylarini gorebilir.',
+            'Manager kullanıcısı ekip kurabilir, çalışan ekleyebilir, şifre belirleyebilir, takım ataması yapabilir ve personel detaylarını görebilir.',
             style: TextStyle(color: Color(0xD0FFFFFF), height: 1.5),
           ),
           if (_controller.canManageWorkspace) ...[
@@ -277,7 +277,7 @@ class _TeamPageState extends State<TeamPage> {
                 FilledButton.icon(
                   onPressed: _controller.isSaving ? null : _openCreateMember,
                   icon: const Icon(Icons.person_add_alt_1_rounded),
-                  label: const Text('Calisan Ekle'),
+                  label: const Text('Çalışan Ekle'),
                 ),
                 OutlinedButton.icon(
                   onPressed: _controller.isSaving ? null : _openCreateTeam,
@@ -285,7 +285,7 @@ class _TeamPageState extends State<TeamPage> {
                     foregroundColor: Colors.white,
                   ),
                   icon: const Icon(Icons.group_add_rounded),
-                  label: const Text('Takim Ekle'),
+                  label: const Text('Takım Ekle'),
                 ),
               ],
             ),
@@ -299,15 +299,15 @@ class _TeamPageState extends State<TeamPage> {
     final members = _controller.members;
     if (members.isEmpty) {
       return const StatePanel.empty(
-        title: 'Calisan kaydi bulunamadi',
-        message: 'Bu sirket icin gorunen calisan veya takim kaydi yok.',
+        title: 'Çalışan kaydı bulunamadı',
+        message: 'Bu şirket için görünen çalışan veya takım kaydı yok.',
       );
     }
     final palette = context.rolePalette;
     return _card(
-      title: 'Calisanlar',
+      title: 'Çalışanlar',
       subtitle:
-          'Tum personel kullanici adi, takim, rol ve aktif gorev bilgileriyle listelenir.',
+          'Tüm personel kullanıcı adı, takım, rol ve aktif görev bilgileriyle listelenir.',
       child: Column(
         children: [
           for (final member in members)
@@ -381,7 +381,7 @@ class _TeamPageState extends State<TeamPage> {
                               palette.primary,
                             ),
                             _chip(
-                              member.teamName ?? 'Takim atanmadi',
+                              member.teamName ?? 'Takım atanmadı',
                               palette.success,
                             ),
                             _chip(
@@ -401,7 +401,7 @@ class _TeamPageState extends State<TeamPage> {
                           children: [
                             Expanded(
                               child: _miniMetric(
-                                'Aktif Gorev',
+                                'Aktif Görev',
                                 '${member.activeTasks}',
                               ),
                             ),
@@ -435,19 +435,19 @@ class _TeamPageState extends State<TeamPage> {
   Widget _detailCard(TeamMember? member) {
     if (member == null) {
       return const StatePanel.empty(
-        title: 'Calisan secilmedi',
-        message: 'Detaylari gormek icin listeden bir calisan sec.',
+        title: 'Çalışan seçilmedi',
+        message: 'Detayları görmek için listeden bir çalışan seç.',
       );
     }
     final palette = context.rolePalette;
     return _card(
-      title: 'Calisan Detayi',
-      subtitle: 'Kullanici bilgileri, izinler, takim ve yonetici notu.',
+      title: 'Çalışan Detayı',
+      subtitle: 'Kullanıcı bilgileri, izinler, takım ve yönetici notu.',
       action: member.canEdit
           ? OutlinedButton.icon(
               onPressed: () => _openEditMember(member),
               icon: const Icon(Icons.edit_outlined),
-              label: const Text('Duzenle'),
+              label: const Text('Düzenle'),
             )
           : null,
       child: Column(
@@ -499,7 +499,7 @@ class _TeamPageState extends State<TeamPage> {
                 member.userCode.isEmpty ? 'Kod yok' : member.userCode,
                 palette.primary,
               ),
-              _chip(member.teamName ?? 'Takim atanmadi', palette.success),
+              _chip(member.teamName ?? 'Takım atanmadı', palette.success),
               _chip(
                 member.status,
                 member.statusCode == 'passive'
@@ -516,34 +516,34 @@ class _TeamPageState extends State<TeamPage> {
             children: [
               _infoBox(
                 'E-posta',
-                member.email.isEmpty ? 'Kayit yok' : member.email,
+                member.email.isEmpty ? 'Kayıt yok' : member.email,
               ),
               _infoBox(
                 'Telefon',
-                member.phone.isEmpty ? 'Kayit yok' : member.phone,
+                member.phone.isEmpty ? 'Kayıt yok' : member.phone,
               ),
               _infoBox(
                 'Departman',
-                member.department.isEmpty ? 'Kayit yok' : member.department,
+                member.department.isEmpty ? 'Kayıt yok' : member.department,
               ),
               _infoBox(
                 'Unvan',
-                member.jobTitle.isEmpty ? 'Kayit yok' : member.jobTitle,
+                member.jobTitle.isEmpty ? 'Kayıt yok' : member.jobTitle,
               ),
               _infoBox(
-                'Calisma',
+                'Çalışma',
                 member.workPreference.isEmpty
-                    ? 'Kayit yok'
+                    ? 'Kayıt yok'
                     : member.workPreference,
               ),
-              _infoBox('Is yuku', member.workloadStatusLabel),
+              _infoBox('İş yükü', member.workloadStatusLabel),
             ],
           ),
           const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
-                child: _miniMetric('Aktif Gorev', '${member.activeTasks}'),
+                child: _miniMetric('Aktif Görev', '${member.activeTasks}'),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -563,7 +563,7 @@ class _TeamPageState extends State<TeamPage> {
           const SizedBox(height: 10),
           if (member.permissions.isEmpty)
             Text(
-              'Ek izin tanimi yok. Rol bazli yetkiler gecerli.',
+              'Ek izin tanımı yok. Rol bazlı yetkiler geçerli.',
               style: TextStyle(color: palette.muted),
             )
           else
@@ -592,8 +592,8 @@ class _TeamPageState extends State<TeamPage> {
               minLines: 3,
               maxLines: 5,
               decoration: const InputDecoration(
-                labelText: 'Yonetici notu',
-                hintText: 'Izin, gorev veya takip notu yaz',
+                labelText: 'Yönetici notu',
+                hintText: 'İzin, görev veya takip notu yaz',
               ),
             ),
             const SizedBox(height: 12),
@@ -614,14 +614,14 @@ class _TeamPageState extends State<TeamPage> {
   Widget _teamsCard() {
     final palette = context.rolePalette;
     return _card(
-      title: 'Takimlar',
+      title: 'Takımlar',
       subtitle:
-          'Manager birden fazla takim olusturabilir, takim sorumlusu atayabilir ve personeli takimlara dagitabilir.',
+          'Manager birden fazla takım oluşturabilir, takım sorumlusu atayabilir ve personeli takımlara dağıtabilir.',
       action: _controller.canManageWorkspace
           ? OutlinedButton.icon(
               onPressed: _controller.isSaving ? null : _openCreateTeam,
               icon: const Icon(Icons.group_add_rounded),
-              label: const Text('Takim Ekle'),
+              label: const Text('Takım Ekle'),
             )
           : null,
       child: Column(
@@ -629,7 +629,7 @@ class _TeamPageState extends State<TeamPage> {
           if (_controller.teams.isEmpty)
             const Align(
               alignment: Alignment.centerLeft,
-              child: Text('Henuz takim kaydi yok.'),
+              child: Text('Henüz takım kaydı yok.'),
             )
           else
             for (final team in _controller.teams)
@@ -661,7 +661,7 @@ class _TeamPageState extends State<TeamPage> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Takim kodu: ${team.code}',
+                                  'Takım kodu: ${team.code}',
                                   style: TextStyle(
                                     color: palette.muted,
                                     fontWeight: FontWeight.w600,
@@ -683,12 +683,12 @@ class _TeamPageState extends State<TeamPage> {
                         runSpacing: 8,
                         children: [
                           _chip(
-                            team.managerName ?? 'Takim sorumlusu yok',
+                            team.managerName ?? 'Takım sorumlusu yok',
                             palette.primary,
                           ),
-                          _chip('${team.memberCount} uye', palette.success),
+                          _chip('${team.memberCount} üye', palette.success),
                           _chip(
-                            '${team.activeTaskCount} aktif gorev',
+                            '${team.activeTaskCount} aktif görev',
                             palette.warning,
                           ),
                         ],
@@ -965,8 +965,8 @@ class _TeamPageState extends State<TeamPage> {
     final success = await _controller.createMember(draft);
     _feedback(
       success,
-      'Calisan kaydi olusturuldu.',
-      'Calisan kaydi olusturulamadi.',
+      'Çalışan kaydı oluşturuldu.',
+      'Çalışan kaydı oluşturulamadı.',
     );
   }
 
@@ -987,8 +987,8 @@ class _TeamPageState extends State<TeamPage> {
     );
     _feedback(
       success,
-      'Calisan bilgileri guncellendi.',
-      'Calisan kaydi guncellenemedi.',
+      'Çalışan bilgileri güncellendi.',
+      'Çalışan kaydı güncellenemedi.',
     );
   }
 
@@ -1001,7 +1001,7 @@ class _TeamPageState extends State<TeamPage> {
       return;
     }
     final success = await _controller.createTeam(draft);
-    _feedback(success, 'Takim olusturuldu.', 'Takim olusturulamadi.');
+    _feedback(success, 'Takım oluşturuldu.', 'Takım oluşturulamadı.');
   }
 
   Future<void> _openEditTeam(ManagedTeam team) async {
@@ -1014,15 +1014,15 @@ class _TeamPageState extends State<TeamPage> {
       return;
     }
     final success = await _controller.updateTeam(teamId: team.id, draft: draft);
-    _feedback(success, 'Takim bilgileri guncellendi.', 'Takim guncellenemedi.');
+    _feedback(success, 'Takım bilgileri güncellendi.', 'Takım güncellenemedi.');
   }
 
   Future<void> _saveManagerNote() async {
     final success = await _controller.addManagerNote(_noteController.text);
     _feedback(
       success,
-      'Yonetici notu kaydedildi.',
-      'Yonetici notu kaydedilemedi.',
+      'Yönetici notu kaydedildi.',
+      'Yönetici notu kaydedilemedi.',
     );
   }
 

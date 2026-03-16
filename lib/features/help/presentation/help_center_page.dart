@@ -6,10 +6,7 @@ import 'package:servis_kontrol/features/help/application/help_controller.dart';
 import 'package:servis_kontrol/features/help/domain/help_center_snapshot.dart';
 
 class HelpCenterPage extends StatefulWidget {
-  const HelpCenterPage({
-    super.key,
-    required this.apiClient,
-  });
+  const HelpCenterPage({super.key, required this.apiClient});
 
   final ApiClient apiClient;
 
@@ -127,10 +124,7 @@ class _Header extends StatelessWidget {
 }
 
 class _SupportCard extends StatelessWidget {
-  const _SupportCard({
-    required this.contactEmail,
-    required this.responseSla,
-  });
+  const _SupportCard({required this.contactEmail, required this.responseSla});
 
   final String contactEmail;
   final String responseSla;

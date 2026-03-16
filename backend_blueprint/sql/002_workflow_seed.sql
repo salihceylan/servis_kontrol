@@ -55,13 +55,13 @@ BEGIN
     (target_company_id, 'Operasyon', 'operasyon'),
     (target_company_id, 'Saha Operasyon', 'saha_operasyon'),
     (target_company_id, 'Teknik Servis', 'teknik_servis'),
-    (target_company_id, 'Yonetim', 'yonetim')
+    (target_company_id, 'Yönetim', 'yonetim')
   ON CONFLICT (company_id, code) DO NOTHING;
 
   INSERT INTO positions (company_id, name, code, level)
   VALUES
-    (target_company_id, 'Sirket Sahibi', 'company_owner', 5),
-    (target_company_id, 'Operasyon Yoneticisi', 'operations_manager', 4),
+    (target_company_id, 'Şirket Sahibi', 'company_owner', 5),
+    (target_company_id, 'Operasyon Yöneticisi', 'operations_manager', 4),
     (target_company_id, 'Ekip Lideri', 'team_lead', 3),
     (target_company_id, 'Teknik Uzman', 'technical_specialist', 2),
     (target_company_id, 'Saha Teknisyeni', 'field_technician', 1)
@@ -69,16 +69,16 @@ BEGIN
 
   INSERT INTO roles (company_id, name, code, is_system_role)
   VALUES
-    (target_company_id, 'Yonetici', 'manager', TRUE),
+    (target_company_id, 'Yönetici', 'manager', TRUE),
     (target_company_id, 'Ekip Lideri', 'team_lead', TRUE),
-    (target_company_id, 'Calisan', 'employee', TRUE)
+    (target_company_id, 'Çalışan', 'employee', TRUE)
   ON CONFLICT (company_id, code) DO NOTHING;
 
   INSERT INTO task_statuses (company_id, name, code, sort_order, is_closed)
   VALUES
     (target_company_id, 'Beklemede', 'pending', 1, FALSE),
     (target_company_id, 'Devam Ediyor', 'in_progress', 2, FALSE),
-    (target_company_id, 'Incelemede', 'in_review', 3, FALSE),
+    (target_company_id, 'İncelemede', 'in_review', 3, FALSE),
     (target_company_id, 'Revizyonda', 'revision', 4, FALSE),
     (target_company_id, 'Teslim Edildi', 'delivered', 5, TRUE)
   ON CONFLICT (company_id, code) DO NOTHING;
@@ -95,20 +95,20 @@ BEGIN
   VALUES
     (
       target_company_id,
-      'Gorev nasil olusturulur?',
-      'gorev-nasil-olusturulur',
-      'Gorevler',
-      'Gorev olusturma akisinda proje, atanan kisi, oncelik ve teslim tarihi belirlenir.',
-      'Gorev kaydi olusturma ozeti',
+      'Görev nasıl oluşturulur?',
+      'görev-nasil-oluşturulur',
+      'Görevler',
+      'Görev oluşturma akışında proje, atanan kişi, öncelik ve teslim tarihi belirlenir.',
+      'Görev kaydı oluşturma özeti',
       'published'
     ),
     (
       target_company_id,
-      'Revizyon sureci nasil isler?',
+      'Revizyon süreci nasıl işler?',
       'revizyon-sureci-nasil-isler',
       'Revizyon',
-      'Revizyon talebi, neden, tarihce ve onay karari ile birlikte takip edilir.',
-      'Revizyon akis ozeti',
+      'Revizyon talebi, neden, tarihçe ve onay kararı ile birlikte takip edilir.',
+      'Revizyon akış özeti',
       'published'
     )
   ON CONFLICT (company_id, slug) DO NOTHING;

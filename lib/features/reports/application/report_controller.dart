@@ -11,8 +11,8 @@ class ReportController extends ChangeNotifier {
     required AppUser user,
     required ApiClient apiClient,
     ReportRepository? repository,
-  })  : _user = user,
-        _repository = repository ?? ApiReportRepository(apiClient) {
+  }) : _user = user,
+       _repository = repository ?? ApiReportRepository(apiClient) {
     load();
   }
 

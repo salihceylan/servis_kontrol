@@ -5,7 +5,7 @@ import 'package:servis_kontrol/features/revisions/domain/revision_item.dart';
 import '../../../support/test_support.dart';
 
 void main() {
-  test('onay ve revizyon akisleri calisir', () async {
+  test('onay ve revizyon akışları çalışır', () async {
     final controller = RevisionController(
       user: managerUser,
       apiClient: createTestApiClient(),
@@ -22,9 +22,12 @@ void main() {
 
     final revisionTarget = controller.revisionItems.first;
     controller.selectItem(revisionTarget.id);
-    await controller.requestRevision('Fotograf ve toplanti notu eksik.');
+    await controller.requestRevision('Fotograf ve toplantı notu eksik.');
     expect(controller.selectedItem!.stage, RevisionStage.inRevision);
-    expect(controller.selectedItem!.revisionCount, revisionTarget.revisionCount + 1);
+    expect(
+      controller.selectedItem!.revisionCount,
+      revisionTarget.revisionCount + 1,
+    );
     expect(controller.selectedItem!.revisionReason, isNotNull);
     expect(controller.selectedItem!.earlyWarning, isTrue);
   });
@@ -52,7 +55,7 @@ class _FakeRevisionRepository implements RevisionRepository {
       stage: RevisionStage.inRevision,
       revisionCount: 2,
       updatedAt: DateTime(2026, 3, 12, 8),
-      category: 'Toplanti',
+      category: 'Toplantı',
       summary: 'Eksik not var',
       revisionReason: 'Eksik not',
       histories: const [],
@@ -103,7 +106,7 @@ class _FakeRevisionRepository implements RevisionRepository {
       clearRevisionReason: true,
       histories: [
         RevisionHistoryEntry(
-          title: 'Calisan guncelledi',
+          title: 'Çalışan güncelledi',
           detail: note,
           actor: 'Onur',
           timestamp: DateTime(2026, 3, 12, 11),

@@ -450,13 +450,13 @@ class _LoginCard extends StatelessWidget {
                   controller: emailController,
                   keyboardType: TextInputType.text,
                   decoration: _fieldDecoration(
-                    label: 'E-posta veya kullanici adi',
+                    label: 'E-posta veya kullanıcı adı',
                     hint: 'ornek@workflow.com veya saha_ekibi01',
                     icon: Icons.person_outline_rounded,
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'E-posta veya kullanici adi gerekli.';
+                      return 'E-posta veya kullanıcı adı gerekli.';
                     }
                     return null;
                   },
@@ -515,7 +515,7 @@ class _LoginCard extends StatelessWidget {
                     children: [
                       TextButton(
                         onPressed: submitting ? null : onForgotPassword,
-                        child: const Text('Sifremi unuttum'),
+                        child: const Text('Şifremi unuttüm'),
                       ),
                       OutlinedButton(
                         onPressed: submitting ? null : onSignUp,

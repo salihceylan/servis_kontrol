@@ -62,7 +62,7 @@ class _OwnerSupportPageState extends State<OwnerSupportPage> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Destek erisim kaydi olusturuldu.')),
+        const SnackBar(content: Text('Destek erişim kaydı oluşturuldu.')),
       );
       await _load();
     } catch (error) {
@@ -83,8 +83,8 @@ class _OwnerSupportPageState extends State<OwnerSupportPage> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const StatePanel.loading(
-        title: 'Destek verileri yukleniyor',
-        message: 'Tenant rosteri ve owner destek erisim kayitlari aliniyor.',
+        title: 'Destek verileri yükleniyor',
+        message: 'Tenant listesi ve owner destek erişim kayıtları alınıyor.',
       );
     }
     if (_errorMessage != null) {
@@ -109,7 +109,7 @@ class _OwnerSupportPageState extends State<OwnerSupportPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Destek / Erisim',
+                    'Destek / Erişim',
                     style: TextStyle(
                       color: AppPalette.text,
                       fontSize: 24,
@@ -118,7 +118,7 @@ class _OwnerSupportPageState extends State<OwnerSupportPage> {
                   ),
                   SizedBox(height: 6),
                   Text(
-                    'Tenant destek temaslarini izle ve owner tarafindan acilan erisim kayitlarini logla.',
+                    'Tenant destek temaslarını izle ve owner tarafından açılan erişim kayıtlarını logla.',
                     style: TextStyle(color: AppPalette.muted, height: 1.5),
                   ),
                 ],
@@ -183,7 +183,7 @@ class _OwnerSupportPageState extends State<OwnerSupportPage> {
                           label: Text(
                             _busyCompanyId == company.id
                                 ? 'Kaydediliyor...'
-                                : 'Erisim Kaydi',
+                                : 'Erişim Kaydı',
                           ),
                         ),
                       ],
@@ -203,7 +203,7 @@ class _OwnerSupportPageState extends State<OwnerSupportPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Son Owner Erisim Kayitlari',
+                    'Son Owner Erişim Kayıtlari',
                     style: TextStyle(
                       color: AppPalette.text,
                       fontSize: 18,

@@ -191,36 +191,36 @@ class TaskController extends ChangeNotifier {
 
     final metrics = [
       TaskSummaryMetric(
-        label: 'Toplam Gorev',
+        label: 'Toplam Görev',
         value: '${_allTasks.length}',
-        caption: '${filteredTasks.length} gorev filtreye uyuyor',
+        caption: '${filteredTasks.length} görev filtreye uyuyor',
       ),
       TaskSummaryMetric(
         label: 'Bugun Teslim',
         value: '$todayCount',
-        caption: 'Gun ici tamamlanacak isler',
+        caption: 'Gün içi tamamlanacak işler',
       ),
       TaskSummaryMetric(
-        label: 'Inceleme / Revizyon',
+        label: 'İnceleme / Revizyon',
         value: '$reviewCount',
-        caption: 'Karar bekleyen gorevler',
+        caption: 'Karar bekleyen görevler',
       ),
       TaskSummaryMetric(
-        label: 'Yuksek Oncelik',
+        label: 'Yüksek Öncelik',
         value: '$highPriorityCount',
-        caption: 'Yakin takip gerektiren isler',
+        caption: 'Yakın takip gerektiren işler',
       ),
     ];
     metrics.addAll([
       TaskSummaryMetric(
         label: 'Bagimli Is',
         value: '$blockedCount',
-        caption: 'Baska kaydi bekleyen gorevler',
+        caption: 'Baska kaydı bekleyen görevler',
       ),
       TaskSummaryMetric(
         label: 'Zaman Takibi',
         value: '${trackedMinutes ~/ 60}s ${trackedMinutes % 60}dk',
-        caption: 'Toplam izlenen calisma suresi',
+        caption: 'Toplam izlenen çalışma suresi',
       ),
     ]);
     return metrics;
@@ -245,7 +245,7 @@ class TaskController extends ChangeNotifier {
       _composerErrorMessage = error.message;
       return false;
     } catch (_) {
-      _composerErrorMessage = 'Gorev olusturma verileri alinamadi.';
+      _composerErrorMessage = 'Görev oluşturma verileri alınamadı.';
       return false;
     } finally {
       _isPreparingComposer = false;
@@ -275,7 +275,7 @@ class TaskController extends ChangeNotifier {
     } catch (_) {
       _allTasks = const [];
       _selectedTaskId = null;
-      _errorMessage = 'Gorev verileri alinamadi.';
+      _errorMessage = 'Görev verileri alınamadı.';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -371,7 +371,7 @@ class TaskController extends ChangeNotifier {
       _errorMessage = error.message;
       return false;
     } catch (_) {
-      _errorMessage = 'Gorev kaydi olusturulamadi.';
+      _errorMessage = 'Görev kaydı oluşturulamadı.';
       return false;
     } finally {
       _isSaving = false;
@@ -427,7 +427,7 @@ class TaskController extends ChangeNotifier {
       notifyListeners();
       return false;
     } catch (_) {
-      _errorMessage = 'Gorev guncellemesi kaydedilemedi.';
+      _errorMessage = 'Görev güncellemesi kaydedilemedi.';
       notifyListeners();
       return false;
     } finally {

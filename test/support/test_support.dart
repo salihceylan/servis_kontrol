@@ -10,7 +10,7 @@ const managerUser = AppUser(
   email: 'yonetici@workflow.local',
   role: UserRole.manager,
   department: 'Operasyon',
-  jobTitle: 'Operasyon Yoneticisi',
+  jobTitle: 'Operasyon Yöneticisi',
   workPreference: 'Karma operasyon',
   notificationChannels: {NotificationChannel.system},
   isFirstLogin: false,

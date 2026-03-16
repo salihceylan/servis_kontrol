@@ -56,7 +56,7 @@ class _TeamGroupDialogState extends State<_TeamGroupDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(_isEdit ? 'Takimi Duzenle' : 'Yeni Takim'),
+      title: Text(_isEdit ? 'Takımi Düzenle' : 'Yeni Takım'),
       content: SizedBox(
         width: 460,
         child: Form(
@@ -66,10 +66,10 @@ class _TeamGroupDialogState extends State<_TeamGroupDialog> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Takim adi'),
+                decoration: const InputDecoration(labelText: 'Takım adı'),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Takim adi gerekli.';
+                    return 'Takım adı gerekli.';
                   }
                   return null;
                 },
@@ -78,11 +78,11 @@ class _TeamGroupDialogState extends State<_TeamGroupDialog> {
               DropdownButtonFormField<String?>(
                 isExpanded: true,
                 initialValue: _managerUserId,
-                decoration: const InputDecoration(labelText: 'Takim sorumlusu'),
+                decoration: const InputDecoration(labelText: 'Takım sorumlusu'),
                 items: [
                   const DropdownMenuItem<String?>(
                     value: null,
-                    child: Text('Takim sorumlusu atama'),
+                    child: Text('Takım sorumlusu atama'),
                   ),
                   for (final member in widget.members)
                     DropdownMenuItem<String?>(
@@ -99,11 +99,11 @@ class _TeamGroupDialogState extends State<_TeamGroupDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Vazgec'),
+          child: const Text('Vazgeç'),
         ),
         FilledButton(
           onPressed: _submit,
-          child: Text(_isEdit ? 'Kaydet' : 'Takimi Olustur'),
+          child: Text(_isEdit ? 'Kaydet' : 'Takımi Oluştur'),
         ),
       ],
     );

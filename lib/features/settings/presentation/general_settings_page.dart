@@ -6,10 +6,7 @@ import 'package:servis_kontrol/features/settings/application/settings_controller
 import 'package:servis_kontrol/features/settings/domain/general_settings.dart';
 
 class GeneralSettingsPage extends StatefulWidget {
-  const GeneralSettingsPage({
-    super.key,
-    required this.apiClient,
-  });
+  const GeneralSettingsPage({super.key, required this.apiClient});
 
   final ApiClient apiClient;
 
@@ -208,7 +205,9 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
                             for (final integration in settings.integrations)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 10),
-                                child: _IntegrationTile(integration: integration),
+                                child: _IntegrationTile(
+                                  integration: integration,
+                                ),
                               ),
                           ],
                         ),
@@ -260,9 +259,7 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
                 onPressed: _controller.isSaving ? null : () => _save(settings),
                 icon: const Icon(Icons.save_outlined),
                 label: Text(
-                  _controller.isSaving
-                      ? 'Kaydediliyor...'
-                      : 'Ayarları Kaydet',
+                  _controller.isSaving ? 'Kaydediliyor...' : 'Ayarları Kaydet',
                 ),
               ),
             ),
@@ -477,10 +474,7 @@ class _IntegrationTile extends StatelessWidget {
               ],
             ),
           ),
-          Switch.adaptive(
-            value: integration.connected,
-            onChanged: null,
-          ),
+          Switch.adaptive(value: integration.connected, onChanged: null),
         ],
       ),
     );
@@ -514,10 +508,7 @@ class _PermissionTile extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             profile.summary,
-            style: const TextStyle(
-              color: AppPalette.muted,
-              height: 1.5,
-            ),
+            style: const TextStyle(color: AppPalette.muted, height: 1.5),
           ),
         ],
       ),
@@ -526,10 +517,7 @@ class _PermissionTile extends StatelessWidget {
 }
 
 class _ReadOnlyField extends StatelessWidget {
-  const _ReadOnlyField({
-    required this.label,
-    required this.value,
-  });
+  const _ReadOnlyField({required this.label, required this.value});
 
   final String label;
   final String value;

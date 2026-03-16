@@ -117,10 +117,10 @@ class _OwnerPortalShellState extends State<OwnerPortalShell> {
 
   String _titleForSection() => switch (_section) {
     OwnerSection.dashboard => 'Owner Dashboard',
-    OwnerSection.companies => 'Sirketler',
-    OwnerSection.companyDetail => 'Sirket Detayi',
+    OwnerSection.companies => 'Şirketler',
+    OwnerSection.companyDetail => 'Şirket Detayı',
     OwnerSection.subscriptions => 'Abonelik / Paket',
-    OwnerSection.support => 'Destek / Erisim',
+    OwnerSection.support => 'Destek / Erişim',
     OwnerSection.requests => 'Kaydol Talepleri',
   };
 
@@ -236,7 +236,7 @@ class _Sidebar extends StatelessWidget {
                   onTap: () => onSelect(OwnerSection.dashboard),
                 ),
                 _NavTile(
-                  label: 'Sirketler',
+                  label: 'Şirketler',
                   icon: Icons.apartment_rounded,
                   selected:
                       current == OwnerSection.companies ||

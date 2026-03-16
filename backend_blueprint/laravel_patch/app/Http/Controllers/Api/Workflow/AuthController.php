@@ -31,7 +31,7 @@ class AuthController extends Controller
 
         if ($session === null) {
             throw ValidationException::withMessages([
-                'email' => ['Kullanici adi, e-posta veya parola gecersiz.'],
+                'email' => ['Kullanıcı adı, e-posta veya parola geçersiz.'],
             ]);
         }
 
@@ -50,7 +50,7 @@ class AuthController extends Controller
         );
 
         return response()->json([
-            'message' => 'Parola sifirlama baglantisi gonderildi.',
+            'message' => 'Parola sıfırlama bağlantısı gönderildi.',
         ]);
     }
 
@@ -72,7 +72,7 @@ class AuthController extends Controller
         );
 
         return response()->json([
-            'message' => 'Kayit talebiniz alindi.',
+            'message' => 'Kayıt talebiniz alındı.',
         ]);
     }
 

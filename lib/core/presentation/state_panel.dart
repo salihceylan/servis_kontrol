@@ -6,25 +6,25 @@ class StatePanel extends StatelessWidget {
     super.key,
     this.title = 'Veri yükleniyor',
     this.message = 'Canlı kayıtlar sunucudan alınıyor.',
-  })  : icon = Icons.sync_rounded,
-        color = AppPalette.primary,
-        onRetry = null;
+  }) : icon = Icons.sync_rounded,
+       color = AppPalette.primary,
+       onRetry = null;
 
   const StatePanel.error({
     super.key,
     required this.message,
     this.title = 'Veri alınamadı',
     this.onRetry,
-  })  : icon = Icons.error_outline_rounded,
-        color = AppPalette.danger;
+  }) : icon = Icons.error_outline_rounded,
+       color = AppPalette.danger;
 
   const StatePanel.empty({
     super.key,
     required this.title,
     required this.message,
     this.onRetry,
-  })  : icon = Icons.inbox_outlined,
-        color = AppPalette.muted;
+  }) : icon = Icons.inbox_outlined,
+       color = AppPalette.muted;
 
   final String title;
   final String message;

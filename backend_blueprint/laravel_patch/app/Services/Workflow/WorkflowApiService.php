@@ -70,18 +70,18 @@ class WorkflowApiService
             try {
                 Mail::raw(
                     implode("\n", [
-                        'Workflow parola sifirlama talebiniz alindi.',
-                        'Guvenlik nedeniyle sifre sifirlama islemine destek ekibimiz geri donus saglayacaktir.',
+                        'Workflow parola sıfırlama talebiniz alındı.',
+                        'Güvenlik nedeniyle şifre sıfırlama işlemine destek ekibimiz geri dönüş sağlayacaktır.',
                         'Destek e-postasi: ' . $mailFrom,
                     ]),
                     function ($message) use ($normalizedEmail): void {
                         $message
                             ->to($normalizedEmail)
-                            ->subject('Workflow parola sifirlama talebi');
+                            ->subject('Workflow parola sıfırlama talebi');
                     },
                 );
             } catch (Throwable) {
-                // SMTP hatasi audit kaydini bozmasin.
+                // SMTP hatasi audit kaydıni bozmasin.
             }
         }
     }
@@ -120,20 +120,20 @@ class WorkflowApiService
             try {
                 Mail::raw(
                     implode("\n", [
-                        'Workflow kayit talebiniz alindi.',
-                        'Sirket: ' . $normalizedCompanyName,
-                        'Iletisim kisisi: ' . $normalizedFullName,
-                        'Ekibimiz hesap acilisi icin sizinle iletisime gececek.',
+                        'Workflow kayıt talebiniz alındı.',
+                        'Şirket: ' . $normalizedCompanyName,
+                        'İletişim kişisi: ' . $normalizedFullName,
+                        'Ekibimiz hesap açılışı için sizinle iletişime geçecek.',
                         'Destek e-postasi: ' . $mailFrom,
                     ]),
                     function ($message) use ($normalizedEmail): void {
                         $message
                             ->to($normalizedEmail)
-                            ->subject('Workflow kayit talebi alindi');
+                            ->subject('Workflow kayıt talebi alındı');
                     },
                 );
             } catch (Throwable) {
-                // SMTP hatasi audit kaydini bozmasin.
+                // SMTP hatasi audit kaydıni bozmasin.
             }
         }
     }
@@ -536,16 +536,16 @@ class WorkflowApiService
             ->firstOrFail();
 
         if ($team !== null && (int) ($assignee->team_id ?? 0) !== (int) $team->id) {
-            throw new RuntimeException('Atanan kullanici secilen takimin bir uyesi olmali.');
+            throw new RuntimeException('Atanan kullanıcı seçilen takımın bir üyesi olmalı.');
         }
 
         if ($team !== null && $project !== null && $project->team_id !== null && (int) $project->team_id !== (int) $team->id) {
-            throw new RuntimeException('Secilen proje bu takim ile eslesmiyor.');
+            throw new RuntimeException('Seçilen proje bu takım ile eşleşmiyor.');
         }
 
         $statusId = $this->statusId($context['company_id'], 'pending');
         if ($statusId === null) {
-            throw new RuntimeException('Task status tanimi bulunamadi.');
+            throw new RuntimeException('Task status tanımı bulunamadı.');
         }
 
         $teamId = $team?->id ?? $assignee->team_id ?? $project?->team_id ?? null;
@@ -589,7 +589,7 @@ class WorkflowApiService
                 ]);
             }
 
-            $this->recordTaskStatusHistory($taskId, null, $statusId, (int) $user->id, 'Gorev kaydi olusturuldu.');
+            $this->recordTaskStatusHistory($taskId, null, $statusId, (int) $user->id, 'Görev kaydı oluşturuldu.');
 
             return $taskId;
         });
@@ -921,7 +921,7 @@ class WorkflowApiService
         $roleId = $this->teamRoleId($context['company_id'], (string) $payload['role_code']);
 
         if ($roleId === null) {
-            throw new RuntimeException('Calisan rol kaydi bulunamadi.');
+            throw new RuntimeException('Çalışan rol kaydı bulunamadı.');
         }
 
         $this->assertUniqueLoginName($loginName);
@@ -969,7 +969,7 @@ class WorkflowApiService
         $target = $this->teamMemberRow($memberId, $context['company_id']);
 
         if ($this->roleForUser((int) $target->id) === 'manager') {
-            throw new AuthorizationException('Manager hesabi bu ekrandan duzenlenemez.');
+            throw new AuthorizationException('Manager hesabi bu ekrandan düzenlenemez.');
         }
 
         $loginName = $this->normalizeLoginName((string) $payload['login_name']);
@@ -984,7 +984,7 @@ class WorkflowApiService
         $roleId = $this->teamRoleId($context['company_id'], (string) $payload['role_code']);
 
         if ($roleId === null) {
-            throw new RuntimeException('Calisan rol kaydi bulunamadi.');
+            throw new RuntimeException('Çalışan rol kaydı bulunamadı.');
         }
 
         $this->assertUniqueLoginName($loginName, (int) $target->id);
@@ -1320,7 +1320,7 @@ class WorkflowApiService
     {
         $context = $this->context($user);
         if ($context['role'] !== 'manager') {
-            throw new AuthorizationException('Bu islem yalnizca yonetici hesabina aciktir.');
+            throw new AuthorizationException('Bu işlem yalnızca yönetici hesabına açıktır.');
         }
 
         return $context;
@@ -1360,7 +1360,7 @@ class WorkflowApiService
             ->value('id');
 
         if ($value === null) {
-            throw new RuntimeException('Secilen takim bulunamadi.');
+            throw new RuntimeException('Seçilen takım bulunamadı.');
         }
 
         return (int) $value;
@@ -1374,7 +1374,7 @@ class WorkflowApiService
             ->value('id');
 
         if ($value === null) {
-            throw new RuntimeException('Secilen kullanici bulunamadi.');
+            throw new RuntimeException('Seçilen kullanıcı bulunamadı.');
         }
 
         return (int) $value;
@@ -1569,7 +1569,7 @@ class WorkflowApiService
         }
 
         if ($query->exists()) {
-            throw new RuntimeException('Bu kullanici adi zaten kullaniliyor.');
+            throw new RuntimeException('Bu kullanıcı adı zaten kullanılıyor.');
         }
     }
 
@@ -1581,7 +1581,7 @@ class WorkflowApiService
         }
 
         if ($query->exists()) {
-            throw new RuntimeException('Bu e-posta ile baska bir kullanici zaten var.');
+            throw new RuntimeException('Bu e-posta ile başka bir kullanıcı zaten var.');
         }
     }
 
@@ -1705,9 +1705,9 @@ class WorkflowApiService
     protected function roleLabelFromCode(string $code): string
     {
         return match ($code) {
-            'manager' => 'Yonetici',
+            'manager' => 'Yönetici',
             'team_lead' => 'Ekip Lideri',
-            default => 'Calisan',
+            default => 'Çalışan',
         };
     }
 
@@ -1715,7 +1715,7 @@ class WorkflowApiService
     {
         return match ($status) {
             'passive' => 'Pasif',
-            'on_leave' => 'Izinde',
+            'on_leave' => 'İzinde',
             default => 'Aktif',
         };
     }
@@ -1723,34 +1723,34 @@ class WorkflowApiService
     protected function permissionLabel(string $code): string
     {
         return match ($code) {
-            'dashboard.view' => 'Paneli gorebilir',
-            'tasks.view' => 'Gorevleri gorebilir',
-            'tasks.assign' => 'Gorev atayabilir',
-            'tasks.comment' => 'Gorevlere yorum ekleyebilir',
-            'tasks.submit' => 'Gorev teslim edebilir',
-            'revisions.view' => 'Revizyonlari gorebilir',
+            'dashboard.view' => 'Paneli görebilir',
+            'tasks.view' => 'Görevleri görebilir',
+            'tasks.assign' => 'Görev atayabilir',
+            'tasks.comment' => 'Görevlere yorum ekleyebilir',
+            'tasks.submit' => 'Görev teslim edebilir',
+            'revisions.view' => 'Revizyonları görebilir',
             'revisions.approve' => 'Revizyon onaylayabilir',
             'revisions.request' => 'Revizyon isteyebilir',
-            'team.view' => 'Ekip ekranini gorebilir',
-            'team.manage' => 'Ekip yonetebilir',
-            'team.note' => 'Yonetici notu yazabilir',
-            'performance.view' => 'Performans ekranini gorebilir',
-            'reports.view' => 'Raporlari gorebilir',
-            'reports.create' => 'Rapor olusturabilir',
-            'settings.view' => 'Ayarlari gorebilir',
-            'settings.update' => 'Ayarlari guncelleyebilir',
-            default => 'Yardim iceriklerini gorebilir',
+            'team.view' => 'Ekip ekranını görebilir',
+            'team.manage' => 'Ekip yönetebilir',
+            'team.note' => 'Yönetici notu yazabilir',
+            'performance.view' => 'Performans ekranını görebilir',
+            'reports.view' => 'Raporları görebilir',
+            'reports.create' => 'Rapor oluşturabilir',
+            'settings.view' => 'Ayarları görebilir',
+            'settings.update' => 'Ayarları güncelleyebilir',
+            default => 'Yardim içeriklerini görebilir',
         };
     }
 
     protected function permissionDescription(string $code): string
     {
         return match ($code) {
-            'tasks.assign' => 'Takim veya calisana yeni gorev kaydi acabilir.',
-            'team.manage' => 'Calisan, takim ve gorev dagitimi duzenlemelerini yapabilir.',
-            'reports.create' => 'Operasyon ve performans raporu uretebilir.',
-            'settings.update' => 'Sirket ayarlarini degistirebilir.',
-            default => 'Bu yetki ilgili modulde islem yapmaya izin verir.',
+            'tasks.assign' => 'Takım veya çalışana yeni görev kaydı açabilir.',
+            'team.manage' => 'Çalışan, takım ve görev dağıtımı düzenlemelerini yapabilir.',
+            'reports.create' => 'Operasyon ve performans raporu üretebilir.',
+            'settings.update' => 'Şirket ayarlarını değiştirebilir.',
+            default => 'Bu yetki ilgili modülde işlem yapmaya izin verir.',
         };
     }
 
@@ -1959,7 +1959,7 @@ class WorkflowApiService
     protected function ensureTaskAssignmentAllowed(User $user): void
     {
         if (!$this->userHasPermission((int) $user->id, 'tasks.assign')) {
-            throw new AuthorizationException('Bu kullanicinin gorev olusturma yetkisi yok.');
+            throw new AuthorizationException('Bu kullanıcının görev oluşturma yetkisi yok.');
         }
     }
 

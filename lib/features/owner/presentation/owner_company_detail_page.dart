@@ -125,7 +125,7 @@ class _OwnerCompanyDetailPageState extends State<OwnerCompanyDetailPage> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Islem tamamlandi.')));
+      ).showSnackBar(const SnackBar(content: Text('İşlem tamamlandı.')));
       await _load();
     } catch (error) {
       if (!mounted) {
@@ -145,8 +145,8 @@ class _OwnerCompanyDetailPageState extends State<OwnerCompanyDetailPage> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const StatePanel.loading(
-        title: 'Sirket detayi yukleniyor',
-        message: 'Tenant lisansi, destek ayarlari ve aktiviteler okunuyor.',
+        title: 'Şirket detayı yükleniyor',
+        message: 'Tenant lisansi, destek ayarları ve aktiviteler okunuyor.',
       );
     }
     if (_errorMessage != null) {
@@ -155,8 +155,8 @@ class _OwnerCompanyDetailPageState extends State<OwnerCompanyDetailPage> {
     final detail = _detail;
     if (detail == null) {
       return StatePanel.empty(
-        title: 'Sirket bulunamadi',
-        message: 'Secilen tenant kaydi yok.',
+        title: 'Şirket bulunamadı',
+        message: 'Seçilen tenant kaydı yok.',
         onRetry: _load,
       );
     }
@@ -170,13 +170,13 @@ class _OwnerCompanyDetailPageState extends State<OwnerCompanyDetailPage> {
             OutlinedButton.icon(
               onPressed: widget.onBack,
               icon: const Icon(Icons.arrow_back_rounded),
-              label: const Text('Sirketler'),
+              label: const Text('Şirketler'),
             ),
             const Spacer(),
             OutlinedButton.icon(
               onPressed: _busy ? null : _registerSupportAccess,
               icon: const Icon(Icons.support_agent_rounded),
-              label: const Text('Destek Erisimi'),
+              label: const Text('Destek Erişimi'),
             ),
             const SizedBox(width: 8),
             OutlinedButton.icon(
@@ -233,20 +233,20 @@ class _OwnerCompanyDetailPageState extends State<OwnerCompanyDetailPage> {
           runSpacing: 16,
           children: [
             _MetricCard(
-              title: 'Kullanici',
+              title: 'Kullanıci',
               value:
                   '${detail.stats.activeUsers}/${detail.subscription.userLimit}',
               subtitle: 'Aktif hesap',
             ),
             _MetricCard(
-              title: 'Acik Gorev',
+              title: 'Açık Görev',
               value: '${detail.stats.openTasks}',
               subtitle: 'Toplam ${detail.stats.taskCount} is',
             ),
             _MetricCard(
               title: 'Revizyon',
               value: '${detail.stats.openRevisions}',
-              subtitle: 'Aktif kontrol kaydi',
+              subtitle: 'Aktif kontrol kaydı',
             ),
             _MetricCard(
               title: 'Depolama',
@@ -277,7 +277,7 @@ class _OwnerCompanyDetailPageState extends State<OwnerCompanyDetailPage> {
                   _Line('SLA', detail.support.responseSla),
                   _Line('Dil', detail.locale),
                   _Line(
-                    'Son giris',
+                    'Son giriş',
                     formatOwnerDateTime(detail.stats.lastLoginAt),
                   ),
                   const SizedBox(height: 12),
@@ -318,7 +318,7 @@ class _OwnerCompanyDetailPageState extends State<OwnerCompanyDetailPage> {
                   const SizedBox(height: 14),
                   if (detail.recentActivity.isEmpty)
                     const Text(
-                      'Audit kaydi bulunmuyor.',
+                      'Audit kaydı bulunmuyor.',
                       style: TextStyle(color: AppPalette.muted),
                     )
                   else
@@ -408,7 +408,7 @@ class _LoginAttempts extends StatelessWidget {
           const SizedBox(height: 14),
           if (detail.loginActivity.isEmpty)
             const Text(
-              'Giris denemesi kaydi yok.',
+              'Giriş denemesi kaydı yok.',
               style: TextStyle(color: AppPalette.muted),
             )
           else
@@ -662,7 +662,7 @@ class _CompanyProfileDialogState extends State<_CompanyProfileDialog> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Sirket adi'),
+                decoration: const InputDecoration(labelText: 'Şirket adı'),
                 validator: _required,
               ),
               const SizedBox(height: 12),
@@ -751,7 +751,7 @@ class _CompanyProfileDialogState extends State<_CompanyProfileDialog> {
       return message;
     }
     if (!(value?.contains('@') ?? false)) {
-      return 'Gecerli bir e-posta girin.';
+      return 'Geçerli bir e-posta girin.';
     }
     return null;
   }
@@ -850,7 +850,7 @@ class _SubscriptionDialogState extends State<_SubscriptionDialog> {
                   controller: _userLimitController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Kullanici limiti',
+                    labelText: 'Kullanıci limiti',
                   ),
                   validator: _number,
                 ),
@@ -867,7 +867,7 @@ class _SubscriptionDialogState extends State<_SubscriptionDialog> {
                   borderRadius: BorderRadius.circular(16),
                   child: InputDecorator(
                     decoration: const InputDecoration(
-                      labelText: 'Lisans bitis tarihi',
+                      labelText: 'Lisans bitiş tarihi',
                     ),
                     child: Text(formatOwnerDate(_licenseEndsAt)),
                   ),
@@ -933,7 +933,7 @@ class _SubscriptionDialogState extends State<_SubscriptionDialog> {
   String? _number(String? value) {
     final parsed = int.tryParse(value ?? '');
     if (parsed == null || parsed <= 0) {
-      return 'Gecerli bir sayi girin.';
+      return 'Geçerli bir sayi girin.';
     }
     return null;
   }

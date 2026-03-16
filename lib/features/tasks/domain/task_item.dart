@@ -4,7 +4,7 @@ extension TaskStatusX on TaskStatus {
   String get label => switch (this) {
     TaskStatus.pending => 'Beklemede',
     TaskStatus.inProgress => 'Devam Ediyor',
-    TaskStatus.inReview => 'Incelemede',
+    TaskStatus.inReview => 'İncelemede',
     TaskStatus.revision => 'Revizyonda',
     TaskStatus.delivered => 'Teslim Edildi',
   };
@@ -32,7 +32,7 @@ extension TaskPriorityX on TaskPriority {
   String get label => switch (this) {
     TaskPriority.low => 'Dusuk',
     TaskPriority.medium => 'Orta',
-    TaskPriority.high => 'Yuksek',
+    TaskPriority.high => 'Yüksek',
   };
 
   String get apiValue => switch (this) {
@@ -52,7 +52,7 @@ enum TaskDateFilter { all, today, thisWeek, overdue }
 
 extension TaskDateFilterX on TaskDateFilter {
   String get label => switch (this) {
-    TaskDateFilter.all => 'Tumu',
+    TaskDateFilter.all => 'Tümu',
     TaskDateFilter.today => 'Bugun',
     TaskDateFilter.thisWeek => 'Bu Hafta',
     TaskDateFilter.overdue => 'Geciken',

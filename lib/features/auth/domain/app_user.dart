@@ -16,11 +16,12 @@ extension NotificationChannelX on NotificationChannel {
   };
 }
 
-NotificationChannel notificationChannelFromApi(String? value) => switch (value) {
-  'email' => NotificationChannel.email,
-  'slack' => NotificationChannel.slack,
-  _ => NotificationChannel.system,
-};
+NotificationChannel notificationChannelFromApi(String? value) =>
+    switch (value) {
+      'email' => NotificationChannel.email,
+      'slack' => NotificationChannel.slack,
+      _ => NotificationChannel.system,
+    };
 
 class OnboardingProfile {
   const OnboardingProfile({
@@ -107,10 +108,9 @@ class AppUser {
             .map((item) => notificationChannelFromApi(item as String?))
             .toSet();
 
-    final permissions =
-        (json['permissions'] as List<dynamic>? ?? const [])
-            .map((item) => '$item')
-            .toSet();
+    final permissions = (json['permissions'] as List<dynamic>? ?? const [])
+        .map((item) => '$item')
+        .toSet();
 
     return AppUser(
       id: json['id']?.toString(),

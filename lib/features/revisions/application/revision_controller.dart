@@ -24,8 +24,8 @@ class RevisionController extends ChangeNotifier {
     required AppUser user,
     required ApiClient apiClient,
     RevisionRepository? repository,
-  })  : _user = user,
-        _repository = repository ?? ApiRevisionRepository(apiClient) {
+  }) : _user = user,
+       _repository = repository ?? ApiRevisionRepository(apiClient) {
     load();
   }
 
@@ -169,10 +169,8 @@ class RevisionController extends ChangeNotifier {
       return Future.value(false);
     }
     return _persist(
-      () => _repository.requestRevision(
-        revisionId: item.id,
-        reason: normalized,
-      ),
+      () =>
+          _repository.requestRevision(revisionId: item.id, reason: normalized),
     );
   }
 
@@ -212,7 +210,8 @@ class RevisionController extends ChangeNotifier {
 
   void _writeItem(RevisionItem updated) {
     _items = [
-      for (final item in _items) if (item.id == updated.id) updated else item,
+      for (final item in _items)
+        if (item.id == updated.id) updated else item,
     ];
     _selectedId = updated.id;
     _ensureSelection();
