@@ -13,6 +13,11 @@ class OperationMessageService
 {
     protected const POLL_INTERVAL_SECONDS = 8;
 
+    public function __construct(
+        private readonly WorkflowNotificationService $notificationCenter,
+    ) {
+    }
+
     public function inbox(User $user): array
     {
         $context = $this->context($user);
@@ -173,6 +178,7 @@ class OperationMessageService
             ]
         );
 
+        $this->notifyThreadParticipants($context, $thread, $normalizedBody);
         return $this->threadPayload($context, (int) $thread->id);
     }
 
@@ -780,6 +786,43 @@ class OperationMessageService
                     && $this->teamIdFromConversationKey((string) $thread->conversation_key) === (int) $context['team_id']),
             default => false,
         };
+    }
+
+    protected function notifyThreadParticipants(array $context, object $thread, string $messageBody): void
+    {
+        $recipientIds = DB::table('operation_thread_participants')
+            ->where('thread_id', $thread->id)
+            ->pluck('user_id')
+            ->map(fn ($value) => (int) $value)
+            ->filter(fn ($value) => $value > 0 && $value !== (int) $context['user_id'])
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($recipientIds === []) {
+            return;
+        }
+
+        $title = match ((string) $thread->thread_type) {
+            'company_broadcast' => 'Yeni sirket duyurusu',
+            'team_broadcast' => 'Yeni takim duyurusu',
+            default => 'Yeni operasyon mesaji',
+        };
+
+        $preview = mb_strimwidth($messageBody, 0, 120, '...');
+        $body = match ((string) $thread->thread_type) {
+            'company_broadcast', 'team_broadcast' => "{$context['name']} {$thread->title} kanalinda yeni bir mesaj paylasti: {$preview}",
+            default => "{$context['name']} size yeni bir operasyon mesaji gonderdi: {$preview}",
+        };
+
+        $this->notificationCenter->notifyUsers(
+            $context['company_id'],
+            $recipientIds,
+            $title,
+            $body,
+            'operation_message',
+            excludeUserIds: [(int) $context['user_id']],
+        );
     }
 
     protected function channelLabelFromThreadType(string $threadType): string

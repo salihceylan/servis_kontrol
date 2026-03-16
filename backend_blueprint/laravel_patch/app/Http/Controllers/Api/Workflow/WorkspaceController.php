@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Workflow;
 
 use App\Http\Controllers\Controller;
 use App\Services\Workflow\OperationMessageService;
+use App\Services\Workflow\WorkflowNotificationService;
 use App\Services\Workflow\WorkflowApiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,6 +14,7 @@ class WorkspaceController extends Controller
     public function __construct(
         private readonly WorkflowApiService $workflow,
         private readonly OperationMessageService $operationMessages,
+        private readonly WorkflowNotificationService $notifications,
     ) {
     }
 
@@ -112,6 +114,11 @@ class WorkspaceController extends Controller
         return response()->json($this->operationMessages->inbox($request->user()));
     }
 
+    public function notifications(Request $request): JsonResponse
+    {
+        return response()->json($this->notifications->inbox($request->user()));
+    }
+
     public function openOperationThread(Request $request): JsonResponse
     {
         $payload = $request->validate([
@@ -160,6 +167,18 @@ class WorkspaceController extends Controller
                 $payload['body'],
             ),
         ]);
+    }
+
+    public function markNotificationRead(Request $request, string $notificationId): JsonResponse
+    {
+        return response()->json(
+            $this->notifications->markRead($request->user(), (int) $notificationId),
+        );
+    }
+
+    public function markAllNotificationsRead(Request $request): JsonResponse
+    {
+        return response()->json($this->notifications->markAllRead($request->user()));
     }
 
     public function markOperationThreadRead(Request $request, string $threadId): JsonResponse

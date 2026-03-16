@@ -19,6 +19,11 @@ class WorkflowApiService
         'salihceylan@gmail.com',
     ];
 
+    public function __construct(
+        private readonly WorkflowNotificationService $notificationCenter,
+    ) {
+    }
+
     public function attemptLogin(string $email, string $password, ?string $ipAddress = null): ?array
     {
         $identifier = trim(Str::lower($email));
@@ -349,19 +354,7 @@ class WorkflowApiService
             ->whereIn('r.status', ['pending_review', 'in_revision'])
             ->count();
 
-        $notifications = DB::table('alerts')
-            ->where('company_id', $context['company_id'])
-            ->where('is_resolved', false)
-            ->orderByDesc('created_at')
-            ->limit(4)
-            ->get()
-            ->map(fn ($alert) => [
-                'title' => Str::headline((string) $alert->alert_type),
-                'subtitle' => $alert->message,
-                'accent' => $this->severityAccent((string) $alert->severity),
-            ])
-            ->values()
-            ->all();
+        $notifications = $this->notificationCenter->dashboardItems($context['user_id'], 4);
 
         if ($notifications === []) {
             $notifications = [[
@@ -612,6 +605,8 @@ class WorkflowApiService
             return $taskId;
         });
 
+        $this->notifyTaskCreated($context, $taskId, (int) $user->id);
+
         return $this->taskPayload($taskId);
     }
 
@@ -640,6 +635,7 @@ class WorkflowApiService
         }
 
         $this->recordTaskStatusHistory((int) $task->id, $task->status_id, $nextStatusId, (int) $user->id, 'Görev başlatıldı.');
+        $this->notifyTaskStarted($context, (int) $task->id, (int) $user->id);
         return $this->taskPayload((int) $task->id);
     }
 
@@ -656,6 +652,12 @@ class WorkflowApiService
             'created_at' => now(),
         ]);
 
+        $this->notifyTaskComment(
+            $context,
+            (int) $task->id,
+            $this->normalizeTaskCommentType($commentType),
+            (int) $user->id,
+        );
         return $this->taskPayload((int) $task->id);
     }
 
@@ -674,6 +676,7 @@ class WorkflowApiService
             'created_at' => now(),
         ]);
 
+        $this->notifyTaskMeeting($context, (int) $task->id, (int) $user->id);
         return $this->taskPayload((int) $task->id);
     }
 
@@ -707,6 +710,7 @@ class WorkflowApiService
         ]);
 
         $this->recordTaskStatusHistory((int) $task->id, $task->status_id, $nextStatusId, (int) $user->id, 'Teslim incelemeye gönderildi.');
+        $this->notifyTaskSubmitted($context, (int) $task->id, (int) $user->id);
         return $this->taskPayload((int) $task->id);
     }
 
@@ -759,6 +763,7 @@ class WorkflowApiService
         ]);
 
         $this->recordTaskStatusHistory((int) $task->id, $task->status_id, $deliveredStatusId, (int) $user->id, 'Revizyon onaylandı ve görev kapatıldı.');
+        $this->notifyRevisionApproved($context, (int) $revision->id, (int) $user->id);
         return $this->revisionPayload((int) $revision->id, $context['company_id']);
     }
 
@@ -790,6 +795,7 @@ class WorkflowApiService
             'updated_at' => now(),
         ]);
 
+        $this->notifyRevisionRequested($context, (int) $revision->id, (int) $user->id);
         return $this->revisionPayload((int) $revision->id, $context['company_id']);
     }
 
@@ -811,6 +817,7 @@ class WorkflowApiService
             'created_at' => now(),
         ]);
 
+        $this->notifyRevisionUpdated($context, (int) $revision->id, (int) $user->id);
         return $this->revisionPayload((int) $revision->id, $context['company_id']);
     }
 
@@ -1269,10 +1276,12 @@ class WorkflowApiService
         ]);
 
         $run = DB::table('report_runs')->where('id', $id)->first();
+        $title = Str::headline((string) $run->report_type) . ' Raporu';
+        $this->notifyReportReady($context, $title);
 
         return [
             'id' => (string) $run->id,
-            'title' => Str::headline((string) $run->report_type) . ' Raporu',
+            'title' => $title,
             'scope' => $run->scope_label,
             'format' => $run->format,
             'created_at_label' => Carbon::parse($run->created_at)->format('d.m.Y H:i'),
@@ -2420,6 +2429,359 @@ class WorkflowApiService
             return 'Yük dengesi artıyor, planlamayı gözden geçir.';
         }
         return 'İş yükü dengeli ilerliyor.';
+    }
+
+    protected function taskNotificationContext(int $taskId, int $companyId): object
+    {
+        return DB::table('tasks as t')
+            ->leftJoin('users as assignee', 'assignee.id', '=', 't.primary_assignee_id')
+            ->leftJoin('teams as team', 'team.id', '=', 't.team_id')
+            ->where('t.id', $taskId)
+            ->where('t.company_id', $companyId)
+            ->select([
+                't.id',
+                't.task_no',
+                't.title',
+                't.team_id',
+                't.primary_assignee_id',
+                'assignee.name as assignee_name',
+                'team.name as team_name',
+            ])
+            ->firstOrFail();
+    }
+
+    protected function revisionNotificationContext(int $revisionId, int $companyId): object
+    {
+        return DB::table('revisions as r')
+            ->join('tasks as t', 't.id', '=', 'r.task_id')
+            ->leftJoin('users as assignee', 'assignee.id', '=', 't.primary_assignee_id')
+            ->leftJoin('teams as team', 'team.id', '=', 't.team_id')
+            ->where('r.id', $revisionId)
+            ->where('t.company_id', $companyId)
+            ->select([
+                'r.id',
+                'r.task_id',
+                'r.revision_no',
+                't.task_no',
+                't.title',
+                't.team_id',
+                't.primary_assignee_id',
+                'assignee.name as assignee_name',
+                'team.name as team_name',
+            ])
+            ->firstOrFail();
+    }
+
+    protected function managerUserIds(int $companyId): array
+    {
+        return DB::table('users as u')
+            ->join('user_roles as ur', 'ur.user_id', '=', 'u.id')
+            ->join('roles as r', 'r.id', '=', 'ur.role_id')
+            ->where('u.company_id', $companyId)
+            ->where('u.status', 'active')
+            ->where('r.code', 'manager')
+            ->pluck('u.id')
+            ->map(fn ($value) => (int) $value)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    protected function teamLeadUserIds(int $companyId, ?int $teamId = null): array
+    {
+        return DB::table('users as u')
+            ->join('user_roles as ur', 'ur.user_id', '=', 'u.id')
+            ->join('roles as r', 'r.id', '=', 'ur.role_id')
+            ->where('u.company_id', $companyId)
+            ->where('u.status', 'active')
+            ->where('r.code', 'team_lead')
+            ->when($teamId !== null, fn ($query) => $query->where('u.team_id', $teamId))
+            ->pluck('u.id')
+            ->map(fn ($value) => (int) $value)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    protected function pushNotification(
+        int $companyId,
+        array $userIds,
+        string $title,
+        string $body,
+        string $notificationType,
+        ?int $relatedTaskId = null,
+        ?int $relatedRevisionId = null,
+        array &$alreadyNotified = [],
+        array $excludeUserIds = [],
+    ): void {
+        $recipientIds = array_values(array_diff(array_unique($userIds), $alreadyNotified, $excludeUserIds));
+        if ($recipientIds === []) {
+            return;
+        }
+
+        $this->notificationCenter->notifyUsers(
+            $companyId,
+            $recipientIds,
+            $title,
+            $body,
+            $notificationType,
+            $relatedTaskId,
+            $relatedRevisionId,
+        );
+
+        $alreadyNotified = array_values(array_unique([...$alreadyNotified, ...$recipientIds]));
+    }
+
+    protected function notifyTaskCreated(array $context, int $taskId, int $actorUserId): void
+    {
+        $task = $this->taskNotificationContext($taskId, $context['company_id']);
+        $taskLabel = trim(($task->task_no ?? '') . ' ' . ($task->title ?? ''));
+        $notified = [];
+
+        $this->pushNotification(
+            $context['company_id'],
+            [(int) ($task->primary_assignee_id ?? 0)],
+            'Yeni gorev atandi',
+            "{$taskLabel} gorevi size atandi.",
+            'task_assigned',
+            $taskId,
+            null,
+            $notified,
+            [$actorUserId],
+        );
+
+        $this->pushNotification(
+            $context['company_id'],
+            $this->teamLeadUserIds($context['company_id'], $task->team_id !== null ? (int) $task->team_id : null),
+            'Takima yeni gorev acildi',
+            "{$taskLabel} gorevi " . ($task->assignee_name ?? 'atanan kullanici') . ' icin planlandi.',
+            'task_created',
+            $taskId,
+            null,
+            $notified,
+            [$actorUserId],
+        );
+
+        $this->pushNotification(
+            $context['company_id'],
+            $this->managerUserIds($context['company_id']),
+            'Yeni gorev acildi',
+            "{$taskLabel} gorevi " . ($task->assignee_name ?? 'atanan kullanici') . ' kullanicisina atandi.',
+            'task_created',
+            $taskId,
+            null,
+            $notified,
+            [$actorUserId],
+        );
+    }
+
+    protected function notifyTaskStarted(array $context, int $taskId, int $actorUserId): void
+    {
+        $task = $this->taskNotificationContext($taskId, $context['company_id']);
+        $taskLabel = trim(($task->task_no ?? '') . ' ' . ($task->title ?? ''));
+        $notified = [];
+
+        $this->pushNotification(
+            $context['company_id'],
+            $this->teamLeadUserIds($context['company_id'], $task->team_id !== null ? (int) $task->team_id : null),
+            'Gorev baslatildi',
+            "{$taskLabel} icin saha calismasi basladi.",
+            'task_started',
+            $taskId,
+            null,
+            $notified,
+            [$actorUserId],
+        );
+
+        $this->pushNotification(
+            $context['company_id'],
+            $this->managerUserIds($context['company_id']),
+            'Gorev baslatildi',
+            "{$taskLabel} gorevinde operasyon basladi.",
+            'task_started',
+            $taskId,
+            null,
+            $notified,
+            [$actorUserId],
+        );
+    }
+
+    protected function notifyTaskComment(array $context, int $taskId, string $commentType, int $actorUserId): void
+    {
+        if (!in_array($commentType, ['coordination', 'manager_note'], true)) {
+            return;
+        }
+
+        $task = $this->taskNotificationContext($taskId, $context['company_id']);
+        $taskLabel = trim(($task->task_no ?? '') . ' ' . ($task->title ?? ''));
+        $notified = [];
+
+        $this->pushNotification(
+            $context['company_id'],
+            [(int) ($task->primary_assignee_id ?? 0)],
+            'Goreve yeni not eklendi',
+            "{$taskLabel} gorevine yeni koordinasyon notu eklendi.",
+            'task_commented',
+            $taskId,
+            null,
+            $notified,
+            [$actorUserId],
+        );
+
+        $this->pushNotification(
+            $context['company_id'],
+            $this->teamLeadUserIds($context['company_id'], $task->team_id !== null ? (int) $task->team_id : null),
+            'Goreve yeni not eklendi',
+            "{$taskLabel} icin koordinasyon guncellendi.",
+            'task_commented',
+            $taskId,
+            null,
+            $notified,
+            [$actorUserId],
+        );
+
+        if ($commentType === 'coordination') {
+            $this->pushNotification(
+                $context['company_id'],
+                $this->managerUserIds($context['company_id']),
+                'Gorev koordinasyonu guncellendi',
+                "{$taskLabel} gorevinde yeni operasyon notu var.",
+                'task_commented',
+                $taskId,
+                null,
+                $notified,
+                [$actorUserId],
+            );
+        }
+    }
+
+    protected function notifyTaskMeeting(array $context, int $taskId, int $actorUserId): void
+    {
+        $task = $this->taskNotificationContext($taskId, $context['company_id']);
+        $taskLabel = trim(($task->task_no ?? '') . ' ' . ($task->title ?? ''));
+        $notified = [];
+        $audience = array_values(array_unique([
+            (int) ($task->primary_assignee_id ?? 0),
+            ...$this->teamLeadUserIds($context['company_id'], $task->team_id !== null ? (int) $task->team_id : null),
+            ...$this->managerUserIds($context['company_id']),
+        ]));
+
+        $this->pushNotification(
+            $context['company_id'],
+            $audience,
+            'Gorev toplantisi planlandi',
+            "{$taskLabel} icin toplanti linki olusturuldu.",
+            'task_meeting',
+            $taskId,
+            null,
+            $notified,
+            [$actorUserId],
+        );
+    }
+
+    protected function notifyTaskSubmitted(array $context, int $taskId, int $actorUserId): void
+    {
+        $task = $this->taskNotificationContext($taskId, $context['company_id']);
+        $taskLabel = trim(($task->task_no ?? '') . ' ' . ($task->title ?? ''));
+        $notified = [];
+        $audience = array_values(array_unique([
+            ...$this->teamLeadUserIds($context['company_id'], $task->team_id !== null ? (int) $task->team_id : null),
+            ...$this->managerUserIds($context['company_id']),
+        ]));
+
+        $this->pushNotification(
+            $context['company_id'],
+            $audience,
+            'Gorev teslim edildi',
+            "{$taskLabel} inceleme icin gonderildi.",
+            'task_submitted',
+            $taskId,
+            null,
+            $notified,
+            [$actorUserId],
+        );
+    }
+
+    protected function notifyRevisionRequested(array $context, int $revisionId, int $actorUserId): void
+    {
+        $revision = $this->revisionNotificationContext($revisionId, $context['company_id']);
+        $taskLabel = trim(($revision->task_no ?? '') . ' ' . ($revision->title ?? ''));
+        $notified = [];
+        $audience = array_values(array_unique([
+            (int) ($revision->primary_assignee_id ?? 0),
+            ...$this->teamLeadUserIds($context['company_id'], $revision->team_id !== null ? (int) $revision->team_id : null),
+            ...$this->managerUserIds($context['company_id']),
+        ]));
+
+        $this->pushNotification(
+            $context['company_id'],
+            $audience,
+            'Revizyon istendi',
+            "{$taskLabel} gorevi icin revizyon talebi acildi.",
+            'revision_requested',
+            (int) $revision->task_id,
+            $revisionId,
+            $notified,
+            [$actorUserId],
+        );
+    }
+
+    protected function notifyRevisionUpdated(array $context, int $revisionId, int $actorUserId): void
+    {
+        $revision = $this->revisionNotificationContext($revisionId, $context['company_id']);
+        $taskLabel = trim(($revision->task_no ?? '') . ' ' . ($revision->title ?? ''));
+        $notified = [];
+        $audience = array_values(array_unique([
+            ...$this->teamLeadUserIds($context['company_id'], $revision->team_id !== null ? (int) $revision->team_id : null),
+            ...$this->managerUserIds($context['company_id']),
+        ]));
+
+        $this->pushNotification(
+            $context['company_id'],
+            $audience,
+            'Revizyon guncellendi',
+            "{$taskLabel} icin revizyon tekrar incelemeye gonderildi.",
+            'revision_updated',
+            (int) $revision->task_id,
+            $revisionId,
+            $notified,
+            [$actorUserId],
+        );
+    }
+
+    protected function notifyRevisionApproved(array $context, int $revisionId, int $actorUserId): void
+    {
+        $revision = $this->revisionNotificationContext($revisionId, $context['company_id']);
+        $taskLabel = trim(($revision->task_no ?? '') . ' ' . ($revision->title ?? ''));
+        $notified = [];
+        $audience = array_values(array_unique([
+            (int) ($revision->primary_assignee_id ?? 0),
+            ...$this->teamLeadUserIds($context['company_id'], $revision->team_id !== null ? (int) $revision->team_id : null),
+            ...$this->managerUserIds($context['company_id']),
+        ]));
+
+        $this->pushNotification(
+            $context['company_id'],
+            $audience,
+            'Revizyon onaylandi',
+            "{$taskLabel} gorevinin revizyonu tamamlandi.",
+            'revision_approved',
+            (int) $revision->task_id,
+            $revisionId,
+            $notified,
+            [$actorUserId],
+        );
+    }
+
+    protected function notifyReportReady(array $context, string $reportTitle): void
+    {
+        $this->notificationCenter->notifyUsers(
+            $context['company_id'],
+            [$context['user_id']],
+            'Rapor hazir',
+            "{$reportTitle} indirilmeye hazir.",
+            'report_ready',
+        );
     }
 
     protected function revisionStage(string $status): string

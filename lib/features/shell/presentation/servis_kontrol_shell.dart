@@ -5,6 +5,8 @@ import 'package:servis_kontrol/features/auth/domain/app_user.dart';
 import 'package:servis_kontrol/features/auth/domain/user_role.dart';
 import 'package:servis_kontrol/features/dashboard/presentation/dashboard_page.dart';
 import 'package:servis_kontrol/features/help/presentation/help_center_page.dart';
+import 'package:servis_kontrol/features/notifications/application/notification_center_controller.dart';
+import 'package:servis_kontrol/features/notifications/presentation/notification_center_dialog.dart';
 import 'package:servis_kontrol/features/operations_messages/application/operation_message_dock_controller.dart';
 import 'package:servis_kontrol/features/operations_messages/presentation/operation_message_dock.dart';
 import 'package:servis_kontrol/features/performance/presentation/performance_page.dart';
@@ -44,6 +46,7 @@ class ServisKontrolShell extends StatefulWidget {
 class _ServisKontrolShellState extends State<ServisKontrolShell> {
   AppSection _selected = AppSection.panel;
   late final OperationMessageDockController _messageDockController;
+  late final NotificationCenterController _notificationController;
 
   AppUser get _user => widget.user;
   UserRole get _role => _user.role;
@@ -100,12 +103,24 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
       user: widget.user,
       apiClient: widget.apiClient,
     );
+    _notificationController = NotificationCenterController(
+      apiClient: widget.apiClient,
+    );
   }
 
   @override
   void dispose() {
     _messageDockController.dispose();
+    _notificationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openNotifications() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) =>
+          NotificationCenterDialog(controller: _notificationController),
+    );
   }
 
   List<(AppSection, String, IconData)> get _sidebarItems => switch (_role) {
@@ -482,6 +497,45 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
             ),
             icon: Icon(primaryAction.$2),
             label: Text(primaryAction.$1),
+          ),
+          const SizedBox(width: 10),
+          AnimatedBuilder(
+            animation: _notificationController,
+            builder: (context, _) {
+              final unreadCount = _notificationController.unreadCount;
+              return Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  _RoundAction(
+                    icon: Icons.notifications_none_rounded,
+                    onTap: _openNotifications,
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppPalette.danger,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          unreadCount > 99 ? '99+' : '$unreadCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           const SizedBox(width: 10),
           _RoundAction(

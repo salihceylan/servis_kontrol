@@ -30,6 +30,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
     });
 
     Route::get('/dashboard', [WorkspaceController::class, 'dashboard']);
+    Route::get('/notifications', [WorkspaceController::class, 'notifications']);
+    Route::post('/notifications/read-all', [WorkspaceController::class, 'markAllNotificationsRead']);
+    Route::post('/notifications/{notificationId}/read', [WorkspaceController::class, 'markNotificationRead']);
 
     Route::get('/tasks', [WorkspaceController::class, 'tasks']);
     Route::get('/tasks/meta', [WorkspaceController::class, 'taskMeta']);
