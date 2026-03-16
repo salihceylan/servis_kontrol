@@ -27,6 +27,34 @@ class OperationMessageContact {
   }
 }
 
+class OperationMessageBroadcastTarget {
+  const OperationMessageBroadcastTarget({
+    required this.id,
+    required this.scopeCode,
+    required this.label,
+    required this.description,
+    required this.participantCount,
+  });
+
+  final String id;
+  final String scopeCode;
+  final String label;
+  final String description;
+  final int participantCount;
+
+  bool get isCompanyWide => scopeCode == 'company';
+
+  factory OperationMessageBroadcastTarget.fromJson(Map<String, dynamic> json) {
+    return OperationMessageBroadcastTarget(
+      id: json['id']?.toString() ?? '',
+      scopeCode: json['scope_code'] as String? ?? '',
+      label: json['label'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      participantCount: json['participant_count'] as int? ?? 0,
+    );
+  }
+}
+
 class OperationMessageItem {
   const OperationMessageItem({
     required this.id,
@@ -62,6 +90,9 @@ class OperationMessageThread {
   const OperationMessageThread({
     required this.id,
     required this.title,
+    required this.threadType,
+    required this.channelLabel,
+    required this.participantCount,
     required this.counterpartId,
     required this.counterpartName,
     required this.counterpartRole,
@@ -69,6 +100,7 @@ class OperationMessageThread {
     required this.counterpartTeamName,
     required this.lastMessagePreview,
     required this.unreadCount,
+    required this.canReply,
     required this.updatedAt,
     required this.lastMessageAt,
     this.messages = const [],
@@ -76,6 +108,9 @@ class OperationMessageThread {
 
   final String id;
   final String title;
+  final String threadType;
+  final String channelLabel;
+  final int participantCount;
   final String? counterpartId;
   final String counterpartName;
   final String counterpartRole;
@@ -83,14 +118,20 @@ class OperationMessageThread {
   final String counterpartTeamName;
   final String lastMessagePreview;
   final int unreadCount;
+  final bool canReply;
   final DateTime? updatedAt;
   final DateTime? lastMessageAt;
   final List<OperationMessageItem> messages;
+
+  bool get isBroadcast => threadType != 'direct';
 
   factory OperationMessageThread.fromJson(Map<String, dynamic> json) {
     return OperationMessageThread(
       id: json['id']?.toString() ?? '',
       title: json['title'] as String? ?? '',
+      threadType: json['thread_type'] as String? ?? 'direct',
+      channelLabel: json['channel_label'] as String? ?? '',
+      participantCount: json['participant_count'] as int? ?? 0,
       counterpartId: json['counterpart_id']?.toString(),
       counterpartName: json['counterpart_name'] as String? ?? '',
       counterpartRole: json['counterpart_role'] as String? ?? '',
@@ -98,6 +139,7 @@ class OperationMessageThread {
       counterpartTeamName: json['counterpart_team_name'] as String? ?? '',
       lastMessagePreview: json['last_message_preview'] as String? ?? '',
       unreadCount: json['unread_count'] as int? ?? 0,
+      canReply: json['can_reply'] as bool? ?? true,
       updatedAt: DateTime.tryParse(json['updated_at'] as String? ?? ''),
       lastMessageAt: DateTime.tryParse(
         json['last_message_at'] as String? ?? '',
@@ -114,6 +156,9 @@ class OperationMessageThread {
   OperationMessageThread copyWith({
     String? id,
     String? title,
+    String? threadType,
+    String? channelLabel,
+    int? participantCount,
     String? counterpartId,
     String? counterpartName,
     String? counterpartRole,
@@ -121,6 +166,7 @@ class OperationMessageThread {
     String? counterpartTeamName,
     String? lastMessagePreview,
     int? unreadCount,
+    bool? canReply,
     DateTime? updatedAt,
     DateTime? lastMessageAt,
     List<OperationMessageItem>? messages,
@@ -128,6 +174,9 @@ class OperationMessageThread {
     return OperationMessageThread(
       id: id ?? this.id,
       title: title ?? this.title,
+      threadType: threadType ?? this.threadType,
+      channelLabel: channelLabel ?? this.channelLabel,
+      participantCount: participantCount ?? this.participantCount,
       counterpartId: counterpartId ?? this.counterpartId,
       counterpartName: counterpartName ?? this.counterpartName,
       counterpartRole: counterpartRole ?? this.counterpartRole,
@@ -135,6 +184,7 @@ class OperationMessageThread {
       counterpartTeamName: counterpartTeamName ?? this.counterpartTeamName,
       lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
       unreadCount: unreadCount ?? this.unreadCount,
+      canReply: canReply ?? this.canReply,
       updatedAt: updatedAt ?? this.updatedAt,
       lastMessageAt: lastMessageAt ?? this.lastMessageAt,
       messages: messages ?? this.messages,
@@ -146,11 +196,13 @@ class OperationMessageInboxSnapshot {
   const OperationMessageInboxSnapshot({
     required this.threads,
     required this.contacts,
+    required this.broadcastTargets,
     required this.pollIntervalSeconds,
   });
 
   final List<OperationMessageThread> threads;
   final List<OperationMessageContact> contacts;
+  final List<OperationMessageBroadcastTarget> broadcastTargets;
   final int pollIntervalSeconds;
 
   factory OperationMessageInboxSnapshot.fromJson(Map<String, dynamic> json) {
@@ -167,6 +219,14 @@ class OperationMessageInboxSnapshot {
                 OperationMessageContact.fromJson(item as Map<String, dynamic>),
           )
           .toList(growable: false),
+      broadcastTargets:
+          (json['broadcast_targets'] as List<dynamic>? ?? const [])
+              .map(
+                (item) => OperationMessageBroadcastTarget.fromJson(
+                  item as Map<String, dynamic>,
+                ),
+              )
+              .toList(growable: false),
       pollIntervalSeconds: json['poll_interval_seconds'] as int? ?? 8,
     );
   }

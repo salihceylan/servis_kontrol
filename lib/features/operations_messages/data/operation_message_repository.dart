@@ -5,6 +5,8 @@ abstract class OperationMessageRepository {
 
   Future<OperationMessageThread> openThread(String counterpartUserId);
 
+  Future<OperationMessageThread> openBroadcastThread(String targetId);
+
   Future<OperationMessageThread> loadThread(String threadId);
 
   Future<OperationMessageThread> sendMessage({

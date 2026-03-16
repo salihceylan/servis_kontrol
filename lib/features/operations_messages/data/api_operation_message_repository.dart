@@ -40,6 +40,17 @@ class ApiOperationMessageRepository implements OperationMessageRepository {
   }
 
   @override
+  Future<OperationMessageThread> openBroadcastThread(String targetId) async {
+    final payload = await _client.postMap(
+      'operations/messages/broadcasts/open',
+      body: {'target_id': targetId},
+    );
+    return OperationMessageThread.fromJson(
+      payload['thread'] as Map<String, dynamic>? ?? payload,
+    );
+  }
+
+  @override
   Future<OperationMessageThread> sendMessage({
     required String threadId,
     required String body,

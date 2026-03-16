@@ -29,6 +29,7 @@ class OperationMessageDockController extends ChangeNotifier {
 
   List<OperationMessageThread> _threads = const [];
   List<OperationMessageContact> _contacts = const [];
+  List<OperationMessageBroadcastTarget> _broadcastTargets = const [];
   String? _selectedThreadId;
   bool _isLoading = true;
   bool _isOpen = false;
@@ -38,13 +39,17 @@ class OperationMessageDockController extends ChangeNotifier {
   Duration _pollInterval = const Duration(seconds: 8);
 
   bool get shouldShow =>
-      _user.role == UserRole.manager || _user.role == UserRole.teamLead;
+      _user.role == UserRole.manager ||
+      _user.role == UserRole.teamLead ||
+      _user.role == UserRole.employee;
   bool get isLoading => _isLoading;
   bool get isOpen => _isOpen;
   bool get isSending => _isSending;
   String? get errorMessage => _errorMessage;
   List<OperationMessageThread> get threads => _threads;
   List<OperationMessageContact> get contacts => _contacts;
+  List<OperationMessageBroadcastTarget> get broadcastTargets =>
+      _broadcastTargets;
   int get unreadCount =>
       _threads.fold(0, (total, thread) => total + thread.unreadCount);
 
@@ -75,6 +80,7 @@ class OperationMessageDockController extends ChangeNotifier {
       final inbox = await _repository.loadInbox();
       _threads = inbox.threads;
       _contacts = inbox.contacts;
+      _broadcastTargets = inbox.broadcastTargets;
       _pollInterval = Duration(seconds: inbox.pollIntervalSeconds);
       _ensureSelection();
       if (_enablePolling) {
@@ -130,10 +136,31 @@ class OperationMessageDockController extends ChangeNotifier {
     }
   }
 
+  Future<void> openBroadcastTarget(OperationMessageBroadcastTarget target) async {
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final thread = await _repository.openBroadcastThread(target.id);
+      _writeThread(thread);
+      _isOpen = true;
+    } on ApiException catch (error) {
+      _errorMessage = error.message;
+    } catch (_) {
+      _errorMessage = 'Duyuru kanalı açılamadı.';
+    } finally {
+      notifyListeners();
+    }
+  }
+
   Future<bool> sendMessage(String body) async {
     final thread = selectedThread;
     final normalized = body.trim();
     if (thread == null || normalized.isEmpty) {
+      return false;
+    }
+    if (!thread.canReply) {
+      _errorMessage = 'Bu kanalda yalnızca yönetici veya ekip lideri mesaj gönderebilir.';
+      notifyListeners();
       return false;
     }
 
@@ -177,6 +204,7 @@ class OperationMessageDockController extends ChangeNotifier {
       final inbox = await _repository.loadInbox();
       _threads = inbox.threads;
       _contacts = inbox.contacts;
+      _broadcastTargets = inbox.broadcastTargets;
       _ensureSelection();
       if (_selectedThreadId != null) {
         final thread = await _repository.loadThread(_selectedThreadId!);

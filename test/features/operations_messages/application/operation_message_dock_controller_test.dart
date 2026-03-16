@@ -16,6 +16,7 @@ void main() {
 
     await controller.load();
     expect(controller.contacts, isNotEmpty);
+    expect(controller.broadcastTargets, isNotEmpty);
     expect(controller.threads, isNotEmpty);
 
     await controller.openThreadWithContact(controller.contacts.first);
@@ -29,6 +30,21 @@ void main() {
     );
     expect(controller.selectedThread!.unreadCount, 0);
   });
+
+  test('manager sirket kanali acabilir', () async {
+    final controller = OperationMessageDockController(
+      user: managerUser,
+      apiClient: createTestApiClient(),
+      repository: _FakeOperationMessageRepository(),
+      enablePolling: false,
+    );
+
+    await controller.load();
+    await controller.openBroadcastTarget(controller.broadcastTargets.first);
+
+    expect(controller.selectedThread, isNotNull);
+    expect(controller.selectedThread!.threadType, 'company_broadcast');
+  });
 }
 
 class _FakeOperationMessageRepository implements OperationMessageRepository {
@@ -36,13 +52,17 @@ class _FakeOperationMessageRepository implements OperationMessageRepository {
     'thread-1': OperationMessageThread(
       id: 'thread-1',
       title: 'Merkez Operasyon',
+      threadType: 'direct',
+      channelLabel: 'Direkt hat',
+      participantCount: 2,
       counterpartId: 'teamlead-1',
       counterpartName: 'Onur Demir',
       counterpartRole: 'team_lead',
       counterpartRoleLabel: 'Ekip Lideri',
       counterpartTeamName: 'Merkez Ekip',
-      lastMessagePreview: 'Saha hazır.',
+      lastMessagePreview: 'Saha hazir.',
       unreadCount: 1,
+      canReply: true,
       updatedAt: DateTime(2026, 3, 16, 10),
       lastMessageAt: DateTime(2026, 3, 16, 10),
       messages: [
@@ -50,7 +70,7 @@ class _FakeOperationMessageRepository implements OperationMessageRepository {
           id: 'msg-1',
           senderUserId: 'teamlead-1',
           senderName: 'Onur Demir',
-          body: 'Saha hazır.',
+          body: 'Saha hazir.',
           createdAt: DateTime(2026, 3, 16, 10),
           isMine: false,
         ),
@@ -74,6 +94,15 @@ class _FakeOperationMessageRepository implements OperationMessageRepository {
     return OperationMessageInboxSnapshot(
       threads: _threads.values.toList(growable: false),
       contacts: _contacts,
+      broadcastTargets: const [
+        OperationMessageBroadcastTarget(
+          id: 'company',
+          scopeCode: 'company',
+          label: 'Sirket kanali',
+          description: 'Tum aktif kullanicilar',
+          participantCount: 12,
+        ),
+      ],
       pollIntervalSeconds: 8,
     );
   }
@@ -100,6 +129,30 @@ class _FakeOperationMessageRepository implements OperationMessageRepository {
   }
 
   @override
+  Future<OperationMessageThread> openBroadcastThread(String targetId) async {
+    final thread = OperationMessageThread(
+      id: 'thread-broadcast',
+      title: 'Sirket Operasyon Hatti',
+      threadType: 'company_broadcast',
+      channelLabel: 'Sirket hatti',
+      participantCount: 12,
+      counterpartId: null,
+      counterpartName: 'Sirket Operasyon Hatti',
+      counterpartRole: '',
+      counterpartRoleLabel: 'Sirket duyurusu',
+      counterpartTeamName: '',
+      lastMessagePreview: 'Acil bakim bilgisi paylasildi.',
+      unreadCount: 0,
+      canReply: true,
+      updatedAt: DateTime(2026, 3, 16, 11),
+      lastMessageAt: DateTime(2026, 3, 16, 11),
+      messages: const [],
+    );
+    _threads[thread.id] = thread;
+    return thread;
+  }
+
+  @override
   Future<OperationMessageThread> sendMessage({
     required String threadId,
     required String body,
@@ -114,7 +167,7 @@ class _FakeOperationMessageRepository implements OperationMessageRepository {
           id: 'msg-2',
           senderUserId: '1',
           senderName: 'Merve Aydin',
-          body: 'Merkez ekip sahaya ciksin.',
+          body: body,
           createdAt: DateTime(2026, 3, 16, 10, 5),
           isMine: true,
         ),

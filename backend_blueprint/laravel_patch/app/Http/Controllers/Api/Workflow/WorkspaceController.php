@@ -126,6 +126,20 @@ class WorkspaceController extends Controller
         ]);
     }
 
+    public function openOperationBroadcast(Request $request): JsonResponse
+    {
+        $payload = $request->validate([
+            'target_id' => ['required', 'string', 'max:80'],
+        ]);
+
+        return response()->json([
+            'thread' => $this->operationMessages->openBroadcast(
+                $request->user(),
+                $payload['target_id'],
+            ),
+        ]);
+    }
+
     public function operationThread(Request $request, string $threadId): JsonResponse
     {
         return response()->json([

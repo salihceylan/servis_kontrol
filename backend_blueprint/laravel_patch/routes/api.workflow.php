@@ -41,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
 
     Route::get('/operations/messages', [WorkspaceController::class, 'operationInbox']);
     Route::post('/operations/messages/threads/open', [WorkspaceController::class, 'openOperationThread']);
+    Route::post('/operations/messages/broadcasts/open', [WorkspaceController::class, 'openOperationBroadcast']);
     Route::get('/operations/messages/threads/{threadId}', [WorkspaceController::class, 'operationThread']);
     Route::post('/operations/messages/threads/{threadId}/messages', [WorkspaceController::class, 'sendOperationMessage']);
     Route::post('/operations/messages/threads/{threadId}/read', [WorkspaceController::class, 'markOperationThreadRead']);
