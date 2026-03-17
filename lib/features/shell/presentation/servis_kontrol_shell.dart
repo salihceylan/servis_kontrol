@@ -50,6 +50,7 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
 
   AppUser get _user => widget.user;
   UserRole get _role => _user.role;
+
   bool get _canAccessSettings => switch (_role) {
     UserRole.manager ||
     UserRole.superAdmin ||
@@ -123,6 +124,8 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
     );
   }
 
+  // ── Sidebar items (desktop) ───────────────────────────────────────────────
+
   List<(AppSection, String, IconData)> get _sidebarItems => switch (_role) {
     UserRole.employee => [
       (AppSection.panel, 'Panel', Icons.grid_view_rounded),
@@ -154,6 +157,122 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
       (AppSection.reports, 'Raporlar', Icons.insert_chart_outlined_rounded),
     ],
   };
+
+  // ── Bottom nav primary tabs (mobile) ─────────────────────────────────────
+
+  List<(AppSection, String, IconData)> get _primaryTabs => switch (_role) {
+    UserRole.employee => [
+      (AppSection.panel, 'Panel', Icons.grid_view_rounded),
+      (AppSection.tasks, 'Görevlerim', Icons.task_alt_rounded),
+      (AppSection.revisions, 'Revizyonlarım', Icons.autorenew_rounded),
+      (AppSection.performance, 'Performansım', Icons.insights_rounded),
+    ],
+    UserRole.teamLead => [
+      (AppSection.panel, 'Panel', Icons.grid_view_rounded),
+      (AppSection.tasks, 'Görevler', Icons.task_alt_rounded),
+      (AppSection.team, 'Takımım', Icons.groups_2_outlined),
+      (AppSection.revisions, 'Revizyonlar', Icons.autorenew_rounded),
+    ],
+    UserRole.manager ||
+    UserRole.superAdmin ||
+    UserRole.sales ||
+    UserRole.support => [
+      (AppSection.panel, 'Panel', Icons.grid_view_rounded),
+      (AppSection.tasks, 'Görevler', Icons.task_alt_rounded),
+      (AppSection.team, 'Ekip', Icons.groups_2_outlined),
+      (AppSection.reports, 'Raporlar', Icons.insert_chart_outlined_rounded),
+    ],
+  };
+
+  /// Sections that overflow into "Daha Fazla" sheet on mobile.
+  List<(AppSection, String, IconData)> get _moreSections {
+    final primarySet = _primaryTabs.map((t) => t.$1).toSet();
+    final allItems = [
+      ..._sidebarItems,
+      if (_canAccessSettings)
+        (AppSection.settings, 'Genel Ayarlar', Icons.settings_outlined),
+      (AppSection.help, 'Yardım Merkezi', Icons.help_outline_rounded),
+    ];
+    return allItems.where((t) => !primarySet.contains(t.$1)).toList();
+  }
+
+  /// Bottom nav index for the current section (last index = "Daha Fazla").
+  int get _currentBottomNavIndex {
+    final idx = _primaryTabs.indexWhere((t) => t.$1 == _visibleSelected);
+    return idx >= 0 ? idx : _primaryTabs.length;
+  }
+
+  void _openMoreSheet(AppRolePalette palette) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: palette.border,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+              for (final item in _moreSections)
+                ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  tileColor: _visibleSelected == item.$1
+                      ? palette.primary.withValues(alpha: 0.1)
+                      : null,
+                  leading: Icon(item.$3, color: palette.primary),
+                  title: Text(
+                    item.$2,
+                    style: TextStyle(
+                      fontWeight: _visibleSelected == item.$1
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    setState(() => _selected = item.$1);
+                  },
+                ),
+              const SizedBox(height: 8),
+              ListTile(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                leading: const Icon(Icons.logout_rounded, color: Colors.red),
+                title: const Text(
+                  'Çıkış Yap',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  widget.onLogout();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ── Top nav items (desktop top bar) ──────────────────────────────────────
 
   List<(AppSection, String)> get _topNavItems => switch (_role) {
     UserRole.employee => [
@@ -200,56 +319,180 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
     UserRole.support => ('Görev Ata', Icons.add_rounded, AppSection.team),
   };
 
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    final palette = context.rolePalette;
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 1100;
-        return Scaffold(
-          drawer: wide
-              ? null
-              : Drawer(
-                  backgroundColor: palette.sidebar,
-                  child: SafeArea(child: _sidebar()),
-                ),
-          body: SafeArea(
-            child: Stack(
-              children: [
-                Row(
-                  children: [
-                    if (wide) SizedBox(width: 244, child: _sidebar()),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          _topBar(wide),
-                          Expanded(
-                            child: SingleChildScrollView(
-                              padding: EdgeInsets.fromLTRB(
-                                wide ? 20 : 14,
-                                20,
-                                wide ? 20 : 14,
-                                24,
-                              ),
-                              child: _content(),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                OperationMessageDock(
-                  user: _user,
-                  controller: _messageDockController,
-                ),
-              ],
-            ),
-          ),
-        );
+        return wide ? _buildWide() : _buildNarrow();
       },
     );
   }
+
+  // Desktop layout — unchanged
+  Widget _buildWide() {
+    final palette = context.rolePalette;
+    return Scaffold(
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Row(
+              children: [
+                SizedBox(width: 244, child: _sidebar()),
+                Expanded(
+                  child: Column(
+                    children: [
+                      _desktopTopBar(palette),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                          child: _content(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            OperationMessageDock(
+              user: _user,
+              controller: _messageDockController,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Mobile layout — bottom nav
+  Widget _buildNarrow() {
+    final palette = context.rolePalette;
+    final tabs = _primaryTabs;
+    final currentIndex = _currentBottomNavIndex;
+
+    return Scaffold(
+      appBar: _mobileAppBar(palette),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: currentIndex,
+        onDestinationSelected: (index) {
+          if (index == tabs.length) {
+            _openMoreSheet(palette);
+          } else {
+            setState(() => _selected = tabs[index].$1);
+          }
+        },
+        destinations: [
+          for (final tab in tabs)
+            NavigationDestination(
+              icon: Icon(tab.$3),
+              label: tab.$2,
+            ),
+          const NavigationDestination(
+            icon: Icon(Icons.more_horiz_rounded),
+            label: 'Daha Fazla',
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(14, 16, 14, 24),
+              child: _content(),
+            ),
+            OperationMessageDock(
+              user: _user,
+              controller: _messageDockController,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _mobileAppBar(AppRolePalette palette) {
+    final primaryAction = _primaryAction;
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      scrolledUnderElevation: 1,
+      title: Row(
+        children: [
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: palette.primary,
+            child: const Icon(
+              Icons.dashboard_customize_rounded,
+              color: Colors.white,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'ServisKontrol',
+            style: TextStyle(
+              color: palette.text,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        FilledButton.icon(
+          onPressed: () => setState(() => _selected = primaryAction.$3),
+          style: FilledButton.styleFrom(
+            backgroundColor: palette.primary,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          icon: Icon(primaryAction.$2, size: 16),
+          label: Text(
+            primaryAction.$1,
+            style: const TextStyle(fontSize: 13),
+          ),
+        ),
+        const SizedBox(width: 8),
+        AnimatedBuilder(
+          animation: _notificationController,
+          builder: (context, _) {
+            final unreadCount = _notificationController.unreadCount;
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  onPressed: _openNotifications,
+                  icon: const Icon(Icons.notifications_none_rounded),
+                ),
+                if (unreadCount > 0)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: AppPalette.danger,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(width: 4),
+      ],
+    );
+  }
+
+  // ── Desktop sidebar ───────────────────────────────────────────────────────
 
   Widget _sidebar() {
     final palette = context.rolePalette;
@@ -421,12 +664,13 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
     );
   }
 
-  Widget _topBar(bool wide) {
+  // ── Desktop top bar ───────────────────────────────────────────────────────
+
+  Widget _desktopTopBar(AppRolePalette palette) {
     final nav = _topNavItems;
     final primaryAction = _primaryAction;
     final selected = _visibleSelected;
     final quickAction = _quickAction;
-    final palette = context.rolePalette;
 
     return Container(
       decoration: BoxDecoration(
@@ -436,56 +680,46 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          if (!wide)
-            Builder(
-              builder: (context) => IconButton(
-                onPressed: () => Scaffold.of(context).openDrawer(),
-                icon: const Icon(Icons.menu_rounded),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 320),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Ara...',
+                prefixIcon: const Icon(Icons.search_rounded),
+                fillColor: palette.surfaceMuted,
               ),
             ),
+          ),
+          const SizedBox(width: 20),
           Expanded(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 320),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Ara...',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  fillColor: palette.surfaceMuted,
+            child: Align(
+              alignment: Alignment.center,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final item in nav)
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _selected = item.$1),
+                        child: Text(
+                          item.$2,
+                          style: TextStyle(
+                            color: selected == item.$1
+                                ? palette.text
+                                : palette.muted,
+                            fontWeight: selected == item.$1
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
           ),
-          if (wide) ...[
-            const SizedBox(width: 20),
-            Expanded(
-              child: Align(
-                alignment: Alignment.center,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final item in nav)
-                        TextButton(
-                          onPressed: () => setState(() => _selected = item.$1),
-                          child: Text(
-                            item.$2,
-                            style: TextStyle(
-                              color: selected == item.$1
-                                  ? palette.text
-                                  : palette.muted,
-                              fontWeight: selected == item.$1
-                                  ? FontWeight.w800
-                                  : FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
           FilledButton.icon(
             onPressed: () => setState(() => _selected = primaryAction.$3),
             style: FilledButton.styleFrom(
@@ -547,6 +781,8 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
     );
   }
 
+  // ── Content router ────────────────────────────────────────────────────────
+
   Widget _content() {
     switch (_visibleSelected) {
       case AppSection.panel:
@@ -574,6 +810,8 @@ class _ServisKontrolShellState extends State<ServisKontrolShell> {
     }
   }
 }
+
+// ── Shared widgets ────────────────────────────────────────────────────────────
 
 class _SidebarTile extends StatelessWidget {
   const _SidebarTile({
